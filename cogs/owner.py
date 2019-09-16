@@ -23,7 +23,7 @@ class Info(commands.Cog, command_attrs=dict(hidden=True)):
     async def source(self, ctx, *, command_name=None):
         # idea pretty much taken from
         # https://github.com/Rapptz/RoboDanny/blob/99a8545b8aa86c75701f131a29d61bbc2f703eb6/cogs/meta.py#L329
-        git_url = "https://github.com/CaladBlogBaal/discordbot"
+        git_url = "https://github.com/CaladBlogBaal/Victorique"
 
         if not command_name:
             return await ctx.send(git_url)
