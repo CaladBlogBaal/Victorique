@@ -99,6 +99,13 @@ class OwnerCog(commands.Cog, name="Owner Commands", command_attrs=dict(hidden=Tr
 
         return True
 
+    @commands.command()
+    async def invite(self, ctx):
+        # change this if you want
+        await ctx.send(
+            "https://discordapp.com/oauth2/authorize?client_id=558747464161820723&scope=bot&permissions=1342515266"
+        )
+
     @commands.command(name="close", hidden=True)
     async def __close(self, ctx):
         """closes the bot"""
