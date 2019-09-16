@@ -1,0 +1,8 @@
+.idea
+__pycache__/
+
+venv/*
+
+config/floof.json
+loadconfig.py
+
