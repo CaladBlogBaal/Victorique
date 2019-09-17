@@ -1,6 +1,7 @@
 import random
 import asyncio
 import typing
+import html
 
 from contextlib import suppress
 import aiohttp.client_exceptions
@@ -29,11 +30,9 @@ class MoeBooruApi:
         self.post_url = url
 
     async def get_image(self, limit=1, tags=None, safe=True):
-        print(tags)
 
         if tags is not None:
             tags = self.process_tags(tags)
-            print(tags)
 
         params = {
 
@@ -127,7 +126,8 @@ class AnimePicturesNet:
 
         amount_of_pages = int(text[0].split(" ")[2]) // 80
 
-        if amount_of_pages > 1 and tags:
+        if amount_of_pages >= 1 and tags:
+
             random_page = random.randint(0, amount_of_pages)
 
             content = await self.fetch(f"https://anime-pictures.net/pictures/view_posts/"
@@ -267,6 +267,7 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
     @staticmethod
     def _embed(image_url, source, og_url="", tags="no tags"):
         # to not exceed the 2048 embed text limit.
+        tags = html.unescape(tags)
         if len(tags) > 1200:
             tags.split(" ")
             tags_cut = ""
