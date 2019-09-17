@@ -419,7 +419,7 @@ class Games(commands.Cog):
 
         await ctx.send(f"quiz finished :white_check_mark: {score.score}")
 
-    @commands.command(alaises=["ttt"])
+    @commands.command(aliases=["ttt"])
     async def tictactoe(self, ctx, mention: discord.Member):
         """
         play a game of TicTacToe
@@ -577,6 +577,7 @@ class Games(commands.Cog):
             turn_msg = await ctx.send(f"It's {member.name} turn")
 
             with contextlib.suppress(discord.HTTPException):
+                cancel_after = 0
                 try:
                     reaction, user = await self.bot.wait_for('reaction_add', timeout=30, check=_check)
                     await msg.remove_reaction(reaction, user)
@@ -588,8 +589,12 @@ class Games(commands.Cog):
                             break
 
                         else:
-                            await ctx.send(":no_entry: | " + member.name + " invalid move react again")
+                            await ctx.send(":no_entry: | " + member.name + " invalid move react again", delete_after=3)
                             reaction, user = await self.bot.wait_for('reaction_add', timeout=30, check=_check)
+                            cancel_after += 1
+                            if cancel_after == 5:
+                                return await ctx.send(":no_entry: | too many invalid moves cancelling the game.",
+                                                      delete_after=10)
 
                     place_letter(_letter, reactions.index(reaction.emoji) + 1)
 
