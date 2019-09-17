@@ -1,8 +1,6 @@
 import contextlib
 import asyncio
 import random
-import time
-import re
 import html
 
 import numpy as np
