@@ -42,18 +42,20 @@ class Victorique(commands.Bot):
 
     async def update_databases(self, guild=None):
         if guild:
-            async with self.db.aquire() as con:
+            async with self.db.acquire() as con:
                 await con.execute("""INSERT INTO guilds (guild_id, allow_default) VALUES ($1,$2)
                                   ON CONFLICT DO NOTHING;""", guild.id, True)
-            generator = ((m.id, m.name, 3000) for m in guild.members if not m.bot)
+            data = [(m.id, m.name, 3000) for m in guild.members if not m.bot]
         else:
-            generator = ((m.id, m.name, 3000) for m in self.get_all_members() if not m.bot)
-        member_ids = list((data[0],) for data in generator)
-        user_update = list(data for data in generator)
+            data = [(m.id, m.name, 3000) for m in self.get_all_members() if not m.bot]
+        member_ids = list((data[0],) for data in data)
+        user_update = list(data for data in data)
         async with self.db.acquire() as con:
             async with con.transaction():
                 await con.executemany("""INSERT INTO users (user_id, name, credits) 
-                                             VALUES ($1,$2,$3) ON CONFLICT DO NOTHING;""", user_update)
+                                         VALUES ($1,$2,$3) ON CONFLICT DO NOTHING;""", user_update)
+
+            async with con.transaction():
                 await con.executemany("INSERT INTO fish_users (user_id) VALUES ($1) ON CONFLICT DO NOTHING;",
                                       member_ids)
 
