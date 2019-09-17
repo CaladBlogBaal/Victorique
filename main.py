@@ -125,7 +125,7 @@ async def get_prefix(bot_, msg):
 
     prefix = [data["prefix"]]
 
-    if not prefix:
+    if not prefix[0]:
         prefix = []
 
     if data["allow_default"]:
