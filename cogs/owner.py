@@ -15,7 +15,7 @@ from discord.ext import commands
 from config.utils.paginator import Paginator, WarpedPaginator
 
 
-class Info(commands.Cog, command_attrs=dict(hidden=True)):
+class Info(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
@@ -65,6 +65,8 @@ class Info(commands.Cog, command_attrs=dict(hidden=True)):
 
         ignore_these = (604816023291428874, 604688858591920148, 604688905190637598, 604688959640961038)
         guild_count = len([g for g in self.bot.guilds if g.id not in ignore_these])
+        invite_url = "[invite url](https://discordapp.com" \
+                     "/oauth2/authorize?client_id=558747464161820723&scope=bot&permissions=1342515266)"
 
         # pretty much a modified version of the jishaku, jsk/jishaku command
         proc = psutil.Process()
@@ -72,17 +74,17 @@ class Info(commands.Cog, command_attrs=dict(hidden=True)):
         command_count = len({command for command in ctx.bot.walk_commands() if "jishaku" not in
                              command.name and "jishaku" not in command.qualified_name})
         py_version = ".".join(str(n) for n in sys.version_info[:3])
-        embed = discord.Embed(color=self.bot.default_colors(), title="", description="")
-        embed.add_field(name="Basic:", value=f"**OS**:\n{platform.platform()}\n**Hostname:**\nOVH\n**Python Version:**\n"
-                        f"{py_version}", inline=False)
-        embed.add_field(name="Dev:", value="CaladWoDestroyer#9313", inline=False)
-        embed.add_field(name="Library:", value=f"Discord.py {discord.__version__}", inline=False)
-        embed.add_field(name="Commands:", value=str(command_count), inline=False)
-        embed.add_field(name="Guilds:", value=str(guild_count), inline=False)
-        embed.add_field(name="RAM:", value=str(h.naturalsize(mem.rss)), inline=False)
+        embed = discord.Embed(color=self.bot.default_colors(), title="", description=f"")
+        embed.add_field(name="Basic:", value=f"**OS**: {platform.platform()}\n**Hostname: **OVH\n**Python Version: **"
+                        f"{py_version}\n**Links**: {invite_url}")
+        embed.add_field(name="Dev:", value="CaladWoDestroyer#9313")
+        embed.add_field(name="Library:", value=f"Discord.py {discord.__version__}")
+        embed.add_field(name="Commands:", value=str(command_count))
+        embed.add_field(name="Guilds:", value=str(guild_count))
+        embed.add_field(name="RAM:", value=f"Using {str(h.naturalsize(mem.rss))}")
         embed.add_field(name="VRAM:", value=str(h.naturalsize(mem.vms) + f" of which {str(h.naturalsize(mem.uss))}"
-                        f"\nis unique to this process"), inline=False)
-        embed.add_field(name="Ping", value=str(round(self.bot.latency * 1000, 2)), inline=False)
+                        f"\nis unique to this process"))
+        embed.add_field(name="Ping", value=str(round(self.bot.latency * 1000, 2)))
         await ctx.send(embed=embed)
 
 
