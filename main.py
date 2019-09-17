@@ -125,6 +125,9 @@ async def get_prefix(bot_, msg):
 
     prefix = [data["prefix"]]
 
+    if not prefix:
+        prefix = []
+
     if data["allow_default"]:
         prefix.append(loadconfig.__prefix__)
 
