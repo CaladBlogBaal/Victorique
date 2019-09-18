@@ -466,7 +466,7 @@ class AzurLane(commands.Cog, name="Azur Lane"):
 
         for row in self.ship_gear_hub:
             if row[0].lower() == ship_name.lower():
-                ship_name = ship_name.lower().capitalize()
+                ship_name = row[0]
                 url = row[3]
                 embed = await self.make_gear_guide_embed(ctx, ship_name, url)
                 return await ctx.send(embed=embed)
