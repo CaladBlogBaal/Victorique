@@ -260,7 +260,7 @@ async def on_member_join(member):
     async with bot.db.acquire() as con:
         async with con.transaction():
             await con.execute("INSERT INTO users (user_id, name, credits) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING;",
-                              (member.id, member.name, 3000))
+                              member.id, member.name, 3000)
             await con.execute("INSERT INTO fish_users (user_id) VALUES ($1) ON CONFLICT DO NOTHING;", member.id)
 
 
