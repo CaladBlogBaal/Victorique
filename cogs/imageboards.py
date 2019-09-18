@@ -390,7 +390,7 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
 
         async with ctx.con.transaction():
             await ctx.con.fetchval("UPDATE guilds SET nsfw_channel = NULL where guild_id = $1 ", ctx.guild.id)
-
+        channel = self.bot.get_channel(channel)
         await ctx.send(f"{channel.mention} has been removed as the NSFW channel.")
 
     @commands.group(invoke_without_command=True, name="sb")
