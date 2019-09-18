@@ -461,7 +461,7 @@ class AzurLane(commands.Cog, name="Azur Lane"):
         await self.azur_lane_wiki_search(ctx, item)
 
     @commands.group(aliases=["gg"], invoke_without_command=True)
-    async def gear_guide(self, ctx, ship_name):
+    async def gear_guide(self, ctx, *, ship_name):
         """the main command for gear guides by itself gets the gear guide of a ship"""
 
         for row in self.ship_gear_hub:
@@ -474,13 +474,13 @@ class AzurLane(commands.Cog, name="Azur Lane"):
         return await ctx.send(f"> couldn't find a guide for {ship_name}")
 
     @gear_guide.command()
-    async def hull(self, ctx, hull):
+    async def hull(self, ctx, *, hull):
         """get a list of gear guides based on hull type."""
         await ctx.trigger_typing()
         await self.get_hull_or_rarity(ctx, 2, hull)
 
     @gear_guide.command()
-    async def rarity(self, ctx, rarity):
+    async def rarity(self, ctx, *, rarity):
         """get a list of gear guides based on rarity
            rarities are as follow common, rare, elite, super rare or ssr."""
         await ctx.trigger_typing()
