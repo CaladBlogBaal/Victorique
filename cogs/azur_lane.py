@@ -464,6 +464,9 @@ class AzurLane(commands.Cog, name="Azur Lane"):
     async def gear_guide(self, ctx, *, ship_name):
         """the main command for gear guides by itself gets the gear guide of a ship"""
 
+        if "kai" in ship_name.lower():
+            ship_name = ship_name[::-1].replace(" ", "", 1)[::-1]
+
         for row in self.ship_gear_hub:
             if row[0].lower() == ship_name.lower():
                 ship_name = row[0]
