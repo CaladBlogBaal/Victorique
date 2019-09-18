@@ -49,9 +49,7 @@ class Info(commands.Cog):
 
             for chunk in source_lines:
                 source = "```py\n"
-                for line in chunk:
-                    source += line
-
+                source += "".join(chunk)
                 source += "\n```"
                 await p.add_page(source)
 
@@ -63,8 +61,11 @@ class Info(commands.Cog):
     async def about(self, ctx):
         """Get info about the bot."""
 
+        member_online = len(list(m for m in self.bot.get_all_members() if m.status.value in ("online", "dnd")))
+        member_offline = len(list(m for m in self.bot.get_all_members() if m.status.value == "offline"))
+
         ignore_these = (604816023291428874, 604688858591920148, 604688905190637598, 604688959640961038)
-        guild_count = len([g for g in self.bot.guilds if g.id not in ignore_these])
+        guild_count = len(list(g for g in self.bot.guilds if g.id not in ignore_these))
         invite_url = "[invite url](https://discordapp.com" \
                      "/oauth2/authorize?client_id=558747464161820723&scope=bot&permissions=1342515266)"
 
@@ -81,10 +82,13 @@ class Info(commands.Cog):
         embed.add_field(name="Library:", value=f"Discord.py {discord.__version__}")
         embed.add_field(name="Commands:", value=str(command_count))
         embed.add_field(name="Guilds:", value=str(guild_count))
-        embed.add_field(name="RAM:", value=f"Using {str(h.naturalsize(mem.rss))}")
+        embed.add_field(name="RAM:", value=f"Using {h.naturalsize(mem.rss)}")
         embed.add_field(name="VRAM:", value=str(h.naturalsize(mem.vms) + f" of which {str(h.naturalsize(mem.uss))}"
-                        f"\nis unique to this process"))
-        embed.add_field(name="Ping", value=str(round(self.bot.latency * 1000, 2)))
+                                                f"\nis unique to this process"))
+        embed.add_field(name="Ping", value=round(self.bot.latency * 1000, 2))
+        # get these emotes by joining the discord.py server
+        embed.add_field(name="Members", value=f"<:status_online:596576749790429200> Online: {member_online}\n"
+                                              f"<:status_offline:596576752013279242> Offline: {member_offline}\n")
         await ctx.send(embed=embed)
 
 
