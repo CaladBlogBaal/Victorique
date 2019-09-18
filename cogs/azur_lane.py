@@ -13,12 +13,17 @@ import matplotlib.pyplot as plt
 
 from bs4 import BeautifulSoup
 
-from config.utils.paginator import PaginatorGlobal
+from config.utils.paginator import PaginatorGlobal, Paginator
 
 
 class AzurLane(commands.Cog, name="Azur Lane"):
     """Azur lane related commands"""
     def __init__(self, bot):
+        # thanks to @cyberFluff#9161
+        with open(r"config/Gear Guide Hub.csv", "r") as file:
+            ship_gear_hub = list(csv.reader(file))
+
+        self.ship_gear_hub = ship_gear_hub
         self.bot = bot
 
     @staticmethod
@@ -50,7 +55,7 @@ class AzurLane(commands.Cog, name="Azur Lane"):
                 return evasion_rate
 
     @staticmethod
-    async def azur_lane_wiki_search(ctx, item, allow_none_png=False):
+    async def azur_lane_wiki_search(ctx, item, allow_none_png=False, paginate=True):
 
         if allow_none_png is False:
             with open(r"config/ship_list.json", "r") as f:
@@ -62,10 +67,12 @@ class AzurLane(commands.Cog, name="Azur Lane"):
                 item = item + ".png"
 
             for json_ in ship_json_list:
+
                 if json_.get("name").lower() == item.lower():
+
                     item = json_.get("name").capitalize() + ".png"
 
-                elif json_.get("name").lower() in item.lower():
+                elif json_.get("name").lower() in item.lower() and paginate:
 
                     item = re.sub(r"\s+", "", item, flags=re.UNICODE).replace("_", "")
 
@@ -81,13 +88,48 @@ class AzurLane(commands.Cog, name="Azur Lane"):
         js = await ctx.bot.fetch("https://azurlane.koumakan.jp/w/api.php?action=query", params=kwargs)
 
         for js in js["query"]["allimages"]:
+            if paginate:
 
-            if item in js["url"]:
-                embed = discord.Embed(color=ctx.bot.default_colors(), description=f"[{js['title']}]({js['url']})")
+                if item in js["url"]:
+                    embed = discord.Embed(color=ctx.bot.default_colors(), description=f"[{js['title']}]({js['url']})")
 
-                if allow_none_png is False:
-                    embed.set_image(url=js["url"])
+                    if allow_none_png is False:
+                        embed.set_image(url=js["url"])
 
+                    await p.add_page(embed)
+
+            else:
+                return js["url"]
+
+        try:
+
+            await p.paginate()
+
+        except IndexError:
+            if not paginate:
+                return "https://www.sweetsquared.ie/sca-dev-kilimanjaro/img/no_image_available.jpeg" \
+                       "?resizeid=19&resizeh=1200&resizew=1200"
+            return await ctx.send(f":no_entry: | search failed for {item}")
+
+    async def make_gear_guide_embed(self, ctx, ship_name, url):
+        # since im lazy this only temp
+        if "kai" in ship_name:
+            ship_name = ship_name.replace("kai", "Kai")
+
+        img_url = await self.azur_lane_wiki_search(ctx, ship_name, paginate=False)
+        embed = discord.Embed(title=f"Gear guide for {ship_name}", url=url, color=self.bot.default_colors())
+        embed.set_image(url=img_url)
+        return embed
+
+    async def get_hull_or_rarity(self, ctx, index, item):
+        p = Paginator(ctx)
+        col_name = self.ship_gear_hub[0][index]
+
+        for row in self.ship_gear_hub:
+            if row[index].lower() == item.lower():
+                ship_name = row[0]
+                url = row[3]
+                embed = await self.make_gear_guide_embed(ctx, ship_name, url)
                 await p.add_page(embed)
 
         try:
@@ -95,7 +137,7 @@ class AzurLane(commands.Cog, name="Azur Lane"):
             await p.paginate()
 
         except IndexError:
-            return await ctx.send(f":no_entry: | search failed for {item}")
+            await ctx.send(f"> invalid {col_name} was entered.")
 
     @commands.command()
     async def ehp(self, ctx, enemy_level: typing.Optional[int] = 0, default: typing.Optional[bool] = False,
@@ -417,6 +459,36 @@ class AzurLane(commands.Cog, name="Azur Lane"):
     async def al_img_search(self, ctx, *, item):
         """search for a image on the al wiki"""
         await self.azur_lane_wiki_search(ctx, item)
+
+    @commands.group(aliases=["gg"], invoke_without_command=True)
+    async def gear_guide(self, ctx, ship_name):
+        """the main command for gear guides by itself gets the gear guide of a ship"""
+
+        for row in self.ship_gear_hub:
+            if row[0].lower() == ship_name.lower():
+                ship_name = ship_name.lower().capitalize()
+                url = row[3]
+                embed = await self.make_gear_guide_embed(ctx, ship_name, url)
+                return await ctx.send(embed=embed)
+
+        return await ctx.send(f"> couldn't find a guide for {ship_name}")
+
+    @gear_guide.command()
+    async def hull(self, ctx, hull):
+        """get a list of gear guides based on hull type."""
+        await ctx.trigger_typing()
+        await self.get_hull_or_rarity(ctx, 2, hull)
+
+    @gear_guide.command()
+    async def rarity(self, ctx, rarity):
+        """get a list of gear guides based on rarity
+           rarities are as follow common, rare, elite, super rare or ssr."""
+        await ctx.trigger_typing()
+
+        if rarity.lower() == "super rare":
+            rarity = "ssr"
+
+        await self.get_hull_or_rarity(ctx, 1, rarity)
 
 
 def setup(bot):
