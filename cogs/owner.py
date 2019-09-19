@@ -67,7 +67,7 @@ class Info(commands.Cog):
         ignore_these = (604816023291428874, 604688858591920148, 604688905190637598, 604688959640961038)
         guild_count = len(list(g for g in self.bot.guilds if g.id not in ignore_these))
         invite_url = "[invite url](https://discordapp.com" \
-                     "/oauth2/authorize?client_id=558747464161820723&scope=bot&permissions=1342515266)"
+                     "/oauth2/authorize?client_id=558747464161820723&scope=bot&permissions=1342564418)"
 
         # pretty much a modified version of the jishaku, jsk/jishaku command
         proc = psutil.Process()
