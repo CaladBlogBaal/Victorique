@@ -146,8 +146,6 @@ class Animals(commands.Cog):
         msg = copy.copy(ctx.message)
         msg.content = f"{ctx.prefix}dog {amount} pug"
         new_ctx = await self.bot.get_context(msg)
-        # to not raise an asyncpg.exceptions._base.InterfaceError exception
-        new_ctx.con = await new_ctx.con
         await new_ctx.reinvoke()
 
     @commands.command()

@@ -1,6 +1,9 @@
 # taken from https://gist.github.com/OneEyedKnight/0f188251247c58345a1a97e94d05dd15
 import random
 import asyncio
+from asyncpg import InterfaceError
+
+from contextlib import suppress
 
 import discord
 
@@ -135,7 +138,10 @@ class Paginator:
 
     async def paginate(self):
         # get rid of any lingering postgres pool connections
-        await self.ctx.bot.db.release(self.ctx.con)
+
+        with suppress(InterfaceError):
+            await self.ctx.bot.db.release(self.ctx.con)
+
         perms = True
         if self.ctx.guild is not None:
             perms = self.ctx.me.guild_permissions.manage_messages
