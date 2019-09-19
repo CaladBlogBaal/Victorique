@@ -23,10 +23,10 @@ class Paginator:
         self.index = 0
         self.user = ctx.author
         self.channel = ctx.channel
-        self.reactions = [(str(DLEFT_POINT), self.first_page),
+        self.reactions = [(str(DRIGHT_POINT), self.first_page),
                           (str(LEFT_POINT), self.backward),
                           (str(RIGHT_POINT), self.forward),
-                          (str(DRIGHT_POINT), self.last_page),
+                          (str(DLEFT_POINT), self.last_page),
                           (str(STOP), self.stop)
                           ]
         self.running = True
