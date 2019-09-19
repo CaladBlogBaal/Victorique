@@ -48,7 +48,7 @@ class CommandErrorHandler(commands.Cog):
             return
 
         if isinstance(error, accounted_for):
-            await ctx.send(f"> :no_entry: | {error}", delete_after=10)
+            return await ctx.send(f"> :no_entry: | {error}", delete_after=10)
 
         error_messsage = traceback.format_exception(type(error), error, error.__traceback__)
         error_messsage = "".join(c for c in error_messsage)
