@@ -393,7 +393,7 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
         channel = self.bot.get_channel(channel)
         await ctx.send(f"{channel.mention} has been removed as the NSFW channel.")
 
-    @commands.group(invoke_without_command=True, name="sb")
+    @commands.group(invoke_without_command=True, name="sb", ignore_extra=False)
     async def sb(self, ctx):
         """
         gets a random image from safebooru
@@ -461,7 +461,7 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
         except IndexError:
             pass
 
-    @commands.group(invoke_without_command=True)
+    @commands.group(invoke_without_command=True, ignore_extra=False)
     async def apn(self, ctx):
         """
         gets a random image from anime-pictues.net
@@ -509,7 +509,7 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
 
         await p.paginate()
 
-    @commands.group(invoke_without_command=True)
+    @commands.group(invoke_without_command=True, ignore_extra=False)
     async def ye(self, ctx):
         """
         gets a random image from yande.re eg
@@ -524,7 +524,7 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
 
         await self.post_request(ctx, amount, tags, "https://yande.re/post.json")
 
-    @commands.group(invoke_without_command=True)
+    @commands.group(invoke_without_command=True, ignore_extra=False)
     async def gb(self, ctx):
 
         """
@@ -557,7 +557,7 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
 
         await self.post_request(ctx, amount, tags, "https://gelbooru.com/index.php?page=dapi&s=post&q=index&json=1")
 
-    @commands.group(invoke_without_command=True)
+    @commands.group(invoke_without_command=True, ignore_extra=False)
     async def db(self, ctx):
         """
         gets a random image from danbooru
@@ -572,7 +572,7 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
 
         await self.post_request(ctx, amount, tags, "https://danbooru.donmai.us/posts.json")
 
-    @commands.group(invoke_without_command=True)
+    @commands.group(invoke_without_command=True, ignore_extra=False)
     async def kc(self, ctx):
         """
         gets a random image from konochan
