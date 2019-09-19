@@ -137,7 +137,8 @@ class Animals(commands.Cog):
         """
 
         if breed:
-            await self.api_get_image([""], f"https://dog.ceo/api/breed/{breed}/images/random", "message", ctx, amount)
+            return await self.api_get_image(
+                [""], f"https://dog.ceo/api/breed/{breed}/images/random", "message", ctx, amount)
 
         await self.api_get_image([""], "https://random.dog/woof.json", "url", ctx, amount)
 
