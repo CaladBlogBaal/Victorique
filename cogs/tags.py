@@ -40,6 +40,9 @@ class Tags(commands.Cog):
             except asyncpg.UniqueViolationError:
                 return await ctx.send(f":information_source: | tag name already exists")
 
+            if len(name.split(" ")) >= 2:
+                name = f"\"{name}\""
+
             await ctx.send(f":information_source: | created new tag `{name}` to add content to this tag do "
                            f"`{ctx.prefix}tag update {name} <content here>`.")
 
@@ -56,9 +59,9 @@ class Tags(commands.Cog):
             tag_prefix = loadconfig.__prefix__
             allow_default = False
 
-            if data:
-                tag_prefix = data['prefix']
-                allow_default = data['allow_default']
+            if data["prefix"]:
+                tag_prefix = data["prefix"]
+                allow_default = data["allow_default"]
 
             tags = await self.bot.get_tags(message.guild.id)
 
@@ -97,38 +100,31 @@ class Tags(commands.Cog):
                 urls = reg.findall(tag)
 
                 if urls:
+                    url = urls[0]
+                    if len(urls) > 2:
+                        return await message.channel.send(tag)
 
-                    for url in urls:
-                        check = tag.replace(url, "")
+                    if "SPOILER" in url:
+                        return await message.channel.send(f"|| {url} ||")
 
-                        if len(check) > 0:
+                    async with self.bot.session.get(url) as response:
+                        header = response.headers.get("content-type", "null")
+                        # if the url is dead don't load it into a file
+                        if "image/" not in header or response.status in (404, 403, 400, 401):
                             return await message.channel.send(tag)
 
-                        if "SPOILER" in url:
-                            await message.channel.send(f"|| {url} ||")
-                            continue
+                        extension = header.split("/")[1]
+                        size = response.headers.get("content-length")
+                        size = int(size)
 
-                        async with self.bot.session.get(url) as response:
+                        if size > 5242880:
+                            embed = discord.Embed()
+                            return await message.channel.send(embed=embed.set_image(url=url))
 
-                            if "image/" not in response.headers.get("content-type"):
-                                await message.channel.send(tag)
-                                continue
+                        file_ = discord.File(filename=f"{name}_image.{extension}",
+                                             fp=BytesIO(await self.bot.fetch(url)))
 
-                            extension = response.headers.get("content-type").split("/")[1]
-                            size = response.headers.get("content-length")
-                            if size:
-                                size = int(size)
-
-                            if size > 5242880:
-                                embed = discord.Embed()
-                                await message.channel.send(embed=embed.set_image(url=url))
-                                continue
-
-                        file_ = discord.File(filename=f"{name}_image.{extension}", fp=BytesIO(await self.bot.fetch(url))
-                                             )
-                        await message.channel.send(file=file_)
-
-                    return
+                        return await message.channel.send(file=file_)
 
                 await message.channel.send(tag)
 
