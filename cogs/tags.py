@@ -161,6 +161,28 @@ class Tags(commands.Cog):
         await self.create_tag(ctx, name, ".")
 
     @tag.command()
+    async def claim(self, ctx, *, name: TagNameConvertor):
+
+        data = await ctx.con.fetchrow("SELECT tag_id, user_id FROM tags WHERE guild_id = $1 AND LOWER(tag_name) = $2",
+                                      ctx.guild.id, name.lower())
+        if data is None:
+            return await ctx.send(f'A tag with the name of "{name}" does not exist.')
+
+        try:
+            member = ctx.guild.get_member(data["user_id"]) or await ctx.guild.fetch_member(data["user_id"])
+        except discord.NotFound:
+            member = None
+
+        if member is not None:
+            return await ctx.send(":no_entry: | tag owner is still in the server.")
+
+        async with ctx.con.transaction():
+            await ctx.con.execute("UPDATE tags set user_id = $1 WHERE guild_id = $2 and LOWER(tag_name) = $3",
+                                  ctx.author.id, ctx.guild.id, name)
+
+        await ctx.send(f"> successfully transferred ownership of `{name}` to you.")
+
+    @tag.command()
     async def raw(self, ctx, *, name: TagNameConvertor):
 
         content = await ctx.con.fetchval("SELECT content from tags where LOWER(tag_name) = $1 and guild_id = $2",
@@ -181,7 +203,7 @@ class Tags(commands.Cog):
         if not data:
             return await ctx.send(f"> A tag with name `{name}` does not exist.")
 
-        member = self.bot.get_user(data["user_id"])
+        member = ctx.guild.get_member(data["user_id"]) or await self.bot.fetch_user(data["user_id"])
         date = h.naturaltime(datetime.datetime.utcnow() - data["created_at"])
         embed.add_field(name="Owner", value=member.name)
         embed.add_field(name="Created", value=date, inline=False)
