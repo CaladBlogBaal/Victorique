@@ -40,7 +40,8 @@ class Tags(commands.Cog):
             except asyncpg.UniqueViolationError:
                 return await ctx.send(f":information_source: | tag name already exists")
 
-            await ctx.send(f":information_source: | created new tag `{name}`.")
+            await ctx.send(f":information_source: | created new tag `{name}` to add content to this tag do "
+                           f"`{ctx.prefix}tag update {name} <content here>`.")
 
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -188,7 +189,7 @@ class Tags(commands.Cog):
 
         await ctx.send(embed=embed)
 
-    @tag.command(aliases=["content", "details"])
+    @tag.command(aliases=["content", "details", "update"])
     async def update_content(self, ctx, name: TagNameConvertor, *, content: commands.clean_content):
         """update a tag's content encase the tag's name in quotes if it has spaces"""
 
