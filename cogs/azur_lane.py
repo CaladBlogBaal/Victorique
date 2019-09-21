@@ -1,10 +1,12 @@
 import re
 import asyncio
 import csv
+import shutil
 import json
 import typing
 
 from io import BytesIO
+from tempfile import NamedTemporaryFile
 
 import discord
 from discord.ext import commands
@@ -19,9 +21,10 @@ from config.utils.paginator import PaginatorGlobal, Paginator
 class AzurLane(commands.Cog, name="Azur Lane"):
     """Azur lane related commands"""
     def __init__(self, bot):
+
         # thanks to @cyberFluff#9161
         with open(r"config/Gear Guide Hub.csv", "r") as file:
-            ship_gear_hub = list(csv.reader(file))
+            ship_gear_hub = list(row for row in csv.reader(file) if row)
 
         self.ship_gear_hub = ship_gear_hub
         self.bot = bot
@@ -492,6 +495,29 @@ class AzurLane(commands.Cog, name="Azur Lane"):
             rarity = "ssr"
 
         await self.get_hull_or_rarity(ctx, 1, rarity)
+
+    @gear_guide.command()
+    @commands.is_owner()
+    async def add(self, ctx, url, hull, rarity, *, ship_name):
+        """add a new ship to the csv"""
+        new_row = [ship_name, rarity, hull, url]
+        temp = NamedTemporaryFile(mode="w", delete=False)
+        filename = "config/Gear Guide Hub.csv"
+
+        with open(r"config/Gear Guide Hub.csv", "r") as file, temp:
+            csv_writer = csv.writer(temp, delimiter=',')
+
+            for row in self.ship_gear_hub:
+                if row[0].lower() == ship_name.lower():
+                    return await ctx.send("> ship already exists.")
+
+            self.ship_gear_hub.append(new_row)
+
+            csv_writer.writerows(self.ship_gear_hub)
+
+        shutil.move(temp.name, filename)
+        await ctx.send("> successfully updated.")
+        self.bot.reload_extension("cogs.azur_lane")
 
 
 def setup(bot):
