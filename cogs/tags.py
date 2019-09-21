@@ -5,12 +5,12 @@ import datetime
 
 from io import BytesIO
 
+import aiohttp
+import asyncpg
 import humanize as h
 
 import discord
 from discord.ext import commands
-
-import asyncpg
 
 import loadconfig
 from config.utils.paginator import Paginator
@@ -48,6 +48,7 @@ class Tags(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message):
+        # this is crude as hell
 
         if message.author.bot:
             return
@@ -106,25 +107,28 @@ class Tags(commands.Cog):
 
                     if "SPOILER" in url:
                         return await message.channel.send(f"|| {url} ||")
+                    try:
+                        async with self.bot.session.get(url) as response:
+                            header = response.headers.get("content-type", "null")
+                            # if the url is dead don't load it into a file
+                            if "image/" not in header or response.status in (404, 403, 400, 401):
+                                return await message.channel.send(tag)
 
-                    async with self.bot.session.get(url) as response:
-                        header = response.headers.get("content-type", "null")
-                        # if the url is dead don't load it into a file
-                        if "image/" not in header or response.status in (404, 403, 400, 401):
-                            return await message.channel.send(tag)
+                            extension = header.split("/")[1]
+                            size = response.headers.get("content-length")
+                            size = int(size)
 
-                        extension = header.split("/")[1]
-                        size = response.headers.get("content-length")
-                        size = int(size)
+                            if size > 5242880:
+                                embed = discord.Embed()
+                                return await message.channel.send(embed=embed.set_image(url=url))
 
-                        if size > 5242880:
-                            embed = discord.Embed()
-                            return await message.channel.send(embed=embed.set_image(url=url))
+                            file_ = discord.File(filename=f"{name}_image.{extension}",
+                                                 fp=BytesIO(await self.bot.fetch(url)))
 
-                        file_ = discord.File(filename=f"{name}_image.{extension}",
-                                             fp=BytesIO(await self.bot.fetch(url)))
+                            return await message.channel.send(file=file_)
 
-                        return await message.channel.send(file=file_)
+                    except (aiohttp.ClientConnectionError, aiohttp.InvalidURL):
+                        return await message.channel.send(tag)
 
                 await message.channel.send(tag)
 
@@ -158,6 +162,7 @@ class Tags(commands.Cog):
 
     @tag.command()
     async def claim(self, ctx, *, name: TagNameConvertor):
+        """Claim a tag if the tag owner has left the server"""
 
         data = await ctx.con.fetchrow("SELECT tag_id, user_id FROM tags WHERE guild_id = $1 AND LOWER(tag_name) = $2",
                                       ctx.guild.id, name.lower())
@@ -180,6 +185,7 @@ class Tags(commands.Cog):
 
     @tag.command()
     async def raw(self, ctx, *, name: TagNameConvertor):
+        """display a tag without markdown eg spoilers."""
 
         content = await ctx.con.fetchval("SELECT content from tags where LOWER(tag_name) = $1 and guild_id = $2",
                                          name, ctx.guild.id)
