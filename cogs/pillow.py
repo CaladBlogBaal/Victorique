@@ -327,7 +327,7 @@ class Images(commands.Cog):
         text = self.string_splice(text, 41)
         text_two = self.string_splice(text_two, 41)
 
-        image.font_setter(self.whitney, 18, (6, 0, 15))
+        image.font_setter(self.arial_unicode, 18, (6, 0, 15))
         text = image.text_wrap(text, 14)
         text_two = image.text_wrap(text_two, 14)
         rotate = 358
