@@ -156,6 +156,7 @@ class Images(commands.Cog):
                                 "https://cdn.discordapp.com/embed/avatars/4.png"]
 
         self.whitney = "images/resources/fonts/Whitney-Medium.ttf"
+        self.arial_unicode = "images/resources/fonts/Arial-Unicode-Regular.ttf"
         self.droid_serif = "images/resources/fonts/DroidSerif-Bold.ttf"
 
     @staticmethod
@@ -295,7 +296,7 @@ class Images(commands.Cog):
         text = ctx.emote_unescape(text)
         text = self.string_splice(text, 36)
         text = image.text_wrap(text, 9)
-        image.font_setter(self.whitney, 60, (0, 0, 0))
+        image.font_setter(self.arial_unicode, 60, (0, 0, 0))
         rotate = 356
         await image.draw_text_on_image_rotated(text, [473, 190], rotate, True)
 
