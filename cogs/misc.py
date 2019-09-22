@@ -21,6 +21,9 @@ class ShapeDrawing:
         self.emotes = emotes
         self.emotes_two = emotes_two
         self.size = size if size <= 15 else 15
+        # this is crude
+        if self.size <= 0:
+            raise commands.BadArgument("invalid number")
 
     def triangle_draw(self, reverse_=False):
         message = ""
@@ -549,6 +552,10 @@ class Misc(commands.Cog):
         """
         hug a guild member or user
         """
+
+        if await self.bot_gif(ctx, "https://media1.tenor.com/images/ebba558cbe12af15a4422f583ef2bb86/tenor.gif"):
+            return
+
         author = ctx.message.author.mention
 
         mention = member.mention
@@ -560,12 +567,6 @@ class Misc(commands.Cog):
 
         if author == mention:
             content = [f"**{author} is hugging themselves {mention} interesting.**"]
-
-        if mention == self.bot.user.mention:
-            embed = discord.Embed(color=discord.Color.dark_magenta())
-            embed.set_image(url="https://31.media.tumblr.com/13107878115fcab5dfd3ad5d4179a618"
-                                "/tumblr_n4m02lffsw1t8jckdo2_r1_500.gif")
-            return await ctx.send(embed=embed)
 
         await ctx.send(embed=await self.api_get_image(content, "https://nekos.life/api/v2/img/hug", "url"))
 

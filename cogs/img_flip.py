@@ -134,6 +134,7 @@ class ImageFlip(commands.Cog):
 
     @commands.command()
     async def phc(self, ctx, *, comment: commands.clean_content):
+        """generate a porn hub comment using the nekobot api"""
         comment = ctx.emote_unescape(comment)
         comment = comment.replace("&", "%26")
         n = NekoBot(ctx)
@@ -148,6 +149,7 @@ class ImageFlip(commands.Cog):
 
     @commands.command()
     async def tweet(self, ctx, *, comment: commands.clean_content):
+        """generate a tweet using the nekobot api"""
         n = NekoBot(ctx)
         n.set_post_url("https://nekobot.xyz/api/imagegen?type=tweet")
         comment = ctx.emote_unescape(comment)
@@ -173,6 +175,7 @@ class ImageFlip(commands.Cog):
 
     @commands.command()
     async def t_tweet(self, ctx, *, comment: commands.clean_content):
+        """generate a trump tweet using the neko bot api"""
         n = NekoBot(ctx)
         n.set_post_url("https://nekobot.xyz/api/imagegen?type=trumptweet")
         comment = ctx.emote_unescape(comment)
@@ -185,6 +188,8 @@ class ImageFlip(commands.Cog):
 
     @commands.command()
     async def cmm(self, ctx, *, comment: commands.clean_content):
+        """generate a change my mind image"""
+        await ctx.trigger_typing()
         n = NekoBot(ctx)
         n.set_post_url("https://nekobot.xyz/api/imagegen?type=changemymind")
         comment = ctx.emote_unescape(comment)
@@ -198,6 +203,7 @@ class ImageFlip(commands.Cog):
 
     @commands.command()
     async def whw(self, ctx, *, member: discord.Member):
+        """generate a who would win image using the nekobot api."""
 
         n = NekoBot(ctx)
         n.set_post_url("https://nekobot.xyz/api/imagegen?type=whowouldwin")

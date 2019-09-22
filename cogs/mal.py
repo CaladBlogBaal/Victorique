@@ -122,6 +122,11 @@ class MyAnimeList(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
     async def seasonal(self, ctx, year: typing.Optional[int] = d.now().year, season: SeasonConverter = None):
         """get a list of anime for a year and season will default to the currently airing season."""
 
+        archive = await self.aio_jikan.season_archive()
+        archive = list(result["year"] for result in archive["archive"])
+        if year not in archive:
+            return await ctx.send("> MAL archives don't have this year.")
+
         if season is None:
             month_day = d.now().month - 1
 

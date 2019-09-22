@@ -135,7 +135,7 @@ class Moderation(commands.Cog):
 
     @commands.command()
     @combined_permissions_check(manage_roles=True)
-    async def unmute(self, ctx, members: commands.Greedy[discord.Member], length: int = 0, *, reason: str = None):
+    async def unmute(self, ctx, members: commands.Greedy[discord.Member], *, reason: str = None):
         """unmute a guild member or members"""
 
         role = discord.utils.get(ctx.guild.roles, name="Muted")

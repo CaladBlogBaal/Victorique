@@ -427,7 +427,7 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
             await asyncio.sleep(2)
 
         if amount < 1:
-            return await ctx.send(":no_entry: | limit should be a positive integer greater than 0.")
+            return await ctx.send(":no_entry: | invalid number was passed.")
 
         d = SafebooruAPI(ctx)
         p = PaginatorGlobal(ctx)

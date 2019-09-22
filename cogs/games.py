@@ -156,7 +156,7 @@ class Games(commands.Cog):
             ctx.bot.channels_running_commands[key].append(ctx.author.id)
 
     async def cog_after_invoke(self, ctx):
-        with contextlib.suppress(ValueError):
+        with contextlib.suppress(ValueError, AttributeError):
             if ctx.guild:
                 key = str(ctx.channel.id) + ctx.command.name
                 list_ = ctx.bot.channels_running_commands.get(key)
@@ -213,12 +213,18 @@ class Games(commands.Cog):
         """
         Roll a die in a NdN format
         """
-        _, second_word, word = dice.partition("d")
+        first_word, second_word, word = dice.partition("d")
 
-        if not second_word.startswith("d"):
+        if not second_word.startswith("d") or not first_word.isdigit():
             return await ctx.send(f":no_entry: | dice must be in a NdN format.")
 
         rolls, limit = map(int, dice.split("d"))
+
+        if limit > 100:
+            limit = 100
+
+        if rolls == 0:
+            rolls = 1
 
         results = ", ".join(str(random.randint(1, limit)) for _ in range(rolls))
 
@@ -241,7 +247,8 @@ class Games(commands.Cog):
             return await ctx.send(":no_entry: | please type in a valid amount of questions.")
 
         if amount_of_questions > 100:
-            await ctx.send(":information_source: | the max amount of questions allowed is 100, will default to 100.")
+            await ctx.send(":information_source: | the max amount of questions allowed is 100, will default to 100.",
+                           delete_after=3)
             amount_of_questions = 100
             await asyncio.sleep(3)
 

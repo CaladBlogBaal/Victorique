@@ -267,7 +267,6 @@ class Casino(commands.Cog):
             return
 
         if times > 100:
-            await ctx.send(f"the max amount of coin flips you can do is 100 {ctx.author.name}")
             times = 100
 
         heads_or_tail = ["heads", "tail"]
@@ -294,10 +293,10 @@ class Casino(commands.Cog):
         """
 
         if choice.lower() not in ("heads", "tails"):
-            return
+            return await ctx.send(":no_entry: | invalid choice (heads, tails) only.")
 
         if bet <= 0:
-            return await ctx.send(":no_entry: | please enter a valid amount of credits to bet.")
+            return await ctx.send(":no_entry: | please enter a valid amount of credits to bet.", delete_after=3)
 
         current_balance = await ctx.con.fetchval("SELECT credits from users where user_id = $1", ctx.author.id)
 
