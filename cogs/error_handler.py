@@ -29,7 +29,7 @@ class CommandErrorHandler(commands.Cog):
         if isinstance(error, commands.CommandInvokeError):
             error = error.original
 
-        ignored = (commands.BadArgument, commands.CommandNotFound, commands.BadUnionArgument, commands.CheckFailure)
+        ignored = (commands.BadArgument, commands.CommandNotFound, commands.BadUnionArgument)
 
         accounted_for = (commands.BotMissingPermissions, commands.MissingRequiredArgument,
                          commands.MissingPermissions, commands.CommandOnCooldown,
