@@ -165,6 +165,11 @@ class Games(commands.Cog):
                 if not list_:
                     ctx.bot.channels_running_commands.pop(key, None)
 
+    async def cog_command_error(self, ctx, error):
+        if isinstance(error, commands.CheckFailure):
+            await ctx.send(f":no_entry: | only one instance of this {ctx.command.name} command per channel",
+                           delete_after=3)
+
     @staticmethod
     def set_questions(question_json):
 

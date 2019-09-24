@@ -119,7 +119,7 @@ class Tags(commands.Cog):
                             size = int(size)
 
                             if size > 5242880:
-                                embed = discord.Embed()
+                                embed = discord.Embed(color=0x36393f)
                                 return await message.channel.send(embed=embed.set_image(url=url))
 
                             file_ = discord.File(filename=f"{name}_image.{extension}",
