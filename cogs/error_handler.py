@@ -5,6 +5,8 @@ import sys
 from discord.ext import commands
 import discord
 
+from config.utils.requests import RequestFailed
+
 
 class CommandErrorHandler(commands.Cog):
 
@@ -21,6 +23,7 @@ class CommandErrorHandler(commands.Cog):
 
     @commands.Cog.listener()
     async def on_command_error(self, ctx, error):
+
         author = ctx.bot.get_user(295325269558951936)
 
         if hasattr(ctx.command, 'on_error'):
@@ -29,12 +32,13 @@ class CommandErrorHandler(commands.Cog):
         if isinstance(error, commands.CommandInvokeError):
             error = error.original
 
-        ignored = (commands.BadArgument, commands.CommandNotFound, commands.BadUnionArgument)
+        ignored = commands.CommandNotFound
 
         accounted_for = (commands.BotMissingPermissions, commands.MissingRequiredArgument,
-                         commands.MissingPermissions, commands.CommandOnCooldown,
-                         commands.NoPrivateMessage, commands.NotOwner, commands.CommandNotFound,
-                         commands.TooManyArguments, commands.DisabledCommand)
+                         commands.MissingPermissions, commands.CommandOnCooldown, commands.NoPrivateMessage,
+                         commands.NotOwner, commands.CommandNotFound, commands.TooManyArguments,
+                         commands.DisabledCommand, commands.BadArgument, commands.BadUnionArgument,
+                         RequestFailed)
 
         error = getattr(error, 'original', error)
 
@@ -50,6 +54,7 @@ class CommandErrorHandler(commands.Cog):
         if isinstance(error, accounted_for):
             return await ctx.send(f"> :no_entry: | {error}", delete_after=10)
 
+        accounted_for += (commands.CheckFailure,)
         error_messsage = traceback.format_exception(type(error), error, error.__traceback__)
         error_messsage = "".join(c for c in error_messsage)
 

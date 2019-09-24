@@ -3,6 +3,10 @@ import aiohttp
 import asyncio
 
 
+class RequestFailed(Exception):
+    pass
+
+
 def error_handle(f):
 
     @functools.wraps(f)
@@ -27,6 +31,10 @@ class Request:
 
     @staticmethod
     async def return_content(response, headers):
+        if not response.status == 200:
+            raise RequestFailed(f"seems like an error occurred for this request this api might be experiencing "
+                                f"problems `{response.reason}`.")
+
         if headers in ("application/json", "application/javascript", "application/javascript",
                        "application/json; charset=utf-8") or "json" in headers:
             return await response.json()
@@ -36,6 +44,9 @@ class Request:
     @error_handle
     async def fetch(self, url, **kwargs):
         async with self.session.get(url, **kwargs) as response:
+            if not response.status == 200:
+                raise RequestFailed(f"seems like an error occurred for this request this api might be experiencing "
+                                    f"problems `{response.reason}`.")
 
             headers = response.headers.get("content-type")
             return await self.return_content(response, headers)
