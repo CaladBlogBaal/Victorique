@@ -89,6 +89,21 @@ class Victorique(commands.Bot):
 
             return data
 
+    async def api_get_image(self, content, url, key):
+
+        js = await self.fetch(url)
+
+        while js[key].endswith(".mp4"):
+            js = await self.fetch(url)
+
+        colours = [discord.Color.dark_magenta(), discord.Color.dark_teal(), discord.Color.dark_orange()]
+        col = int(random.random() * len(colours))
+        content = content
+        embed = discord.Embed(color=colours[col],
+                              description=random.choice(content),)
+        embed.set_image(url=js[key])
+        return embed
+
     prefix_invalidate = get_guild_prefix.invalidate
     prefixes = get_guild_prefix.get_stats
 
@@ -145,6 +160,21 @@ class MyContext(commands.Context):
         """Yield successive n-sized chunks from l."""
         for i in range(0, len(l), n):
             yield l[i:i + n]
+
+    async def wait_for_input(self, transaction_id, cancel_message):
+
+        message = await self.bot.wait_for('message', check=lambda message: message.author == self.author,
+                                          timeout=120)
+
+        while transaction_id not in message.content and "cancel" not in message.content.lower():
+            message = await self.bot.wait_for('message', check=lambda message: message.author == self.author,
+                                              timeout=120)
+
+        if message.content.lower() == "cancel":
+            await self.send(cancel_message.format(self.author.name))
+            return False
+
+        return True
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
