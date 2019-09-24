@@ -6,8 +6,6 @@ import numpy as np
 
 from discord.ext import commands
 
-from config.utils.emojis import TRANSPARENT
-
 
 class SlotMachine:
 
@@ -88,74 +86,6 @@ class PayOuts(SlotMachine):
             self.payout += bet * 300
 
         return self.payout
-
-
-class Tabel:
-    def __init__(self):
-        self.TRANSPARENT = TRANSPARENT
-        self.table = np.array([[0, 0, 0, 0, 0, 0, 0, 1, 0, 0]])
-        # i= 0 1 2 3 4 5 6 7 8 9
-        # 0 0 0 0 0 0 0 1  0  0
-        # _ _ _ _ _ _ _ | _  _|
-        #               ^    ^-----.
-        #               |          |
-        #           pass line,  wall
-
-        self.die = 2
-
-    async def shoot(self, ctx, power):
-
-        resitance = random.randint(1, 5)
-        power -= resitance
-        if power <= -1:
-            power = 0
-
-        if power > 1000 and power < 10000:
-            return await ctx.send("The die went into orbit around planet earth.")
-
-        if power > 10000:
-            return await ctx.send("The die will venture into the vast emptiness of space")
-
-        try:
-
-            self.table[0][power] = self.die
-            if power > 7:
-                return True
-
-            elif power <= 7:
-                return await ctx.send("The die didn't pass the pass line")
-
-        except IndexError:
-            return await ctx.send("The die flew off the table")
-
-    def display(self):
-        table = self.table.flatten()
-
-        board_display = [f"{self.TRANSPARENT}", f"{self.TRANSPARENT}",
-                         f"{self.TRANSPARENT}", f"{self.TRANSPARENT}",
-                         f"{self.TRANSPARENT}", f"{self.TRANSPARENT}",
-                         f"{self.TRANSPARENT}", f"{self.TRANSPARENT}",
-                         f"{self.TRANSPARENT}", f"{self.TRANSPARENT}", ]
-
-        board_table = ":white_large_square:" \
-                      ":white_large_square:" \
-                      ":white_large_square:" \
-                      ":white_large_square:" \
-                      ":white_large_square:" \
-                      ":white_large_square:" \
-                      ":white_large_square:" \
-                      ":black_large_square:" \
-                      ":black_large_square:" \
-                      ":white_large_square:" \
-                      ":white_large_square:"
-
-        for i in range(0, 10):
-            if table[i] == self.die:
-                board_display[i] = ":game_die:"
-
-        display = ["{}{}{}{}{}{}{}{}{}{}".format(*board_display), board_table]
-
-        return display
 
 
 class Casino(commands.Cog):
@@ -242,20 +172,6 @@ class Casino(commands.Cog):
                                       pay_out, ctx.author.id)
 
             await ctx.send(f":atm: | the amount of credits you gained is {pay_out} {ctx.author.name}")
-
-    @commands.command()
-    async def shoot(self, ctx, power: int):
-        """shoot a dice on a carps table, pass line is the first black block"""
-        table = Tabel()
-
-        table_display = table.display()
-        msg = await ctx.send(":game_die:" + " \n" + table_display[0] + "\n" + table_display[1])
-
-        await table.shoot(ctx, power)
-
-        table_display = table.display()
-        await asyncio.sleep(0.1)
-        await msg.edit(content=table_display[0] + "\n" + table_display[1])
 
     @commands.group(invoke_without_command=True)
     async def coinflip(self, ctx, times: int = 1):
