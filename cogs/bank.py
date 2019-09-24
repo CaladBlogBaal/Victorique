@@ -55,17 +55,10 @@ class Bank(commands.Cog):
         await ctx.send(embed=embed)
 
         try:
-            message = await self.bot.wait_for('message', check=lambda message: message.author == ctx.author,
-                                              timeout=120)
+            cancel_message = ":information_source: | {}, credit transfer has been cancelled"
+            confirmation = await ctx.wait_for_input(transaction_id, cancel_message)
 
-            while transaction_id not in message.content and "cancel" not in message.content.lower():
-                message = await self.bot.wait_for('message', check=lambda message: message.author == ctx.author,
-                                                  timeout=120)
-
-            if "cancel" in message.content.lower():
-                return await ctx.send(f":information_source: | {ctx.author.name}, credit transfer has been cancelled")
-
-            if transaction_id in message.content:
+            if confirmation:
                 await ctx.send(f":information_source: | {member.mention}, "
                                f"{amount} has been transferred to your account by "
                                f"{ctx.author.name}")

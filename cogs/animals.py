@@ -14,7 +14,7 @@ class Animals(commands.Cog):
         self.bot = bot
         self.animals = ["bird", "cat", "dog", "fox", "koala", "panda"]
 
-    async def api_get_image(self, content, url, key, ctx, amount=1):
+    async def api_get_image_repeated(self, content, url, key, ctx, amount=1):
         p = Paginator(ctx)
 
         if amount < 1:
@@ -24,18 +24,7 @@ class Animals(commands.Cog):
             amount = 20
 
         for _ in range(amount):
-
-            js = await self.bot.fetch(url)
-
-            while js[key].endswith(".mp4"):
-                js = await self.bot.fetch(url)
-
-            colours = [discord.Color.dark_magenta(), discord.Color.dark_teal(), discord.Color.dark_orange()]
-            col = int(random.random() * len(colours))
-            content = content
-            embed = discord.Embed(color=colours[col],
-                                  description=random.choice(content),)
-            embed.set_image(url=js[key])
+            embed = await self.bot.api_get_image(content, url, key)
             await p.add_page(embed)
 
         await p.paginate()
@@ -92,7 +81,7 @@ class Animals(commands.Cog):
         get a random picture of a fox
         20 is the maximum
         """
-        await self.api_get_image([""], "https://randomfox.ca/floof/", "image", ctx, amount)
+        await self.api_get_image_repeated([""], "https://randomfox.ca/floof/", "image", ctx, amount)
 
     @commands.command()
     async def duck(self, ctx, amount=1):
@@ -100,7 +89,7 @@ class Animals(commands.Cog):
         get a random picture of a duck
         20 is the maximum
         """
-        await self.api_get_image([""], "https://random-d.uk/api/v2/random", "url", ctx, amount)
+        await self.api_get_image_repeated([""], "https://random-d.uk/api/v2/random", "url", ctx, amount)
 
     @commands.command(aliases=["catto", "kitty", "cattie"])
     async def cat(self, ctx, amount=1):
@@ -108,7 +97,7 @@ class Animals(commands.Cog):
         get a random picture of a cat
         20 is the maximum
         """
-        await self.api_get_image([""], "http://aws.random.cat/meow", "file", ctx, amount)
+        await self.api_get_image_repeated([""], "http://aws.random.cat/meow", "file", ctx, amount)
 
     @commands.command(aliases=["birb"])
     async def bird(self, ctx, amount=1):
@@ -137,10 +126,10 @@ class Animals(commands.Cog):
         """
 
         if breed:
-            return await self.api_get_image(
+            return await self.api_get_image_repeated(
                 [""], f"https://dog.ceo/api/breed/{breed}/images/random", "message", ctx, amount)
 
-        await self.api_get_image([""], "https://random.dog/woof.json", "url", ctx, amount)
+        await self.api_get_image_repeated([""], "https://random.dog/woof.json", "url", ctx, amount)
 
     @commands.command()
     async def pug(self, ctx, amount):
@@ -156,7 +145,7 @@ class Animals(commands.Cog):
         20 is the maximum
         """
 
-        await self.api_get_image([""], "https://some-random-api.ml/img/lizard", "link", ctx, amount)
+        await self.api_get_image_repeated([""], "https://some-random-api.ml/img/lizard", "link", ctx, amount)
 
     @commands.command()
     async def koala(self, ctx, amount=1):
@@ -165,7 +154,7 @@ class Animals(commands.Cog):
         20 is the maximum
         """
 
-        await self.api_get_image([""], "https://some-random-api.ml/img/koala", "link", ctx, amount)
+        await self.api_get_image_repeated([""], "https://some-random-api.ml/img/koala", "link", ctx, amount)
 
     @commands.command()
     async def panda(self, ctx, amount=1):
@@ -174,7 +163,7 @@ class Animals(commands.Cog):
         20 is the maximum
         """
 
-        await self.api_get_image([""], "https://some-random-api.ml/img/panda", "link", ctx, amount)
+        await self.api_get_image_repeated([""], "https://some-random-api.ml/img/panda", "link", ctx, amount)
 
 
 def setup(bot):

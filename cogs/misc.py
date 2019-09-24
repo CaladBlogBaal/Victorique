@@ -135,21 +135,6 @@ class Misc(commands.Cog):
         if ctx.bot.user.mentioned_in(ctx.message):
             return await ctx.send(embed=discord.Embed(color=self.bot.default_colors()).set_image(url=url))
 
-    async def api_get_image(self, content, url, key):
-
-        js = await self.bot.fetch(url)
-
-        while js[key].endswith(".mp4"):
-            js = await self.bot.fetch(url)
-
-        colours = [discord.Color.dark_magenta(), discord.Color.dark_teal(), discord.Color.dark_orange()]
-        col = int(random.random() * len(colours))
-        content = content
-        embed = discord.Embed(color=colours[col],
-                              description=random.choice(content),)
-        embed.set_image(url=js[key])
-        return embed
-
     @commands.command()
     async def triangle(self, ctx, size: typing.Optional[int] = 5, emote=":small_red_triangle:",
                        emote_two=None, reverse=False):
@@ -316,7 +301,7 @@ class Misc(commands.Cog):
         if author == mention:
             content = [f"**{author} has fluffed himself?**", f"**{author} has fluffed himself?**"]
 
-        await ctx.send(embed=await self.api_get_image(content, "https://nekos.life/api/v2/img/pat", "url"))
+        await ctx.send(embed=await self.bot.api_get_image(content, "https://nekos.life/api/v2/img/pat", "url"))
 
     @commands.command(aliases=["l_c"], hidden=True)
     @commands.guild_only()
@@ -347,7 +332,7 @@ class Misc(commands.Cog):
         """
         get a random genetically egineered cat girl meme
         """
-        await ctx.send(embed=await self.api_get_image([""], "https://nekos.life/api/v2/img/gecg", "url"))
+        await ctx.send(embed=await self.bot.api_get_image([""], "https://nekos.life/api/v2/img/gecg", "url"))
 
     @commands.command()
     async def cuddle(self, ctx, member: typing.Union[discord.Member, discord.User]):
@@ -365,7 +350,7 @@ class Misc(commands.Cog):
         if author == mention:
             content = [f"**{author} is cuddling themselves {mention} hmmmmm.**"]
 
-        await ctx.send(embed=await self.api_get_image(content, "https://nekos.life/api/v2/img/cuddle", "url"))
+        await ctx.send(embed=await self.bot.api_get_image(content, "https://nekos.life/api/v2/img/cuddle", "url"))
 
     @commands.command()
     async def tickle(self, ctx, member: typing.Union[discord.Member, discord.User]):
@@ -383,13 +368,13 @@ class Misc(commands.Cog):
         if author == mention:
             content = [f"**{author} is tickling themselves??! {mention} peculiar kink but alas**"]
 
-        await ctx.send(embed=await self.api_get_image(content, "https://nekos.life/api/v2/img/tickle", "url"))
+        await ctx.send(embed=await self.bot.api_get_image(content, "https://nekos.life/api/v2/img/tickle", "url"))
 
     @commands.command()
     async def wink(self, ctx):
         """get a random wink"""
-        await ctx.send(embed=await self.api_get_image([f"{ctx.author.mention} is winking"],
-                                                      "https://some-random-api.ml/animu/wink", "link"))
+        await ctx.send(embed=await self.bot.api_get_image([f"{ctx.author.mention} is winking"],
+                                                          "https://some-random-api.ml/animu/wink", "link"))
 
     @commands.command()
     async def smug(self, ctx):
@@ -403,7 +388,7 @@ class Misc(commands.Cog):
                    f"**{author} is looking a bit smug.**",
                    f"**{author} has become one with the smug.**"]
 
-        await ctx.send(embed=await self.api_get_image(content, "https://nekos.life/api/v2/img/smug", "url"))
+        await ctx.send(embed=await self.bot.api_get_image(content, "https://nekos.life/api/v2/img/smug", "url"))
 
     @commands.command()
     async def slap(self, ctx, member: typing.Union[discord.Member, discord.User]):
@@ -426,7 +411,7 @@ class Misc(commands.Cog):
             content = [f"**{author} is slapping themselves??! {mention}**",
                        f"**{author} is slapping themselves??! {mention}**"]
 
-        await ctx.send(embed=await self.api_get_image(content, "https://nekos.life/api/v2/img/slap", "url"))
+        await ctx.send(embed=await self.bot.api_get_image(content, "https://nekos.life/api/v2/img/slap", "url"))
     
     @commands.command()
     async def pat(self, ctx, member: typing.Union[discord.Member, discord.User]):
@@ -447,7 +432,7 @@ class Misc(commands.Cog):
         if author == mention:
             content = [f"**{author} is fluffing themselves! {mention}**"]
 
-        await ctx.send(embed=await self.api_get_image(content, "https://nekos.life/api/v2/img/pat", "url"))
+        await ctx.send(embed=await self.bot.api_get_image(content, "https://nekos.life/api/v2/img/pat", "url"))
 
     @commands.command()
     async def kiss(self, ctx, member: typing.Union[discord.Member, discord.User]):
@@ -469,7 +454,7 @@ class Misc(commands.Cog):
         if author == mention:
             return await ctx.send("https://m.imgur.com/gallery/Br00TCn")
 
-        await ctx.send(embed=await self.api_get_image(content, "https://nekos.life/api/v2/img/kiss", "url"))
+        await ctx.send(embed=await self.bot.api_get_image(content, "https://nekos.life/api/v2/img/kiss", "url"))
 
     @commands.command()
     async def poke(self, ctx, member: typing.Union[discord.Member, discord.User]):
@@ -489,7 +474,7 @@ class Misc(commands.Cog):
         if author == mention:
             return await ctx.send("https://m.imgur.com/gallery/Br00TCn")
 
-        await ctx.send(embed=await self.api_get_image(content, "https://nekos.life/api/v2/img/poke", "url"))
+        await ctx.send(embed=await self.bot.api_get_image(content, "https://nekos.life/api/v2/img/poke", "url"))
 
     @commands.command()
     async def lick(self, ctx, member: typing.Union[discord.Member, discord.User]):
@@ -568,7 +553,7 @@ class Misc(commands.Cog):
         if author == mention:
             content = [f"**{author} is hugging themselves {mention} interesting.**"]
 
-        await ctx.send(embed=await self.api_get_image(content, "https://nekos.life/api/v2/img/hug", "url"))
+        await ctx.send(embed=await self.bot.api_get_image(content, "https://nekos.life/api/v2/img/hug", "url"))
 
     @commands.command(name="kemo")
     async def kemonomimi(self, ctx, amount=1):
@@ -583,7 +568,7 @@ class Misc(commands.Cog):
             amount = 20
 
         for _ in range(amount):
-            await p.add_page(await self.api_get_image([" ", " "], "https://nekos.life/api/v2/img/kemonomimi", "url"))
+            await p.add_page(await self.bot.api_get_image([" ", " "], "https://nekos.life/api/v2/img/kemonomimi", "url"))
 
         await p.paginate()
 

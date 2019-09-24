@@ -38,8 +38,7 @@ class Fishing(commands.Cog):
         fishes = ""
 
         if rarity_id:
-            data = await ctx.con.fetch("""SELECT DISTINCT * from fish_users_catches
-                                                    fish_users_catches INNER JOIN fish on
+            data = await ctx.con.fetch("""SELECT DISTINCT * from fish_users_catches INNER JOIN fish on
                                                     fish_users_catches.fish_id = fish.fish_id
                                                     where fish_users_catches.user_id = $1 and fish.bait_id = $2""",
                                        ctx.author.id, rarity_id)
@@ -106,21 +105,10 @@ class Fishing(commands.Cog):
         await ctx.send(f":information_source: | Enter in the transaction id {transaction_id} to proceed or say cancel "
                        f"to exit.")
 
-        message = await ctx.bot.wait_for('message', check=lambda message: message.author == ctx.author,
-                                         timeout=120)
+        cancel_message = ":information_source: | {}, fish selling has been cancelled."
+        confirmation = await ctx.wait_for_input(transaction_id, cancel_message)
 
-        while transaction_id not in message.content and "cancel" not in message.content.lower():
-            message = await ctx.bot.wait_for('message', check=lambda message: message.author == ctx.author,
-                                             timeout=120)
-
-        if message.content.lower() == "cancel":
-            await ctx.send(
-                f":information_source: | {ctx.author.name}, fish selling has been cancelled.")
-
-            return False
-
-        if message.content == transaction_id:
-            return True
+        return confirmation
 
     @staticmethod
     async def __fish_get_favourites(ctx):
@@ -385,26 +373,17 @@ class Fishing(commands.Cog):
             await ctx.send(embed=embed_)
 
             try:
-                message = await self.bot.wait_for('message', check=lambda message: message.author == ctx.author,
-                                                  timeout=120)
+                cancel_message = ":information_source: | {}, bait transaction has been cancelled"
+                confirmation = await ctx.wait_for_input(transaction_id, cancel_message)
 
-                while transaction_id not in message.content and "cancel" not in message.content.lower():
-                    message = await self.bot.wait_for('message', check=lambda message: message.author == ctx.author,
-                                                      timeout=120)
-
-                if message.content.lower() == "cancel":
-                    await ctx.send(
-                        f":information_source: | {ctx.author.name}, bait transaction has been cancelled")
-
-                    return False
-
-                if message.content == transaction_id:
+                if confirmation:
                     await ctx.send(f":information_source: | "
                                    f"{cost} credits has been deducted from your account, "
                                    f"{ctx.author.name} you bought some {_bait} `to use your bait do "
                                    f"{ctx.prefix}fish storage use [insert amount]`")
 
                     return cost
+                return confirmation
 
             except asyncio.TimeoutError:
                 await ctx.send(f":information_source: | a response wasn't given in awhile cancelling the transaction")
