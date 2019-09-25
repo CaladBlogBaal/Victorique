@@ -180,7 +180,10 @@ class AzurLane(commands.Cog, name="Azur Lane"):
                     return False
 
             else:
-                display_aux_ = auxiliary_list[category_choice_ - 1][0]
+                if not category_choice_ == 9:
+                    display_aux_ = auxiliary_list[category_choice_ - 1][0]
+                else:
+                    display_aux_ = "nothing"
 
             msg_ = await ctx.send(f"auxiliary slot has been set to {display_aux_}")
             messages_to_delete.append(msg_.id)
@@ -307,6 +310,8 @@ class AzurLane(commands.Cog, name="Azur Lane"):
         ship_luck = ship_json["luck"]
 
         ship_evasion_rate = self.get_ship_stat_evasion_rate(ship_stat_list, ship_name)
+        if not ship_evasion_rate:
+            ship_evasion_rate = 0
 
         enemy_hit = 0
         enemy_luck = 0
@@ -318,6 +323,13 @@ class AzurLane(commands.Cog, name="Azur Lane"):
             accuracy = 0.1 + enemy_hit / (enemy_hit + ship_evasion + 2) + (
                 (enemy_luck - ship_luck + level_difference) * 0.001
             ) - ship_evasion_rate
+
+            if accuracy < 0.1:
+                accuracy = 0.1
+
+            elif accuracy > 1:
+                accuracy = 1
+
             ehp = ship_hp / accuracy
             ehp = round(ehp, 2)
             ehp_list.append(ehp)
