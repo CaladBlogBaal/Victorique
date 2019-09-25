@@ -22,10 +22,6 @@ class Tags(commands.Cog):
         self.bot = bot
         self.cd = commands.CooldownMapping.from_cooldown(1, 4, commands.BucketType.member)
 
-    async def cog_command_error(self, ctx, error):
-        if isinstance(error, commands.BadArgument):
-            await ctx.send(error)
-
     async def cog_check(self, ctx):
         return ctx.guild is not None
 
