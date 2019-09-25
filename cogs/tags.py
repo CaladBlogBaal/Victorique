@@ -98,7 +98,8 @@ class Tags(commands.Cog):
 
                 if urls:
                     url = urls[0]
-                    if len(urls) > 2:
+
+                    if len(urls) > 2 or tag.replace(url, "") != "":
                         return await message.channel.send(tag)
 
                     if "SPOILER" in url:
