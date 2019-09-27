@@ -222,9 +222,10 @@ async def send_emote(ctx, name: str):
 
 @bot.command(hidden=True)
 async def prefix(ctx):
-    result = await bot.get_guild_prefix(ctx.guild.id)
-    if result is not None:
-        return await ctx.send(f"The prefix for this guild is {result['prefix']}.")
+    if ctx.guild:
+        result = await bot.get_guild_prefix(ctx.guild.id)
+        if result["prefix"] is not None:
+            return await ctx.send(f"The prefix for this guild is {result['prefix']}.")
 
     await ctx.send(f"The prefix for this guild is {loadconfig.__prefix__}")
 
