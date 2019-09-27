@@ -5,13 +5,10 @@ import shutil
 import json
 import typing
 
-from io import BytesIO
 from tempfile import NamedTemporaryFile
 
 import discord
 from discord.ext import commands
-
-import matplotlib.pyplot as plt
 
 from bs4 import BeautifulSoup
 
@@ -24,10 +21,35 @@ class AzurLane(commands.Cog, name="Azur Lane"):
 
         # thanks to @cyberFluff#9161
         with open(r"config/Gear Guide Hub.csv", "r") as file:
-            ship_gear_hub = list(row for row in csv.reader(file) if row)
+            ship_gear_hub = list(csv.reader(file))
 
+        with open(r"config/ShipStats120.csv", "r") as file:
+            reader = csv.DictReader(file, fieldnames=("# Lvl 120", "Name", "Hull", "HP", "EVA", "LUK", "Armor",
+                                                      "EVA Rate", "EVAS", "DMGR"))
+            reader = list(reader)
+
+        self.ship_stats_reader = reader
         self.ship_gear_hub = ship_gear_hub
         self.bot = bot
+
+    @staticmethod
+    def delete_from_reader(ship_name, list_of_rows, update_function):
+        for i, row in enumerate(list_of_rows):
+            if isinstance(row, dict):
+
+                if row["Name"].lower() == ship_name.lower():
+                    del list_of_rows[i]
+                    update_function()
+                    return True
+
+            else:
+
+                if row[0].lower() == ship_name.lower():
+                    del list_of_rows[i]
+                    update_function()
+                    return True
+
+        return False
 
     @staticmethod
     def auxiliary_slots(auxiliary_list, option=0):
@@ -49,13 +71,6 @@ class AzurLane(commands.Cog, name="Azur Lane"):
             auxiliary_slot_evasion = auxiliary_list[option - 1][2]
 
         return auxiliary_slot_hp, auxiliary_slot_evasion
-
-    @staticmethod
-    def get_ship_stat_evasion_rate(list_in, ship_name):
-        for row in list_in:
-            if row[1] == ship_name:
-                evasion_rate = float(row[7] + row[8] + row[9])
-                return evasion_rate
 
     @staticmethod
     async def azur_lane_wiki_search(ctx, item, allow_none_png=False, paginate=True):
@@ -114,6 +129,29 @@ class AzurLane(commands.Cog, name="Azur Lane"):
                        "?resizeid=19&resizeh=1200&resizew=1200"
             return await ctx.send(f":no_entry: | search failed for {item}")
 
+    def update_ship_gear_hub(self):
+        temp = NamedTemporaryFile(mode="w", delete=False)
+        filename = "config/Gear Guide Hub.csv"
+
+        with open(r"config/Gear Guide Hub.csv", "r") as file, temp:
+            csv_writer = csv.writer(temp, delimiter=",", lineterminator="\n")
+            csv_writer.writerows(self.ship_gear_hub)
+
+        shutil.move(temp.name, filename)
+
+    def update_ship_stats_csv(self):
+        temp = NamedTemporaryFile(mode="w", delete=False)
+        filename = "config/ShipStats120.csv"
+        fields = ["# Lvl 120", "Name", "Hull", "HP", "EVA", "LUK", "Armor", "EVA Rate", "EVAS", "DMGR"]
+
+        with open(r"config/ShipStats120.csv", "r") as file, temp:
+            writer = csv.DictWriter(temp, fieldnames=fields, lineterminator="\n")
+
+            for row in self.ship_stats_reader:
+                writer.writerow(row)
+
+        shutil.move(temp.name, filename)
+
     async def make_gear_guide_embed(self, ctx, ship_name, url):
         # since im lazy this only temp
         if "kai" in ship_name:
@@ -143,107 +181,95 @@ class AzurLane(commands.Cog, name="Azur Lane"):
             await ctx.send(f"> invalid {col_name} was entered.")
 
     @commands.command()
-    async def ehp(self, ctx, enemy_level: typing.Optional[int] = 0, default: typing.Optional[bool] = False,
-                  *, ship_name):
+    async def ehp(self, ctx, enemy_hit: typing.Optional[int] = 45, default: typing.Optional[bool] = False,
+                  enemy_level: typing.Optional[int] = 0, *, ship_name):
         """
         Get a ships basic ehp value
-        pass True to default to use default auxiliary slots
+        pass True to default to use default auxiliary slots, if you want to change
+        the enemy level you must pass the enemy hit followed by the enemy level eg
+        vic ehp 45 130 Javelin / vic ehp 45 True 130 Javelin
         """
-        # will probably improve this later
-        async def category_choice_set(auxiliary_list_):
 
-            category_choice_ = await self.bot.wait_for('message', check=lambda message: message.author == ctx.author,
-                                                       timeout=60)
+        async def category_choice_set(aux_list):
 
-            category_choice_ = category_choice_.content
+            index_ = await self.bot.wait_for('message', check=lambda message: message.author == ctx.author, timeout=60)
+
+            index_ = index_.content
 
             try:
-                category_choice_ = int(category_choice_)
+                index_ = int(index_)
             except ValueError:
                 pass
 
-            if category_choice_ not in (1, 2, 3, 4, 5, 6, 7, 8, 9):
+            if index_ not in (1, 2, 3, 4, 5, 6, 7, 8, 9, 0):
 
                 await ctx.send(":no_entry: | invalid category choice was received will default to the best"
                                " average auxiliary slot for this hull ")
 
                 if hull in ("DD", "CL"):
-                    display_aux_ = auxiliary_list_[0][0]
-                    category_choice_ = 1
+                    display_aux_ = aux_list[0][0]
+                    index_ = 1
 
                 else:
-                    display_aux_ = auxiliary_list_[7][0]
-                    category_choice_ = 8
+                    display_aux_ = aux_list[7][0]
+                    index_ = 8
 
-                if category_choice_ == 0:
+            else:
+
+                if index_ == 0:
                     await ctx.send("exiting the calc... 0 was entered")
                     return False
 
-            else:
-                if not category_choice_ == 9:
-                    display_aux_ = auxiliary_list[category_choice_ - 1][0]
-                else:
-                    display_aux_ = "nothing"
+                display_aux_ = "nothing"
 
             msg_ = await ctx.send(f"auxiliary slot has been set to {display_aux_}")
             messages_to_delete.append(msg_.id)
             await asyncio.sleep(0.25)
-            return category_choice_, display_aux_
+            return index_, display_aux_
 
         messages_to_delete = []
         ship_name = ship_name.lower()
+        ship_dict = None
 
-        with open(r"config/ship_list.json", "r") as f:
-            ship_json_list = json.load(f)
+        for row in self.ship_stats_reader:
+            if row.get("Name", "null").lower() == ship_name:
+                ship_dict = row
 
-        ship_json = None
+        if ship_dict is None:
+            return await ctx.send(f"> the ship {ship_name} was not found.")
 
-        for json_ in ship_json_list:
-            if json_.get("name").lower() == ship_name:
-                ship_json = json_
+        for key, value in ship_dict.items():
+            if value.isdigit():
+                ship_dict[key] = int(value)
 
-        if ship_json is None:
-            return await ctx.send(f"the ship {ship_name} was not found try correctly spelling the ship's name")
-
-        csv_file = r"config/ShipStats120.csv"
-        level_display = 120
+            try:
+                ship_dict[key] = float(value)
+            except ValueError:
+                pass
 
         msg = await ctx.send(":ship: :ship: :ship:  | Type in the formation, Single, Diamond or Double.")
         messages_to_delete.append(msg.id)
 
-        formation_choice = await self.bot.wait_for('message', check=lambda message: message.author == ctx.author,
-                                                   timeout=60)
+        msg = await self.bot.wait_for('message', check=lambda message: message.author == ctx.author, timeout=60)
 
-        formation_choice = formation_choice.content
+        msg = msg.content.lower()
 
-        if formation_choice.lower() == "exit":
+        if msg == "exit":
             return await ctx.send("exiting the calc...")
 
-        if formation_choice.lower() not in ("single", "diamond", "double"):
-            await ctx.send(f":no_entry: |  invalid formation {formation_choice} was passed defaulting to diamond.")
+        if msg not in ("single", "diamond", "double"):
+            await ctx.send(f":no_entry: |  invalid formation {msg} was passed defaulting to diamond.")
 
-        if formation_choice.lower == "single":
-            formation_bonus = -0.1
+        formation_bonus = {"single": -0.1, "double": 0.3}.get(msg, 0)
+        form_display = msg
 
-        elif formation_choice.lower == "double":
-            formation_bonus = 0.3
-
-        else:
-            formation_bonus = 0
-
-        level_difference = enemy_level - level_display
+        level_difference = enemy_level - 120
 
         if level_difference < 0:
             level_difference = 0
 
         elif level_difference > 20:
             level_difference = 20
-
-        with open(csv_file, "r") as file:
-            ship_stat_list = list(csv.reader(file))
-
-        ehp_list = []
-        hit_list = []
 
         auxiliary_list = [["Repair Tool", 500],
                           ["Fire Suppressor", 226],
@@ -254,20 +280,19 @@ class AzurLane(commands.Cog, name="Azur Lane"):
                           ["Beaver Badge", 75, 35],
                           ["Improved Hydraulic Rudder", 60, 40]]
 
-        await asyncio.sleep(0.25)
-        hull = ship_json["type"]
+        hull = ship_dict["Hull"]
 
         if hull in ("DD", "CL"):
             display_aux = auxiliary_list[0][0]
-            display_aux2 = display_aux
-            category_choice = 1
-            category_choice2 = category_choice
+            display_aux_two = display_aux
+            index = 1
+            index_two = index
 
         else:
             display_aux = auxiliary_list[7][0]
-            display_aux2 = display_aux
-            category_choice = 1
-            category_choice2 = category_choice
+            display_aux_two = display_aux
+            index = 8
+            index_two = index
 
         embed = discord.Embed(title=f"EHP Calculator",
                               description=f"Select an option for aux slot by typing it's number"
@@ -287,87 +312,54 @@ class AzurLane(commands.Cog, name="Azur Lane"):
         embed.timestamp = ctx.message.created_at
 
         if not default:
+            try:
 
-            msg = await ctx.send(embed=embed)
-            category_choice, display_aux = await category_choice_set(auxiliary_list)
-            messages_to_delete.append(msg.id)
+                msg = await ctx.send(embed=embed)
+                index, display_aux = await category_choice_set(auxiliary_list)
+                await msg.delete()
 
-            await msg.delete()
-            await asyncio.sleep(0.25)
+                msg = await ctx.send(embed=embed)
+                index_two, display_aux_two = await category_choice_set(auxiliary_list)
 
-            msg = await ctx.send(embed=embed)
-            messages_to_delete.append(msg.id)
-            category_choice2, display_aux2 = await category_choice_set(auxiliary_list)
+                await msg.delete()
 
-        await msg.delete()
-        await asyncio.sleep(0.25)
+            except TypeError:
+                return
 
-        auxiliary_slot_hp, auxiliary_slot_evasion = self.auxiliary_slots(auxiliary_list, category_choice)
-        auxiliary_slot_hp2, auxiliary_slot_evasion2 = self.auxiliary_slots(auxiliary_list, category_choice2)
+        aux_slot_hp, aux_slot_eva = self.auxiliary_slots(auxiliary_list, index)
+        aux_slot_hp_two, aux_slot_eva_two = self.auxiliary_slots(auxiliary_list, index_two)
 
-        ship_evasion = ship_json["evasion"]
-        ship_hp = ship_json["hp"]
-        ship_luck = ship_json["luck"]
+        ship_evasion = ship_dict["EVA"] * (1 + ship_dict["EVAS"] + formation_bonus) + aux_slot_eva + aux_slot_eva_two
+        ship_hp = ship_dict["HP"] + aux_slot_hp + aux_slot_hp_two
+        ship_luck = ship_dict["LUK"]
 
-        ship_evasion_rate = self.get_ship_stat_evasion_rate(ship_stat_list, ship_name)
-        if not ship_evasion_rate:
-            ship_evasion_rate = 0
+        ship_evasion_rate = ship_dict["EVA Rate"]
 
-        enemy_hit = 0
+        ship_details = "Enemy luck set to 0 as a constant \nIn auxiliary slot one is {}, in auxiliary slot two is {}"
+        ship_details = ship_details.format(display_aux, display_aux_two)
+
         enemy_luck = 0
 
-        ship_evasion += + auxiliary_slot_evasion + auxiliary_slot_evasion2
-        ship_evasion = ship_evasion * (1 + formation_bonus)
-        ship_hp += auxiliary_slot_hp + auxiliary_slot_hp2
-        for _ in range(11):
-            accuracy = 0.1 + enemy_hit / (enemy_hit + ship_evasion + 2) + (
-                (enemy_luck - ship_luck + level_difference) * 0.001
+        ship_name = ship_name.capitalize()
+        accuracy = 0.1 + enemy_hit / (enemy_hit + ship_evasion + 2) + (
+            (enemy_luck - ship_luck + level_difference) * 0.001
             ) - ship_evasion_rate
 
-            if accuracy < 0.1:
-                accuracy = 0.1
+        if accuracy < 0.1:
+            accuracy = 0.1
 
-            elif accuracy > 1:
-                accuracy = 1
+        elif accuracy > 1:
+            accuracy = 1
 
-            ehp = ship_hp / accuracy
-            ehp = round(ehp, 2)
-            ehp_list.append(ehp)
-            hit_list.append(enemy_hit)
-            enemy_hit += 10
-
-        ship_details = "Enemy luck is set to 0 as a constant \nin auxiliary slot one is {}, in auxiliary slot two is {}"
-        ship_details = ship_details.format(display_aux, display_aux2)
-
-        for i, _ in enumerate(hit_list):
-            ship_details += f"\n{ship_name}\'s EHP at enemy hit {str(hit_list[i])} is {str(ehp_list[i])}"
-
-        ship_name = ship_name.capitalize()
-        embed = discord.Embed(title=f"{ship_name}\'s EHP values",
-                              description=ship_details,
-                              color=discord.Color.dark_magenta())
-        embed.set_footer(text=f'Requested by {ctx.message.author.name}', icon_url=ctx.message.author.avatar_url)
+        ehp = ship_hp / (accuracy * (1 - ship_dict["DMGR"]))
+        ehp = round(ehp, 2)
+        ship_details += f"\n{ship_name}\'s EHP at enemy hit **{enemy_hit}** is **{ehp}**"
         embed.timestamp = ctx.message.created_at
 
-        hit_list = [hit for hit in hit_list if hit >= 40]
-        ehp_list = [ehp_list[i] for i, value in enumerate(ehp_list) if i >= 4]
-        plt.plot(hit_list, ehp_list, "mo")
-        plt.ylabel("EHP")
-        plt.xlabel("Enemy hit")
-        plt.title(f"EHP values for {ship_name}\n (with enemy luck 0)")
-
-        buf = BytesIO()
-        plt.savefig(buf, format="png")
-        buf.seek(0)
-        file = discord.File(filename="EHP Graph.png", fp=buf)
-        embed.set_image(url="attachment://EHP Graph.png")
-
-        await ctx.send(file=file, embed=embed)
-
-        buf.close()
-        plt.close()
+        await ctx.send(f"> {ship_name}\'s EHP with {ship_details} with formation {form_display}")
 
         try:
+
             await ctx.channel.purge(check=lambda message: message.id in messages_to_delete)
 
         except AttributeError:
@@ -376,6 +368,7 @@ class AzurLane(commands.Cog, name="Azur Lane"):
     @commands.command(aliases=["ss"])
     async def ship_stats(self, ctx, *, ship_name):
         """get the stats of a ship"""
+
         ship_name = ship_name.lower()
 
         with open(r"config/ship_list.json", "r") as f:
@@ -417,8 +410,8 @@ class AzurLane(commands.Cog, name="Azur Lane"):
 
         await ctx.send(f"```ini\n{content}```")
 
-    @commands.command()
-    async def al(self, ctx, *, search):
+    @commands.command(name="al")
+    async def azur_lane_wiki_opensearch(self, ctx, *, search):
         """
         Search for something on the AL wiki
         """
@@ -508,26 +501,64 @@ class AzurLane(commands.Cog, name="Azur Lane"):
 
         await self.get_hull_or_rarity(ctx, 1, rarity)
 
-    @gear_guide.command()
     @commands.is_owner()
-    async def add(self, ctx, url, hull, rarity, *, ship_name):
-        """add a new ship to the csv"""
+    @gear_guide.command(name="add")
+    async def add_ship_to_ggh(self, ctx, url, hull, rarity, *, ship_name):
+        """add a new ship to the gear guide hub"""
         new_row = [ship_name, rarity, hull, url]
-        temp = NamedTemporaryFile(mode="w", delete=False)
-        filename = "config/Gear Guide Hub.csv"
 
-        with open(r"config/Gear Guide Hub.csv", "r") as file, temp:
-            csv_writer = csv.writer(temp, delimiter=',')
+        for row in self.ship_gear_hub:
+            if row[0].lower() == ship_name.lower():
+                return await ctx.send("> ship already exists.")
 
-            for row in self.ship_gear_hub:
-                if row[0].lower() == ship_name.lower():
-                    return await ctx.send("> ship already exists.")
+        self.ship_gear_hub.append(new_row)
+        self.update_ship_gear_hub()
+        await ctx.send("> successfully updated.")
+        self.bot.reload_extension("cogs.azur_lane")
 
-            self.ship_gear_hub.append(new_row)
+    @commands.is_owner()
+    @gear_guide.command(name="delete")
+    async def delete_ship_from_ggh(self, ctx, *, ship_name):
+        """remove a ship from the gear guide hub."""
+        if not self.delete_from_reader(ship_name, self.ship_gear_hub, self.update_ship_gear_hub):
+            return await ctx.send(f":no_entry: | {ship_name} doesn't exist")
 
-            csv_writer.writerows(self.ship_gear_hub)
+        await ctx.send("> successfully updated.")
+        self.bot.reload_extension("cogs.azur_lane")
 
-        shutil.move(temp.name, filename)
+    @commands.is_owner()
+    @commands.group(name="uss", invoke_without_command=True)
+    async def update_ship_stats(self, ctx):
+        """main command for updating the ship stats csv does nothing by itself"""
+
+    @commands.is_owner()
+    @update_ship_stats.command(name="add")
+    async def add_ship_to_ss_csv(self, ctx, *fields):
+        """add a ship to the ship stats csv"""
+
+        keys = ["# Lvl 120", "Name", "Hull", "HP", "EVA", "LUK", "Armor", "EVA Rate", "EVAS", "DMGR"]
+
+        if len(fields) != len(keys):
+            return await ctx.send(":no_entry: | not enough keys entered")
+
+        for row in self.ship_stats_reader:
+            if row["Name"].lower() == fields[1].lower():
+                return await ctx.send("> Ship already exists.")
+
+        row = dict(zip(keys, fields))
+
+        self.ship_stats_reader.append(row)
+        self.update_ship_stats_csv()
+        await ctx.send("> successfully updated.")
+        self.bot.reload_extension("cogs.azur_lane")
+
+    @commands.is_owner()
+    @update_ship_stats.command(name="delete")
+    async def delete_ship_from_ss_csv(self, ctx, *, ship_name):
+        """remove a ship from the ship stats csv"""
+        if not self.delete_from_reader(ship_name, self.ship_stats_reader, self.update_ship_stats_csv):
+            return await ctx.send(f":no_entry: | {ship_name} doesn't exist")
+
         await ctx.send("> successfully updated.")
         self.bot.reload_extension("cogs.azur_lane")
 

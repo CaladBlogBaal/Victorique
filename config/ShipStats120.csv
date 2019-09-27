@@ -1,377 +1,412 @@
-﻿# Lvl 120,name,Hull Class,HP,EVA,LUK,Armor,EVA Rate,EVA Stat,DMG Red
-1,purin,DD,245,122,100,Light,0,0,0
-2,bulin,DD,245,122,100,Light,0,0,0
-4,dewey,DD,1647,162,72,Light,0,0,0
-5,cassin,DD,1735,162,66,Light,0,0,0
-6,downes,DD,1735,162,63,Light,0,0,0
-7,gridley,DD,1810,163,72,Light,0,0,0
-8,craven,DD,1774,163,72,Light,0,0,0
-9,mccall,DD,1724,162,69,Light,0,0,0
-10,maury,DD,1809,198,69,Light,0,0,0
-11,fletcher,DD,2077,160,73,Light,0,0.3,0
-13,charles ausburne,DD,2112,158,82,Light,0,0,0
-14,thatcher,DD,2037,158,65,Light,0,0,0
-15,aulick,DD,1998,158,62,Light,0,0,0
-16,foote,DD,1998,158,67,Light,0,0,0
-17,spence,DD,1998,158,20,Light,0,0,0
-18,benson,DD,1826,163,72,Light,0,0,0
-19,laffey,DD,1980,163,18,Light,0,0,0
-26,sims,DD,1815,160,45,Light,0,0,0
-27,hammann,DD,1815,160,47,Light,0,0,0
-28,eldridge,DD,1720,211,75,Light,0,0,0
-29,omaha,CL,3237,101,67,Light,0,0,0
-30,raleigh,CL,3237,101,82,Light,0,0,0
-31,brooklyn,CL,3470,90,55,Light,0,0,0
-32,phoenix,CL,3470,90,88,Light,0,0,0
-33,helena,CL,3604,90,33,Light,0,0,0
-34,atlanta,CL,3517,95,12,Light,0,0,0
-35,juneau,CL,3517,95,18,Light,0,0,0
-36,san diego,CL,3755,95,85,Light,0,0,0
-37,cleveland,CL,4307,92,71,Light,0,0,0
-38,columbia,CL,4307,92,70,Light,0,0,0
-39,pensacola,CA,3290,55,75,Light,0,0,0
-40,salt lake city,CA,3290,55,71,Light,0,0,0
-41,northampton,CA,3346,53,27,Light,0,0,0
-42,chicago,CA,3393,53,32,Light,0,0,0
-43,houston,CA,3445,53,49,Light,0,0,0
-44,portland,CA,4565,58,78,Medium,0,0,0
-45,indianapolis,CA,4734,58,23,Medium,0,0,0
-46,astoria,CA,3881,57,15,Medium,0,0,0
-47,quincy,CA,4015,57,9,Medium,0,0,0
-48,vincennes,CA,4015,57,12,Medium,0,0,0
-49,wichita,CA,3709,50,70,Light,0,0,0
-52,nevada,BB,6974,26,75,Heavy,0,0,0
-53,oklahoma,BB,6956,26,38,Heavy,0,0,0
-54,pennsylvania,BB,7194,27,72,Heavy,0,0,0
-55,arizona,BB,7137,27,17,Heavy,0,0,0
-58,tennessee,BB,7385,28,51,Heavy,0,0,0
-59,california,BB,7385,28,36,Heavy,0,0,0
-60,colorado,BB,7456,30,67,Heavy,0,0,0
-61,maryland,BB,7514,30,70,Heavy,0,0,0
-62,west virginia,BB,7456,11,61,Heavy,0,0,0
-63,north carolina,BB,7852,33,81,Heavy,0,0,0
-64,washington,BB,8080,33,89,Heavy,0,0,0
-65,south dakota,BB,8031,33,76,Heavy,0,0,0
-70,long island,CVL,4691,66,68,Medium,0,0,0
-71,bogue,CVL,3953,67,78,Medium,0,0,0
-72,langley,CVL,4460,80,32,Medium,0,0,0
-73,lexington,CV,6912,57,35,Medium,0,0,0
-74,saratoga,CV,6912,57,66,Medium,0,0,0
-75,ranger,CVL,4779,73,71,Medium,0,0,0
-76,yorktown,CV,5797,54,39,Medium,0,0,0
-77,enterprise,CV,6193,62,93,Medium,0,0,0
-78,hornet,CV,5823,54,15,Medium,0,0,0
-79,wasp,CV,4219,31,20,Medium,0,0,0
-80,vestal,AR,4624,43,79,Light,0,0,0
-81,amazon,DD,1370,211,72,Light,0,0,0
-82,acasta,DD,1370,209,43,Light,0,0,0
-83,ardent,DD,1370,209,35,Light,0,0,0
-86,beagle,DD,1349,209,71,Light,0,0,0.18
-87,bulldog,DD,1349,209,65,Light,0,0,0.18
-88,comet,DD,1359,210,54,Light,0,0,0
-89,crescent,DD,1359,210,35,Light,0,0,0.18
-90,cygnet,DD,1359,210,72,Light,0,0,0.18
-91,foxhound,DD,1373,209,68,Light,0,0,0
-92,fortune,DD,1402,209,68,Light,0,0,0.18
-94,grenville,DD,1518,210,32,Light,0,0,0.18
-94,glowworm,DD,1412,210,36,Light,0,0,0.18
-96,hardy,DD,1518,210,40,Light,0,0,0
-100,hunter,DD,1370,210,24,Light,0,0,0
-101,javelin,DD,1581,210,65,Light,0,0,0
-102,juno,DD,1536,210,40,Light,0,0,0
-103,vampire,DD,1314,195,42,Light,0,0,0
-104,leander,CL,3246,102,44,Light,0,0,0
-105,achilles,CL,2974,97,54,Light,0,0,0
-106,ajax,CL,2974,97,74,Light,0,0,0
-111,sheffield,CL,3796,100,78,Light,0,0,0
-114,edinburgh,CL,4486,100,37,Light,0,0,0
-115,belfast,CL,3970,96,88,Light,0,0,0
-116,arethusa,CL,2830,100,69,Light,0,0,0
-117,galatea,CL,2830,100,26,Light,0,0,0
-118,aurora,CL,2914,100,84,Light,0,0,0
-119,london,CA,3561,67,62,Light,0,0,0
-120,shropshire,CA,3461,67,75,Light,0,0,0
-121,kent,CA,3508,65,71,Light,0,0,0
-122,suffolk,CA,3474,65,72,Light,0,0,0
-123,norfolk,CA,4621,68,69,Medium,0,0,0
-124,dorsetshire,CA,4755,68,33,Medium,0,0,0
-125,york,CA,3676,72,15,Medium,0,0,0
-126,exeter,CA,3705,72,49,Medium,0,0,0
-127,renown,BC,6207,37,85,Medium,0,0,0
-128,repulse,BC,6032,35,28,Medium,0,0,0
-129,hood,BC,8445,37,38,Medium,0,0,0
-130,queen elizabeth,BB,7512,33,25,Heavy,0,0,0
-131,warspite,BB,7783,33,90,Heavy,0,0,0
-132,nelson,BB,7654,33,66,Heavy,0,0,0
-133,rodney,BB,7630,31,81,Heavy,0,0,0
-135,prince of wales,BB,7967,35,19,Heavy,0,0,0
-136,duke of york,BB,7967,35,73,Heavy,0,0,0
-140,hermes,CVL,4157,66,41,Medium,0,0,0
-142,unicorn,CVL,5337,66,78,Medium,0,0,0
-144,ark royal,CV,6107,53,87,Medium,0,0,0
-145,illustrious,CV,6561,53,44,Heavy,0,0,0
-146,victorius,CV,6262,53,82,Heavy,0,0,0
-148,glorious,CV,6313,51,32,Medium,0,0,0
-149,erebus,BM,3642,61,91,Light,0,0,0
-150,terror,BM,3642,61,19,Light,0,0,0
-151,fubuki,DD,1798,191,34,Light,0,0.3,0
-155,ayanami,DD,1798,194,36,Light,0,0,0
-159,akatsuki,DD,1747,194,45,Light,0,0,0
-161,ikazuchi,DD,1747,194,52,Light,0,0,0
-162,inazuma,DD,1747,194,57,Light,0,0,0
-163,shiratsuyu,DD,1712,190,41,Light,0,0,0
-164,yuudachi,DD,1828,190,32,Light,0,0,0
-165,shigure,DD,1763,190,84,Light,0,0,0
-166,yukikaze,DD,2226,192,98,Light,0,0,0
-167,kagerou,DD,1885,192,25,Light,0,0,0
-168,shiranui,DD,1848,192,25,Light,0,0,0
-170,nowaki,DD,2145,191,72,Light,0,0,0
-171,hatsuharu,DD,1773,192,45,Light,0,0,0
-173,wakaba,DD,1770,192,36,Light,0,0,0
-174,hatsushimo,DD,1773,192,51,Light,0,0,0
-175,ariake,DD,1773,192,34,Light,0,0,0
-176,yuugure,DD,1619,193,32,Light,0,0,0
-177,kuroshio,DD,2083,191,34,Light,0,0,0
-178,oyashio,DD,2083,191,34,Light,0,0,0
-179,yuubari,CL,2177,105,53,Light,0,0,0
-182,nagara,CL,2891,105,36,Light,0,0,0
-183,isuzu,CL,3214,100,33,Light,0,0,0
-187,abukuma,CL,2891,105,43,Light,0,0,0
-188,mogami,CL,4015,82,14,Medium,0,0,0
-189,mikuma,CL,4015,82,13,Medium,0,0,0
-190,furutaka,CA,3439,75,34,Medium,0,0,0
-191,kako,CA,3439,75,34,Medium,0,0,0
-192,aoba,CA,3527,76,52,Medium,0,0,0
-193,kinugasa,CA,3527,76,65,Medium,0,0,0
-196,myoukou,CA,5220,78,62,Medium,0,0,0
-197,nachi,CA,5220,78,58,Medium,0,0,0
-198,ashigara,CA,4162,75,60,Medium,0,0,0
-200,takao,CA,4295,79,65,Medium,0,0,0
-201,atago,CA,4295,79,48,Medium,0,0,0
-202,maya,CA,4295,79,48,Medium,0,0,0
-203,choukai,CA,4295,79,50,Medium,0,0,0
-204,kongou,BC,6604,37,43,Medium,0,0,0
-205,hiei,BC,6604,37,37,Medium,0,0,0
-206,haruna,BC,6604,37,47,Medium,0,0,0
-207,kirishima,BC,6604,37,37,Medium,0,0,0
-208,fusou,BB,6916,31,13,Heavy,0,0,0
-209,yamashiro,BB,7307,31,14,Heavy,0,0,0
-210,ise,BB,7124,31,60,Heavy,0,0,0
-211,hyuuga,BB,7124,31,60,Heavy,0,0,0
-212,nagato,BB,8117,37,71,Heavy,0,0,0
-213,mutsu,BB,7896,34,34,Heavy,0,0,0
-218,hiyou,CVL,5204,68,43,Medium,0,0,0
-219,junyou,CVL,5204,68,80,Medium,0,0,0
-220,houshou,CVL,3621,66,79,Medium,0,0,0
-222,shouhou,CVL,4283,70,24,Medium,0,0,0
-223,ryuujou,CVL,4278,82,42,Medium,0,0,0
-224,akagi,CV,6588,54,42,Medium,0,0,0
-225,kaga,CV,6771,49,42,Medium,0,0,0
-226,souryuu,CV,5246,56,36,Medium,0,0,0
-227,hiryuu,CV,5468,56,36,Medium,0,0,0
-228,shoukaku,CV,6729,56,49,Medium,0,0,0
-229,zuikaku,CV,7193,57,73,Medium,0,0,0
-230,taihou,CV,7310,54,36,Heavy,0,0,0
-232,akashi,AR,4125,45,58,Light,0,0,0
-233,z1,DD,2053,148,40,Light,0,0.4,0
-236,z23,DD,2125,157,65,Light,0,0,0
-237,z25,DD,2116,156,72,Light,0,0,0
-238,konigsberg,CL,3372,100,42,Light,0,0,0
-239,karlsruhe,CL,3372,100,39,Light,0,0,0
-240,koln,CL,3372,100,62,Light,0,0,0
-241,leipzig,CL,3494,102,67,Light,0,0,0
-242,admiral hipper,CA,4970,61,66,Medium,0,0,0
-244,prinz eugen,CA,6252,62,78,Medium,0,0,0
-245,deutschland,CA,4018,53,72,Medium,0,0,0
-246,admiral graf spee,CA,4361,54,36,Medium,0,0,0
-248,scharnhorst,BC,7455,38,43,Medium,0,0,0
-249,gneisenau,BC,7455,38,64,Medium,0,0,0
-251,tirpitz,BB,8401,33,45,Heavy,0,0,0
-252,graf zeppelin,CV,7488,50,45,Medium,0,0,0
-253,an shan,DD,2277,165,81,Light,0,0.1,0
-254,fu shun,DD,2277,165,51,Light,0,0,0
-255,chang chun,DD,2277,165,61,Light,0,0,0
-256,tai yuan,DD,2277,165,71,Light,0,0,0
-257,yat sen,CL,1884,79,64,Light,0,0,0
-258,ning hai,CL,1982,75,51,Light,0,0,0
-259,ping hai,CL,1950,72,47,Light,0,0,0
-262,avrora,CL,3372,79,55,Medium,0,0,0
-263,bailey,DD,1826,162,70,Light,0,0,0
-264,z19,DD,2033,148,39,Light,0,0,0
-265,z20,DD,1993,148,71,Light,0,0,0
-266,z21,DD,1993,148,42,Light,0,0,0
-267,z46,DD,2595,151,63,Light,0,0,0
-269,kamikaze,DD,1561,193,86,Light,0,0,0
-270,matsukaze,DD,1561,190,45,Light,0,0,0
-271,mutsuki,DD,1487,193,35,Light,0,0,0
-272,kisaragi,DD,1487,193,15,Light,0,0,0
-274,uzuki,DD,1487,193,37,Light,0,0,0
-276,minazuki,DD,1487,193,45,Light,0,0,0
-277,fumizuki,DD,1516,193,27,Light,0,0,0
-278,nagatsuki,DD,1516,193,35,Light,0,0,0
-280,mikazuki,DD,1487,193,40,Light,0,0,0
-288,kawakaze,DD,1830,190,38,Light,0,0,0
-295,niizuki,DD,2445,179,32,Light,0,0,0
-296,harutsuki,DD,2445,179,61,Light,0,0,0
-297,yoizuki,DD,2445,179,61,Light,0,0,0
-299,radford,DD,2054,163,80,Light,0,0,0
-300,jenkins,DD,2080,161,81,Light,0,0,0
-301,nicholas,DD,2115,160,80,Light,0,0,0
-303,richmond,CL,3237,101,69,Light,0,0,0
-304,honolulu,CL,3470,90,50,Light,0,0,0
-305,st. louis,CL,3604,90,65,Light,0,0.18,0
-306,jupiter,DD,1536,210,52,Light,0,0,0
-307,jersey,DD,1536,210,20,Light,0,0,0
-308,sendai,CL,2540,108,42,Light,0,0,0
-309,jintsuu,CL,2615,108,38,Light,0,0,0
-310,naka,CL,2540,108,53,Light,0,0,0
-316,urakaze,DD,2083,191,27,Light,0,0,0
-317,isokaze,DD,2083,191,18,Light,0,0,0
-318,hamakaze,DD,2083,191,58,Light,0,0,0
-319,tanikaze,DD,2083,191,52,Light,0,0,0
-320,mikasa,BB,5372,25,95,Heavy,0,0,0
-321,agano,CL,3159,104,21,Light,0,0,0
-325,matchless,DD,1683,210,76,Light,0,0,0
-326,musketeer,DD,1683,210,67,Light,0,0,0
-327,fiji,CL,3586,100,11,Light,0,0,0.021
-328,jamaica,CL,3636,100,67,Light,0,0,0
-329,montpelier,CL,4361,92,72,Light,0,0,0
-330,denver,CL,4307,92,69,Light,0,0,0
-331,asashio,DD,1937,191,32,Light,0,0,0
-332,ooshio,DD,1937,191,40,Light,0,0,0
-333,michishio,DD,1964,191,48,Light,0,0,0
-334,arashio,DD,1937,191,32,Light,0,0,0
-335,belchan,CL,3231,96,89,Light,0,0,0
-336,abercrombie,BM,3777,61,38,Light,0,0,0
-337,sussex,CL,3461,71,68,Light,0,0,0
-338,i-19,SS,2165,45,19,Light,0,0,0
-339,i-26,SS,2067,45,26,Light,0,0,0
-340,i-58,SS,2080,37,58,Light,0,0,0
-341,u-81,SS,1309,37,23,Light,0,0.4,0
-342,dace,SS,1692,41,68,Light,0,0,0
-343,u-47,SS,1297,37,32,Light,0,0,0
-344,u-557,SS,1261,37,18,Light,0,0,0
-345,z35,DD,2092,159,35,Light,0,0,0
-346,z18,DD,2033,148,38,Light,0,0,0
-347,le triomphant,DD,2021,213,77,Light,0,0,0
-348,forbin,DD,1376,200,69,Light,0,0,0
-349,emile bertin,CL,3185,117,67,Light,0,0,0
-350,surcouf,SS,2819,22,60,Light,0,0,0
-351,le mars,DD,1376,200,24,Light,0,0,0
-352,dunkerque,BC,6788,41,35,Medium,0,0,0
-353,jean bart,BB,8036,42,17,Heavy,0,0,0
-354,massachusetts,BB,7783,33,82,Heavy,0,0,0
-355,bush,DD,2054,160,34,Light,0,0,0
-356,centaur,CVL,6626,70,73,Medium,0,0,0
-357,essex,CV,6647,54,90,Medium,0,0,0
-358,albacore,SS,1924,41,79,Light,0,0,0
-359,le temeraire,DD,1571,189,41,Light,0,0,0
-360,memphis,CL,3301,101,67,Light,0,0,0
-361,newcastle,CL,3688,100,78,Light,0,0,0
-362,hobby,DD,1826,163,68,Light,0,0,0
-363,kalk,DD,1826,163,75,Light,0,0,0
-364,minneapolis,CA,4152,57,76,Medium,0,0,0
-365,hazelwood,DD,2054,160,75,Light,0,0,0
-366,concord,CL,3301,101,67,Light,0,0,0
-367,amagi,BC,7654,41,23,Medium,0.1,0,0
-368,kaga bb,BB,8303,39,42,Heavy,0,0,0
-369,hatakaze,DD,1561,193,87,Light,0,0,0
-370,makinami,DD,2157,191,40,Light,0,0,0
-371,sirius,CL,3744,97,70,Light,0,0,0
-372,curacao,CL,2981,92,24,Light,0,0,0
-373,curlew,CL,2789,92,45,Light,0,0,0
-374,kimberly,DD,2054,160,77,Light,0,0,0
-375,mullany,DD,2115,160,89,Light,0,0,0
-376,chaser,CVL,4707,62,82,Medium,0,0,0
-377,independence,CVL,4796,83,78,Medium,0,0,0
-378,shangri-la,CV,6647,54,83,Medium,0,0,0
-379,z2,DD,2053,148,44,Light,0,0,0
-380,bunker hill,CV,6610,54,35,Medium,0,0,0
-381,i-13,SSV,2657,36,20,Light,0,0,0
-382,suzuya,CA,4176,80,15,Medium,0,0,0
-3005,cassin kai,DD,1900,187,66,Light,0,0,0
-3006,downes kai,DD,1900,187,63,Light,0,0,0
-3019,laffey kai,DD,2145,203,18,Light,0,0,0
-3026,sims kai,DD,2025,160,45,Light,0,0,0
-3027,hammann kai,DD,2025,160,47,Light,0,0,0
-3036,san diego kai,CL,3995,95,85,Light,0,0,0
-3044,portland kai,CA,5355,78,78,Medium,0,0,0
-3052,nevada kai,BB,7214,26,75,Heavy,0,0,0
-3053,oklahoma kai,BB,7196,26,38,Heavy,0,0,0
-3070,long island kai,CVL,4901,66,68,Medium,0,0,0
-3071,bogue kai,CVL,4163,67,78,Medium,0,0,0
-3072,langley kai,CVL,4700,80,32,Medium,0,0,0
-3074,saratoga kai,CV,7122,57,66,Medium,0,0,0
-3075,ranger kai,CVL,5019,73,71,Medium,0,0,0
-3082,acasta kai,DD,1535,244,43,Light,0,0,0
-3083,ardent kai,DD,1535,244,35,Light,0,0,0
-3088,comet kai,DD,1524,245,54,Light,0,0,0
-3089,crescent kai,DD,1524,240,35,Light,0,0,0
-3090,cygnet kai,DD,1524,255,72,Light,0,0,0
-3091,foxhound kai,DD,1538,249,68,Light,0,0,0
-3092,fortune kai,DD,1567,249,68,Light,0,0,0
-3101,javelin kai,DD,1746,250,65,Light,0,0,0
-3104,leander kai,CL,3486,102,44,Light,0,0,0
-3105,achilles kai,CL,3214,97,54,Light,0,0,0
-3106,ajax kai,CL,3214,97,74,Light,0,0,0
-3122,suffolk kai,CA,3754,65,72,Light,0,0,0
-3125,york kai,CA,3916,92,15,Medium,0,0,0
-3126,exeter kai,CA,3945,72,49,Medium,0,0,0
-3131,warspite kai,BB,8023,33,90,Heavy,0,0,0
-3155,ayanami kai,DD,1963,214,36,Light,0,0,0
-3167,kagerou kai,DD,2050,192,25,Light,0,0,0
-3168,shiranui kai,DD,1908,212,25,Light,0,0,0
-3179,yuubari kai,CL,2342,105,53,Light,0,0,0
-3187,abukuma kai,DD,3131,105,43,Light,0,0,0
-3188,mogami kai,CA,4623,80,14,Medium,0,0,0
-3190,furutaka kai,CA,3719,75,34,Medium,0,0,0
-3191,kako kai,CA,3719,75,34,Medium,0,0,0
-3208,fusou kai,BB,7266,31,13,Heavy,0,0,0
-3209,yamashiro kai,BB,7657,31,14,Heavy,0,0,0
-3210,ise kai,BB,7243,31,60,Heavy,0,0,0
-3211,hyuuga kai,BB,7243,31,60,Heavy,0,0,0
-3222,shouhou kai,CVL,4523,70,24,Medium,0,0,0
-3226,souryuu kai,CV,5456,66,36,Medium,0,0,0
-3227,hiryuu kai,CV,5678,66,36,Medium,0,0,0
-3236,z23 kai,DD,2290,162,65,Light,0,0,0
-3239,karlsruhe kai,CL,3612,100,39,Light,0,0,0
-3258,ning hai kai,CL,2192,110,51,Light,0,0,0
-3259,ping hai kai,CL,2160,107,47,Light,0,0,0
-3263,bailey kai,DD,2036,162,70,Light,0,0,0
-3269,kamikaze kai,DD,1726,193,86,Light,0,0,0
-3270,matsukaze kai,DD,1726,190,45,Light,0,0,0.18
-3271,mutsuki kai,DD,1652,193,35,Light,0,0,0
-3301,nicholas kai,DD,2280,160,80,Light,0,0,0
-3308,sendai kai,CL,2780,108,42,Light,0,0,0
-3309,jintsuu kai,CL,2855,108,38,Light,0,0,0.2
-3318,hamakaze kai,DD,2143,211,58,Light,0,0,0.18
-3319,tanikaze kai,DD,2143,211,52,Light,0,0,0
-3348,forbin kai,DD,1436,200,69,Light,0,0,0.18
-3351,le mars kai,DD,1436,200,24,Light,0,0,0.18
-3361,newcastle kai,CL,3928,100,78,Light,0,0,0
-C001,hdn neptune,CL,3430,100,73,Light,0,0,0
-C002,noire,CA,3828,65,83,Medium,0,0,0
-C003,blanc,DD,1800,175,71,Light,0,0,0
-C004,vert,CV,5523,48,93,Medium,0,0,0
-C005,purple heart,CL,3695,102,87,Light,0,0,0
-C006,black heart,CA,4062,68,83,Medium,0,0,0
-C007,white heart,DD,1947,178,73,Light,0,0,0
-C008,green heart,CV,5781,55,95,Medium,0,0,0
-C031,kuon,CA,4138,54,90,Medium,0,0,0
-C032,nekone,DD,1941,189,52,Light,0,0,0
-C033,rurutie,CL,4106,88,66,Light,0,0,0
-C034,uruuru,CVL,4472,53,77,Light,0,0,0
-C035,saraana,CVL,4472,53,77,Light,0,0,0
-C036,fumiruiru,CV,5126,54,82,Medium,0,0,0
-P001,hms neptune,CL,4637,98,0,Light,0,0,0
-P002,monarch,BB,7967,35,0,Heavy,0,0,0
-P003,ibuki,CA,4793,86,0,Medium,0,0,0
-P004,izumo,BB,8607,37,0,Heavy,0,0,0
-P005,roon,CA,5920,78,0,Medium,0,0,0
-P006,saint louis,CA,5363,80,0,Medium,0,0,0
-P007,seattle,CL,5257,97,0,Light,0,0,0
-P008,georgia,BB,8297,30,0,Heavy,0,0,0
-P009,kitakaze,DD,1641,197,0,Light,0,0,0
-P010,azuma,CB,7541,50,0,Medium,0,0,0
-P011,friedrich der grosse,BB,9886,27,0,Heavy,0,0,0
-P012,gascogne,BB,7863,36,0,Heavy,0,0,0
+﻿Lvl 120,Name,Hull,HP,EVA,LUK,Armor,EVA Rate,EVA Stat,DMG Red
+1,Purin,DD,245,122,100,Light,0,0,0
+2,Bulin,DD,245,122,100,Light,0,0,0
+4,Dewey,DD,1647,162,72,Light,0,0,0
+5,Cassin,DD,1735,162,66,Light,0,0,0
+6,Downes,DD,1735,162,63,Light,0,0,0
+7,Gridley,DD,1810,163,72,Light,0,0,0
+8,Craven,DD,1774,163,72,Light,0,0,0
+9,McCall,DD,1724,162,69,Light,0,0,0
+10,Maury,DD,1809,198,69,Light,0,0,0
+11,Fletcher,DD,2077,160,73,Light,0,0.3,0
+13,Charles Ausburne,DD,2112,158,82,Light,0,0,0
+14,Thatcher,DD,2037,158,65,Light,0,0,0
+15,Aulick,DD,1998,158,62,Light,0,0,0
+16,Foote,DD,1998,158,67,Light,0,0,0
+17,Spence,DD,1998,158,20,Light,0,0,0
+18,Benson,DD,1826,163,72,Light,0,0,0
+19,Laffey,DD,1980,163,18,Light,0,0,0
+26,Sims,DD,1815,160,45,Light,0,0,0
+27,Hammann,DD,1815,160,47,Light,0,0,0
+28,Eldridge,DD,1720,211,75,Light,0,0,0
+29,Omaha,CL,3237,101,67,Light,0,0,0
+30,Raleigh,CL,3237,101,82,Light,0,0,0
+31,Brooklyn,CL,3470,90,55,Light,0,0,0
+32,Phoenix,CL,3470,90,88,Light,0,0,0
+33,Helena,CL,3604,90,33,Light,0,0,0
+34,Atlanta,CL,3517,95,12,Light,0,0,0
+35,Juneau,CL,3517,95,18,Light,0,0,0
+36,San Diego,CL,3755,95,85,Light,0,0,0
+37,Cleveland,CL,4307,92,71,Light,0,0,0
+38,Columbia,CL,4307,92,70,Light,0,0,0
+39,Pensacola,CA,3290,55,75,Light,0,0,0
+40,Salt Lake City,CA,3290,55,71,Light,0,0,0
+41,Northampton,CA,3346,53,27,Light,0,0,0
+42,Chicago,CA,3393,53,32,Light,0,0,0
+43,Houston,CA,3445,53,49,Light,0,0,0
+44,Portland,CA,4565,58,78,Medium,0,0,0
+45,Indianapolis,CA,4734,58,23,Medium,0,0,0
+46,Astoria,CA,3881,57,15,Medium,0,0,0
+47,Quincy,CA,4015,57,9,Medium,0,0,0
+48,Vincennes,CA,4015,57,12,Medium,0,0,0
+49,Wichita,CA,3709,50,70,Light,0,0,0
+50,Baltimore,CA,4591,57,56,Medium,0,0,0
+52,Nevada,BB,6974,26,75,Heavy,0,0,0
+53,Oklahoma,BB,6956,26,38,Heavy,0,0,0
+54,Pennsylvania,BB,7194,27,72,Heavy,0,0,0
+55,Arizona,BB,7137,27,17,Heavy,0,0,0
+58,Tennessee,BB,7385,28,51,Heavy,0,0,0
+59,California,BB,7385,28,36,Heavy,0,0,0
+60,Colorado,BB,7456,30,67,Heavy,0,0,0
+61,Maryland,BB,7514,30,70,Heavy,0,0,0
+62,West Virginia,BB,7456,11,61,Heavy,0,0,0
+63,North Carolina,BB,7852,33,81,Heavy,0,0,0
+64,Washington,BB,8080,33,89,Heavy,0,0,0
+65,South Dakota,BB,8031,33,76,Heavy,0,0,0
+70,Long Island,CVL,4691,66,68,Medium,0,0,0
+71,Bogue,CVL,3953,67,78,Medium,0,0,0
+72,Langley,CVL,4460,80,32,Medium,0,0,0
+73,Lexington,CV,6912,57,35,Medium,0,0,0
+74,Saratoga,CV,6912,57,66,Medium,0,0,0
+75,Ranger,CVL,4779,73,71,Medium,0,0,0
+76,Yorktown,CV,5797,54,39,Medium,0,0,0
+77,Enterprise,CV,6193,62,93,Medium,0,0,0
+78,Hornet,CV,5823,54,15,Medium,0,0,0
+79,Wasp,CV,4219,31,20,Medium,0,0,0
+80,Vestal,AR,4624,43,79,Light,0,0,0
+81,Amazon,DD,1370,211,72,Light,0,0,0
+82,Acasta,DD,1370,209,43,Light,0,0,0
+83,Ardent,DD,1370,209,35,Light,0,0,0
+86,Beagle,DD,1349,209,71,Light,0,0,0.18
+87,Bulldog,DD,1349,209,65,Light,0,0,0.18
+88,Comet,DD,1359,210,54,Light,0,0,0
+89,Crescent,DD,1359,210,35,Light,0,0,0.18
+90,Cygnet,DD,1359,210,72,Light,0,0,0.18
+91,Foxhound,DD,1373,209,68,Light,0,0,0
+92,Fortune,DD,1402,209,68,Light,0,0,0.18
+94,Grenville,DD,1518,210,32,Light,0,0,0.18
+94,Glowworm,DD,1412,210,36,Light,0,0,0.18
+96,Hardy,DD,1518,210,40,Light,0,0,0
+100,Hunter,DD,1370,210,24,Light,0,0,0
+101,Javelin,DD,1581,210,65,Light,0,0,0
+102,Juno,DD,1536,210,40,Light,0,0,0
+103,Vampire,DD,1314,195,42,Light,0,0,0
+104,Leander,CL,3246,102,44,Light,0,0,0
+105,Achilles,CL,2974,97,54,Light,0,0,0
+106,Ajax,CL,2974,97,74,Light,0,0,0
+110,Southampton,CL,3688,100,32,Light,0,0,0
+111,Sheffield,CL,3796,100,78,Light,0,0,0
+114,Edinburgh,CL,4486,100,37,Light,0,0,0
+115,Belfast,CL,3970,96,88,Light,0,0,0
+116,Arethusa,CL,2830,100,69,Light,0,0,0
+117,Galatea,CL,2830,100,26,Light,0,0,0
+118,Aurora,CL,2914,100,84,Light,0,0,0
+119,London,CA,3561,67,62,Light,0,0,0
+120,Shropshire,CA,3461,67,75,Light,0,0,0
+121,Kent,CA,3508,65,71,Light,0,0,0
+122,Suffolk,CA,3474,65,72,Light,0,0,0
+123,Norfolk,CA,4621,68,69,Medium,0,0,0
+124,Dorsetshire,CA,4755,68,33,Medium,0,0,0
+125,York,CA,3676,72,15,Medium,0,0,0
+126,Exeter,CA,3705,72,49,Medium,0,0,0
+127,Renown,BC,6207,37,85,Medium,0,0,0
+128,Repulse,BC,6032,35,28,Medium,0,0,0
+129,Hood,BC,8445,37,38,Medium,0,0,0
+130,Queen Elizabeth,BB,7512,33,25,Heavy,0,0,0
+131,Warspite,BB,7783,33,90,Heavy,0,0,0
+132,Nelson,BB,7654,33,66,Heavy,0,0,0
+133,Rodney,BB,7630,31,81,Heavy,0,0,0
+134,King George V,BB,7970,35,77,Heavy,0,0,0
+135,Prince of Wales,BB,7967,35,19,Heavy,0,0,0
+136,Duke of York,BB,7967,35,73,Heavy,0,0,0
+140,Hermes,CVL,4157,66,41,Medium,0,0,0
+142,Unicorn,CVL,5337,66,78,Medium,0,0,0
+144,Ark Royal,CV,6107,53,87,Medium,0,0,0
+145,Illustrious,CV,6561,53,44,Heavy,0,0,0
+146,Victorius,CV,6262,53,82,Heavy,0,0,0
+148,Glorious,CV,6313,51,32,Medium,0,0,0
+149,Erebus,BM,3642,61,91,Light,0,0,0
+150,Terror,BM,3642,61,19,Light,0,0,0
+151,Fubuki,DD,1798,191,34,Light,0,0.3,0
+155,Ayanami,DD,1798,194,36,Light,0,0,0
+159,Akatsuki,DD,1747,194,45,Light,0,0,0
+161,Ikazuchi,DD,1747,194,52,Light,0,0,0
+162,Inazuma,DD,1747,194,57,Light,0,0,0
+163,Shiratsuyu,DD,1712,190,41,Light,0,0,0
+164,Yuudachi,DD,1828,190,32,Light,0,0,0
+165,Shigure,DD,1763,190,84,Light,0,0,0
+166,Yukikaze,DD,2226,192,98,Light,0,0,0
+167,Kagerou,DD,1885,192,25,Light,0,0,0
+168,Shiranui,DD,1848,192,25,Light,0,0,0
+170,Nowaki,DD,2145,191,72,Light,0,0,0
+171,Hatsuharu,DD,1773,192,45,Light,0,0,0
+173,Wakaba,DD,1770,192,36,Light,0,0,0
+174,Hatsushimo,DD,1773,192,51,Light,0,0,0
+175,Ariake,DD,1773,192,34,Light,0,0,0
+176,Yuugure,DD,1619,193,32,Light,0,0,0
+177,Kuroshio,DD,2083,191,34,Light,0,0,0
+178,Oyashio,DD,2083,191,34,Light,0,0,0
+179,Yuubari,CL,2177,105,53,Light,0,0,0
+182,Nagara,CL,2891,105,36,Light,0,0,0
+183,Isuzu,CL,3214,100,33,Light,0,0,0
+187,Abukuma,CL,2891,105,43,Light,0,0,0
+188,Mogami,CL,4015,82,14,Medium,0,0,0
+189,Mikuma,CL,4015,82,13,Medium,0,0,0
+190,Furutaka,CA,3439,75,34,Medium,0,0,0
+191,Kako,CA,3439,75,34,Medium,0,0,0
+192,Aoba,CA,3527,76,52,Medium,0,0,0
+193,Kinugasa,CA,3527,76,65,Medium,0,0,0
+196,Myoukou,CA,5220,78,62,Medium,0,0,0
+197,Nachi,CA,5220,78,58,Medium,0,0,0
+198,Ashigara,CA,4162,75,60,Medium,0,0,0
+200,Takao,CA,4295,79,65,Medium,0,0,0
+201,Atago,CA,4295,79,48,Medium,0,0,0
+202,Maya,CA,4295,79,48,Medium,0,0,0
+203,Choukai,CA,4295,79,50,Medium,0,0,0
+204,Kongou,BC,6604,37,43,Medium,0,0,0
+205,Hiei,BC,6604,37,37,Medium,0,0,0
+206,Haruna,BC,6604,37,47,Medium,0,0,0
+207,Kirishima,BC,6604,37,37,Medium,0,0,0
+208,Fusou,BB,6916,31,13,Heavy,0,0,0
+209,Yamashiro,BB,7307,31,14,Heavy,0,0,0
+210,Ise,BB,7124,31,60,Heavy,0,0,0
+211,Hyuuga,BB,7124,31,60,Heavy,0,0,0
+212,Nagato,BB,8117,37,71,Heavy,0,0,0
+213,Mutsu,BB,7896,34,34,Heavy,0,0,0
+218,Hiyou,CVL,5204,68,43,Medium,0,0,0
+219,Junyou,CVL,5204,68,80,Medium,0,0,0
+220,Houshou,CVL,3621,66,79,Medium,0,0,0
+222,Shouhou,CVL,4283,70,24,Medium,0,0,0
+223,Ryuujou,CVL,4278,82,42,Medium,0,0,0
+224,Akagi,CV,6588,54,42,Medium,0,0,0
+225,Kaga,CV,6771,49,42,Medium,0,0,0
+226,Souryuu,CV,5246,56,36,Medium,0,0,0
+227,Hiryuu,CV,5468,56,36,Medium,0,0,0
+228,Shoukaku,CV,6729,56,49,Medium,0,0,0
+229,Zuikaku,CV,7193,57,73,Medium,0,0,0
+230,Taihou,CV,7310,54,36,Heavy,0,0,0
+232,Akashi,AR,4125,45,58,Light,0,0,0
+233,Z1,DD,2053,148,40,Light,0,0.4,0
+236,Z23,DD,2125,157,65,Light,0,0,0
+237,Z25,DD,2116,156,72,Light,0,0,0
+238,Konigsberg,CL,3372,100,42,Light,0,0,0
+239,Karlsruhe,CL,3372,100,39,Light,0,0,0
+240,Koln,CL,3372,100,62,Light,0,0,0
+241,Leipzig,CL,3494,102,67,Light,0,0,0
+242,Admiral Hipper,CA,4970,61,66,Medium,0,0,0
+244,Prinz Eugen,CA,6252,62,78,Medium,0,0,0
+245,Deutschland,CA,4018,53,72,Medium,0,0,0
+246,Admiral Graf Spee,CA,4361,54,36,Medium,0,0,0
+248,Scharnhorst,BC,7455,38,43,Medium,0,0,0
+249,Gneisenau,BC,7455,38,64,Medium,0,0,0
+250,Bismarck,BB,8762,33,32,Heavy,0,0,0
+251,Tirpitz,BB,8401,33,45,Heavy,0,0,0
+252,Graf Zeppelin,CV,7488,50,45,Medium,0,0,0
+253,An Shan,DD,2277,165,81,Light,0,0.1,0
+254,Fu Shun,DD,2277,165,51,Light,0,0,0
+255,Chang Chun,DD,2277,165,61,Light,0,0,0
+256,Tai Yuan,DD,2277,165,71,Light,0,0,0
+257,Yat Sen,CL,1884,79,64,Light,0,0,0
+258,Ning Hai,CL,1982,75,51,Light,0,0,0
+259,Ping Hai,CL,1950,72,47,Light,0,0,0
+262,Avrora,CL,3372,79,55,Medium,0,0,0
+263,Bailey,DD,1826,162,70,Light,0,0,0
+264,Z19,DD,2033,148,39,Light,0,0,0
+265,Z20,DD,1993,148,71,Light,0,0,0
+266,Z21,DD,1993,148,42,Light,0,0,0
+267,Z46,DD,2595,151,63,Light,0,0,0
+269,Kamikaze,DD,1561,193,86,Light,0,0,0
+270,Matsukaze,DD,1561,190,45,Light,0,0,0
+271,Mutsuki,DD,1487,193,35,Light,0,0,0
+272,Kisaragi,DD,1487,193,15,Light,0,0,0
+274,Uzuki,DD,1487,193,37,Light,0,0,0
+276,Minazuki,DD,1487,193,45,Light,0,0,0
+277,Fumizuki,DD,1516,193,27,Light,0,0,0
+278,Nagatsuki,DD,1516,193,35,Light,0,0,0
+280,Mikazuki,DD,1487,193,40,Light,0,0,0
+288,Kawakaze,DD,1830,190,38,Light,0,0,0
+295,Niizuki,DD,2445,179,32,Light,0,0,0
+296,Harutsuki,DD,2445,179,61,Light,0,0,0
+297,Yoizuki,DD,2445,179,61,Light,0,0,0
+299,Radford,DD,2054,163,80,Light,0,0,0
+300,Jenkins,DD,2080,161,81,Light,0,0,0
+301,Nicholas,DD,2115,160,80,Light,0,0,0
+303,Richmond,CL,3237,101,69,Light,0,0,0
+304,Honolulu,CL,3470,90,50,Light,0,0,0
+305,St. Louis,CL,3604,90,65,Light,0,0.18,0
+306,Jupiter,DD,1536,210,52,Light,0,0,0
+307,Jersey,DD,1536,210,20,Light,0,0,0
+308,Sendai,CL,2540,108,42,Light,0,0,0
+309,Jintsuu,CL,2615,108,38,Light,0,0,0
+310,Naka,CL,2540,108,53,Light,0,0,0
+316,Urakaze,DD,2083,191,27,Light,0,0,0
+317,Isokaze,DD,2083,191,18,Light,0,0,0
+318,Hamakaze,DD,2083,191,58,Light,0,0,0
+319,Tanikaze,DD,2083,191,52,Light,0,0,0
+320,Mikasa,BB,5372,25,95,Heavy,0,0,0
+321,Agano,CL,3159,104,21,Light,0,0,0
+325,Matchless,DD,1683,210,76,Light,0,0,0
+326,Musketeer,DD,1683,210,67,Light,0,0,0
+327,Fiji,CL,3586,100,11,Light,0,0,0.021
+328,Jamaica,CL,3636,100,67,Light,0,0,0
+329,Montpelier,CL,4361,92,72,Light,0,0,0
+330,Denver,CL,4307,92,69,Light,0,0,0
+331,Asashio,DD,1937,191,32,Light,0,0,0
+332,Ooshio,DD,1937,191,40,Light,0,0,0
+333,Michishio,DD,1964,191,48,Light,0,0,0
+334,Arashio,DD,1937,191,32,Light,0,0,0
+335,Little Bel,CL,3231,96,89,Light,0,0,0
+336,Abercrombie,BM,3777,61,38,Light,0,0,0
+337,Sussex,CA,3461,71,68,Light,0,0,0
+338,I-19,SS,2165,45,19,Light,0,0,0
+339,I-26,SS,2067,45,26,Light,0,0,0
+340,I-58,SS,2080,37,58,Light,0,0,0
+341,U-81,SS,1309,37,23,Light,0,0.4,0
+342,Dace,SS,1692,41,68,Light,0,0,0
+343,U-47,SS,1297,37,32,Light,0,0,0
+344,U-557,SS,1261,37,18,Light,0,0,0
+345,Z35,DD,2092,159,35,Light,0,0,0
+346,Z18,DD,2033,148,38,Light,0,0,0
+347,Le Triomphant,DD,2021,213,77,Light,0,0,0
+348,Forbin,DD,1376,200,69,Light,0,0,0
+349,Emile Bertin,CL,3185,117,67,Light,0,0,0
+350,Surcouf,SS,2819,22,60,Light,0,0,0
+351,Le Mars,DD,1376,200,24,Light,0,0,0
+352,Dunkerque,BC,6788,41,35,Medium,0,0,0
+353,Jean Bart,BB,8036,42,17,Heavy,0,0,0
+354,Massachusetts,BB,7783,33,82,Heavy,0,0.15,0
+355,Bush,DD,2054,160,34,Light,0,0,0
+356,Centaur,CVL,6626,70,73,Medium,0,0,0
+357,Essex,CV,6647,54,90,Medium,0,0,0
+358,Albacore,SS,1924,41,79,Light,0,0,0
+359,Le Temeraire,DD,1571,189,41,Light,0,0,0
+360,Memphis,CL,3301,101,67,Light,0,0,0
+361,Newcastle,CL,3688,100,78,Light,0,0,0
+362,Hobby,DD,1826,163,68,Light,0,0,0
+363,Kalk,DD,1826,163,75,Light,0,0,0
+364,Minneapolis,CA,4152,57,76,Medium,0,0,0
+365,Hazelwood,DD,2054,160,75,Light,0,0,0
+366,Concord,CL,3301,101,67,Light,0,0,0
+367,Amagi,BC,7654,41,23,Medium,0.1,0,0
+368,Kaga BB,BB,8303,39,42,Heavy,0,0,0
+369,Hatakaze,DD,1561,193,87,Light,0,0,0
+370,Makinami,DD,2157,191,40,Light,0,0,0
+371,Sirius,CL,3744,97,70,Light,0,0,0
+372,Curacao,CL,2981,92,24,Light,0,0,0
+373,Curlew,CL,2789,92,45,Light,0,0,0
+374,Kimberly,DD,2054,160,77,Light,0,0,0
+375,Mullany,DD,2115,160,89,Light,0,0,0
+376,Chaser,CVL,4707,62,82,Medium,0,0,0
+377,Independence,CVL,4796,83,78,Medium,0,0,0
+378,Shangri-La,CV,6647,54,83,Medium,0,0,0
+379,Z2,DD,2053,148,44,Light,0,0,0
+380,Bunker Hill,CV,6610,54,35,Medium,0,0,0
+381,I-13,SSV,2657,36,20,Light,0,0,0
+382,Suzuya,CA,4176,80,15,Medium,0,0,0
+383,Hiei-chan,BB,6454,40,37,Heavy,0,0,0
+384,Akagi-chan,CV,6250,54,42,Medium,0,0,0
+385,Zeppy,CV,6983,56,45,Medium,0,0,0
+386,U-556,SS,1261,37,45,Light,0,0,0
+387,U-73,SS,1250,37,45,Light,0,0,0
+388,Z36,DD,2092,159,36,Light,0,0,0
+389,Echo,DD,1400,209,65,Light,0,0,0
+390,Lena,CL,3246,91,33,Light,0,0,0
+391,Clevelad,CL,3601,94,71,Light,0,0,0
+392,Li'l Sandy,CL,3226,95,85,Light,0,0,0
+393,Swiftsure,CL,3796,96,44,Light,0,0,0
+394,Le Malin,DD,2021,213,51,Light,0,0,0
+395,L'Opiniatre,DD,1772,178,45,Light,0,0,0
+396,I-25,SS,1946,45,25,Light,0,0,0
+397,I-56,SS,2080,37,46,Light,0,0,0
+398,I-168,SS,1993,43,22,Light,0,0,0
+399,U-101,SS,1297,37,68,Light,0,0,0
+400,U-522,SS,1497,37,22,Light,0,0,0
+3005,Cassin Kai,DD,1900,187,66,Light,0,0,0
+3006,Downes Kai,DD,1900,187,63,Light,0,0,0
+3019,Laffey Kai,DD,2145,203,18,Light,0,0,0
+3026,Sims Kai,DD,2025,160,45,Light,0,0,0
+3027,Hammann Kai,DD,2025,160,47,Light,0,0,0
+3036,San Diego Kai,CL,3995,95,85,Light,0,0,0
+3044,Portland Kai,CA,5355,78,78,Medium,0,0,0
+3052,Nevada Kai,BB,7214,26,75,Heavy,0,0,0
+3053,Oklahoma Kai,BB,7196,26,38,Heavy,0,0,0
+3070,Long Island Kai,CVL,4901,66,68,Medium,0,0,0
+3071,Bogue Kai,CVL,4163,67,78,Medium,0,0,0
+3072,Langley Kai,CVL,4700,80,32,Medium,0,0,0
+3074,Saratoga Kai,CV,7122,57,66,Medium,0,0,0
+3075,Ranger Kai,CVL,5019,73,71,Medium,0,0,0
+3082,Acasta Kai,DD,1535,244,43,Light,0,0,0
+3083,Ardent Kai,DD,1535,244,35,Light,0,0,0
+3088,Comet Kai,DD,1524,245,54,Light,0,0,0
+3089,Crescent Kai,DD,1524,240,35,Light,0,0,0
+3090,Cygnet Kai,DD,1524,255,72,Light,0,0,0
+3091,Foxhound Kai,DD,1538,249,68,Light,0,0,0
+3092,Fortune Kai,DD,1567,249,68,Light,0,0,0
+3101,Javelin Kai,DD,1746,250,65,Light,0,0,0
+3104,Leander Kai,CL,3486,102,44,Light,0,0,0
+3105,Achilles Kai,CL,3214,97,54,Light,0,0,0
+3106,Ajax Kai,CL,3214,97,74,Light,0,0,0
+3119,London Kai,CA,3841,82,62,Light,0,0,0
+3122,Suffolk Kai,CA,3754,65,72,Light,0,0,0
+3125,York Kai,CA,3916,92,15,Medium,0,0,0
+3126,Exeter Kai,CA,3945,72,49,Medium,0,0,0
+3131,Warspite Kai,BB,8023,33,90,Heavy,0,0,0
+3140,Hermes Kai,CVL,4367,66,41,Medium,0,0,0
+3155,Ayanami Kai,DD,1963,214,36,Light,0,0,0
+3167,Kagerou Kai,DD,2050,192,25,Light,0,0,0
+3168,Shiranui Kai,DD,1908,212,25,Light,0,0,0
+3179,Yuubari Kai,CL,2342,105,53,Light,0,0,0
+3187,Abukuma Kai,CL,3131,105,43,Light,0,0,0
+3188,Mogami Kai,CA,4623,80,14,Medium,0,0,0
+3190,Furutaka Kai,CA,3719,75,34,Medium,0,0,0
+3191,Kako Kai,CA,3719,75,34,Medium,0,0,0
+3208,Fusou Kai,BBV,7266,31,13,Heavy,0,0,0
+3209,Yamashiro Kai,BBV,7657,31,14,Heavy,0,0,0
+3210,Ise Kai,BBV,7243,31,60,Heavy,0,0,0
+3211,Hyuuga Kai,BBV,7243,31,60,Heavy,0,0,0
+3222,Shouhou Kai,CVL,4523,70,24,Medium,0,0,0
+3226,Souryuu Kai,CV,5456,66,36,Medium,0,0,0
+3227,Hiryuu Kai,CV,5678,66,36,Medium,0,0,0
+3233,Z1 Kai,DD,2218,153,40,Light,0,0,0
+3236,Z23 Kai,DD,2290,162,65,Light,0,0,0
+3239,Karlsruhe Kai,CL,3612,100,39,Light,0,0,0
+3240,Koln Kai,CL,3612,100,62,Light,0,0,0
+3241,Leipzig Kai,CL,3734,102,67,Light,0,0,0
+3258,Ning Hai Kai,CL,2192,110,51,Light,0,0,0
+3259,Ping Hai Kai,CL,2160,107,47,Light,0,0,0
+3263,Bailey Kai,DD,2036,162,70,Light,0,0,0
+3269,Kamikaze Kai,DD,1726,193,86,Light,0,0,0
+3270,Matsukaze Kai,DD,1726,190,45,Light,0,0,0.18
+3271,Mutsuki Kai,DD,1652,193,35,Light,0,0,0
+3272,Kisaragi Kai,DD,1652,193,15,Light,0,0,0
+3301,Nicholas Kai,DD,2280,160,80,Light,0,0,0
+3308,Sendai Kai,CL,2780,108,42,Light,0,0,0
+3309,Jintsuu Kai,CL,2855,108,38,Light,0,0,0.2
+3318,Hamakaze Kai,DD,2143,211,58,Light,0,0,0.18
+3319,Tanikaze Kai,DD,2143,211,52,Light,0,0,0
+3348,Forbin Kai,DD,1436,200,69,Light,0,0,0.18
+3349,Emile Bertin Kai,CL,3425,117,67,Light,0,0,0
+3351,Le Mars Kai,DD,1436,200,24,Light,0,0,0.18
+3361,Newcastle Kai,CL,3928,100,78,Light,0,0,0
+3372,Curacao Kai,CL,3221,92,24,Light,0,0,0
+3373,Curlew Kai,CL,3029,92,45,Light,0,0,0
+C001,HDN Neptune,CL,3430,100,73,Light,0,0,0
+C002,Noire,CA,3828,65,83,Medium,0,0,0
+C003,Blanc,DD,1800,175,71,Light,0,0,0
+C004,Vert,CV,5523,48,93,Medium,0,0,0
+C005,Purple Heart,CL,3695,102,87,Light,0,0,0
+C006,Black Heart,CA,4062,68,83,Medium,0,0,0
+C007,White Heart,DD,1947,178,73,Light,0,0,0
+C008,Green Heart,CV,5781,55,95,Medium,0,0,0
+C031,Kuon,CA,4138,54,90,Medium,0,0,0
+C032,Nekone,DD,1941,189,52,Light,0,0,0
+C033,Rurutie,CL,4106,88,66,Light,0,0,0
+C034,Uruuru,CVL,4472,53,77,Light,0,0,0
+C035,Saraana,CVL,4472,53,77,Light,0,0,0
+C036,Fumiruiru,CV,5126,54,82,Medium,0,0,0
+C041,Kizuna AI,DD,1768,194,66,Light,0,0,0
+C042,Elegant Kizuna AI,CA,5020,53,66,Medium,0,0,0
+C043,Anniversary Kizuna AI,CV,6626,37,66,Medium,0,0,0
+C044,Super Gamer Kizuna AI,BB,7648,30,66,Heavy,0,0,0
+P001,HMS Neptune,CL,4637,98,0,Light,0,0,0
+P002,Monarch,BB,7967,35,0,Heavy,0,0,0
+P003,Ibuki,CA,4793,86,0,Medium,0,0,0
+P004,Izumo,BB,8607,37,0,Heavy,0,0,0
+P005,Roon,CA,5920,78,0,Medium,0,0,0
+P006,Saint Louis,CA,5363,80,0,Medium,0,0,0
+P007,Seattle,CL,5257,97,0,Light,0,0,0
+P008,Georgia,BB,8297,30,0,Heavy,0,0,0
+P009,Kitakaze,DD,2641,197,0,Light,0,0,0
+P010,Azuma,CB,7541,50,0,Medium,0,0,0
+P011,Friedrich der Grosse,BB,9886,27,0,Heavy,0,0,0
+P012,Gascogne,BB,7863,36,0,Heavy,0,0,0
