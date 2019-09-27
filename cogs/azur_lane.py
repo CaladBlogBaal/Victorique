@@ -5,6 +5,7 @@ import shutil
 import json
 import typing
 
+from contextlib import suppress
 from tempfile import NamedTemporaryFile
 
 import discord
@@ -189,7 +190,7 @@ class AzurLane(commands.Cog, name="Azur Lane"):
         the enemy level you must pass the enemy hit followed by the enemy level eg
         vic ehp 45 130 Javelin / vic ehp 45 True 130 Javelin
         """
-
+        # it just works.tm function
         async def category_choice_set(aux_list):
 
             index_ = await self.bot.wait_for('message', check=lambda message: message.author == ctx.author, timeout=60)
@@ -219,8 +220,11 @@ class AzurLane(commands.Cog, name="Azur Lane"):
                 if index_ == 0:
                     await ctx.send("exiting the calc... 0 was entered")
                     return False
+                try:
+                    display_aux_ = auxiliary_list[index_ - 1][0]
 
-                display_aux_ = "nothing"
+                except IndexError:
+                    display_aux_ = "Nothing"
 
             msg_ = await ctx.send(f"auxiliary slot has been set to {display_aux_}")
             messages_to_delete.append(msg_.id)
@@ -239,13 +243,14 @@ class AzurLane(commands.Cog, name="Azur Lane"):
             return await ctx.send(f"> the ship {ship_name} was not found.")
 
         for key, value in ship_dict.items():
-            if value.isdigit():
-                ship_dict[key] = int(value)
+            with suppress(AttributeError):
+                if value.isdigit():
+                    ship_dict[key] = int(value)
 
-            try:
-                ship_dict[key] = float(value)
-            except ValueError:
-                pass
+                try:
+                    ship_dict[key] = float(value)
+                except ValueError:
+                    pass
 
         msg = await ctx.send(":ship: :ship: :ship:  | Type in the formation, Single, Diamond or Double.")
         messages_to_delete.append(msg.id)
