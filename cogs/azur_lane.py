@@ -1,10 +1,13 @@
 import re
+import copy
 import asyncio
 import csv
 import shutil
 import json
 import typing
 
+from itertools import combinations_with_replacement
+from operator import itemgetter
 from contextlib import suppress
 from tempfile import NamedTemporaryFile
 
@@ -33,6 +36,22 @@ class AzurLane(commands.Cog, name="Azur Lane"):
         self.ship_gear_hub = ship_gear_hub
         self.bot = bot
 
+        self.auxiliary_list = [["Repair Tool", 500],
+                               ["Fire Suppressor", 226],
+                               ["Navy Camouflage", 44, 17],
+                               ["Fuel Filter", 350, 5],
+                               ["Anti Torpedo Bulge", 350],
+                               ["SG Radar", 15],
+                               ["Beaver Badge", 75, 35],
+                               ["Improved Hydraulic Rudder", 60, 40]]
+
+    @staticmethod
+    def __return_based_on_length(aux_slot):
+        if len(aux_slot) == 3:
+            return aux_slot[1], aux_slot[2]
+
+        return aux_slot[1]
+
     @staticmethod
     def delete_from_reader(ship_name, list_of_rows, update_function):
         for i, row in enumerate(list_of_rows):
@@ -51,27 +70,6 @@ class AzurLane(commands.Cog, name="Azur Lane"):
                     return True
 
         return False
-
-    @staticmethod
-    def auxiliary_slots(auxiliary_list, option=0):
-        auxiliary_slot_hp = 0
-        auxiliary_slot_evasion = 0
-
-        if option == 9:
-            auxiliary_slot_hp = 0
-            auxiliary_slot_evasion = 0
-
-        if option in (1, 2, 5):
-            auxiliary_slot_hp = auxiliary_list[option - 1][1]
-
-        elif option == 6:
-            auxiliary_slot_evasion = auxiliary_list[option - 1][1]
-
-        elif option in (3, 4, 7, 8):
-            auxiliary_slot_hp = auxiliary_list[option - 1][1]
-            auxiliary_slot_evasion = auxiliary_list[option - 1][2]
-
-        return auxiliary_slot_hp, auxiliary_slot_evasion
 
     @staticmethod
     async def azur_lane_wiki_search(ctx, item, allow_none_png=False, paginate=True):
@@ -130,6 +128,93 @@ class AzurLane(commands.Cog, name="Azur Lane"):
                        "?resizeid=19&resizeh=1200&resizew=1200"
             return await ctx.send(f":no_entry: | search failed for {item}")
 
+    def auxiliary_slots(self, option=0):
+        auxiliary_slot_hp = 0
+        auxiliary_slot_evasion = 0
+
+        if option == 9:
+            auxiliary_slot_hp = 0
+            auxiliary_slot_evasion = 0
+
+        if option in (1, 2, 5):
+            auxiliary_slot_hp = self.auxiliary_list[option - 1][1]
+
+        elif option == 6:
+            auxiliary_slot_evasion = self.auxiliary_list[option - 1][1]
+
+        elif option in (3, 4, 7, 8):
+            auxiliary_slot_hp = self.auxiliary_list[option - 1][1]
+            auxiliary_slot_evasion = self.auxiliary_list[option - 1][2]
+
+        return auxiliary_slot_hp, auxiliary_slot_evasion
+
+    def return_ship_dict(self, ship_name):
+        for row in self.ship_stats_reader:
+            if row.get("Name", "null").lower() == ship_name:
+                ship_dict = row
+
+                for key, value in ship_dict.items():
+                    with suppress(AttributeError):
+                        if value.isdigit():
+                            ship_dict[key] = int(value)
+
+                        try:
+                            ship_dict[key] = float(value)
+                        except ValueError:
+                            pass
+                return ship_dict
+
+        return None
+
+    def find_best_ehp(self, enemy_hit, ship_dict, aux_list_combinations):
+
+        aux_slot_eva = 0
+        aux_slot_eva_two = 0
+        results = []
+
+        for tup_list in aux_list_combinations:
+            aux_slot, aux_slot_two = tup_list
+            display_aux, display_aux_two = aux_slot[0], aux_slot_two[0]
+            result = self.__return_based_on_length(aux_slot)
+            result_two = self.__return_based_on_length(aux_slot_two)
+            if not isinstance(result, int):
+                aux_slot_hp, aux_slot_eva = result
+            else:
+                aux_slot_hp = result
+
+            if not isinstance(result_two, int):
+                aux_slot_hp_two, aux_slot_eva_two = result_two
+
+            else:
+                aux_slot_hp_two = result_two
+            # to not allow two IHR result shouldn't change if it's slotted with a beaver badge
+            if (aux_slot_hp, aux_slot_eva) == (aux_slot_hp_two, aux_slot_eva_two) == (60, 40):
+                display_aux = "Beaver Badge"
+                aux_slot_hp, aux_slot_eva = self.auxiliary_list[6][1], self.auxiliary_list[6][2]
+
+            ship_evasion = ship_dict["EVA"] * (1 + ship_dict["EVAS"]) + aux_slot_eva + aux_slot_eva_two
+            ship_hp = ship_dict["HP"] + aux_slot_hp + aux_slot_hp_two
+            ship_luck = ship_dict["LUK"]
+
+            ship_evasion_rate = ship_dict["EVA Rate"]
+
+            accuracy = 0.1 + enemy_hit / (enemy_hit + ship_evasion + 2) + (
+                (0 - ship_luck) * 0.001
+            ) - ship_evasion_rate
+
+            if accuracy < 0.1:
+                accuracy = 0.1
+
+            elif accuracy > 1:
+                accuracy = 1
+
+            ehp = ship_hp / (accuracy * (1 - ship_dict["DMGR"]))
+            ehp = round(ehp, 2)
+            results.append([ehp, (display_aux, display_aux_two)])
+        # getting the index and max value
+        result = max(enumerate(map(itemgetter(0), results)), key=itemgetter(1))
+        return results[result[0]][1], result[1]
+
     def update_ship_gear_hub(self):
         temp = NamedTemporaryFile(mode="w", delete=False)
         filename = "config/Gear Guide Hub.csv"
@@ -181,17 +266,14 @@ class AzurLane(commands.Cog, name="Azur Lane"):
         except IndexError:
             await ctx.send(f"> invalid {col_name} was entered.")
 
-    @commands.command()
-    async def ehp(self, ctx, enemy_hit: typing.Optional[int] = 45, default: typing.Optional[bool] = False,
-                  enemy_level: typing.Optional[int] = 0, *, ship_name):
+    @commands.group(invoke_without_command=True)
+    async def ehp(self, ctx, enemy_hit: typing.Optional[int] = 45, enemy_level: typing.Optional[int] = 0, *, ship_name):
         """
-        Get a ships basic ehp value
-        pass True to default to use default auxiliary slots, if you want to change
-        the enemy level you must pass the enemy hit followed by the enemy level eg
-        vic ehp 45 130 Javelin / vic ehp 45 True 130 Javelin
+        The main command for ehp by itself it gets a ships basic ehp value
         """
         # it just works.tm function
-        async def category_choice_set(aux_list):
+        # this will probably be rewritten again in the future to be honest
+        async def category_choice_set():
 
             index_ = await self.bot.wait_for('message', check=lambda message: message.author == ctx.author, timeout=60)
 
@@ -208,11 +290,11 @@ class AzurLane(commands.Cog, name="Azur Lane"):
                                " average auxiliary slot for this hull ")
 
                 if hull in ("DD", "CL"):
-                    display_aux_ = aux_list[0][0]
+                    display_aux_ = self.auxiliary_list[0][0]
                     index_ = 1
 
                 else:
-                    display_aux_ = aux_list[7][0]
+                    display_aux_ = self.auxiliary_list[7][0]
                     index_ = 8
 
             else:
@@ -221,7 +303,7 @@ class AzurLane(commands.Cog, name="Azur Lane"):
                     await ctx.send("exiting the calc... 0 was entered")
                     return False
                 try:
-                    display_aux_ = auxiliary_list[index_ - 1][0]
+                    display_aux_ = self.auxiliary_list[index_ - 1][0]
 
                 except IndexError:
                     display_aux_ = "Nothing"
@@ -233,24 +315,10 @@ class AzurLane(commands.Cog, name="Azur Lane"):
 
         messages_to_delete = []
         ship_name = ship_name.lower()
-        ship_dict = None
-
-        for row in self.ship_stats_reader:
-            if row.get("Name", "null").lower() == ship_name:
-                ship_dict = row
+        ship_dict = self.return_ship_dict(ship_name)
 
         if ship_dict is None:
             return await ctx.send(f"> the ship {ship_name} was not found.")
-
-        for key, value in ship_dict.items():
-            with suppress(AttributeError):
-                if value.isdigit():
-                    ship_dict[key] = int(value)
-
-                try:
-                    ship_dict[key] = float(value)
-                except ValueError:
-                    pass
 
         msg = await ctx.send(":ship: :ship: :ship:  | Type in the formation, Single, Diamond or Double.")
         messages_to_delete.append(msg.id)
@@ -276,28 +344,7 @@ class AzurLane(commands.Cog, name="Azur Lane"):
         elif level_difference > 20:
             level_difference = 20
 
-        auxiliary_list = [["Repair Tool", 500],
-                          ["Fire Suppressor", 226],
-                          ["Navy Camouflage", 44, 17],
-                          ["Fuel Filter", 350, 5],
-                          ["Anti Torpedo Bulge", 350],
-                          ["SG Radar", 15],
-                          ["Beaver Badge", 75, 35],
-                          ["Improved Hydraulic Rudder", 60, 40]]
-
         hull = ship_dict["Hull"]
-
-        if hull in ("DD", "CL"):
-            display_aux = auxiliary_list[0][0]
-            display_aux_two = display_aux
-            index = 1
-            index_two = index
-
-        else:
-            display_aux = auxiliary_list[7][0]
-            display_aux_two = display_aux
-            index = 8
-            index_two = index
 
         embed = discord.Embed(title=f"EHP Calculator",
                               description=f"Select an option for aux slot by typing it's number"
@@ -316,23 +363,22 @@ class AzurLane(commands.Cog, name="Azur Lane"):
         embed.set_footer(text=f'Requested by {ctx.message.author.name}', icon_url=ctx.message.author.avatar_url)
         embed.timestamp = ctx.message.created_at
 
-        if not default:
-            try:
+        try:
 
-                msg = await ctx.send(embed=embed)
-                index, display_aux = await category_choice_set(auxiliary_list)
-                await msg.delete()
+            msg = await ctx.send(embed=embed)
+            index, display_aux = await category_choice_set()
+            await msg.delete()
 
-                msg = await ctx.send(embed=embed)
-                index_two, display_aux_two = await category_choice_set(auxiliary_list)
+            msg = await ctx.send(embed=embed)
+            index_two, display_aux_two = await category_choice_set()
 
-                await msg.delete()
+            await msg.delete()
 
-            except TypeError:
-                return
+        except TypeError:
+            return
 
-        aux_slot_hp, aux_slot_eva = self.auxiliary_slots(auxiliary_list, index)
-        aux_slot_hp_two, aux_slot_eva_two = self.auxiliary_slots(auxiliary_list, index_two)
+        aux_slot_hp, aux_slot_eva = self.auxiliary_slots(index)
+        aux_slot_hp_two, aux_slot_eva_two = self.auxiliary_slots(index_two)
 
         ship_evasion = ship_dict["EVA"] * (1 + ship_dict["EVAS"] + formation_bonus) + aux_slot_eva + aux_slot_eva_two
         ship_hp = ship_dict["HP"] + aux_slot_hp + aux_slot_hp_two
@@ -369,6 +415,29 @@ class AzurLane(commands.Cog, name="Azur Lane"):
 
         except AttributeError:
             pass
+
+    @ehp.command()
+    async def default(self, ctx, enemy_hit: typing.Optional[int] = 45, *, ship_name):
+        """attempts to find the best ehp with default aux slots set and formation set to diamond"""
+        # it just works.tm function and goes beyond
+
+        aux_list = copy.deepcopy(self.auxiliary_list)
+        ship_name = ship_name.lower()
+        ship_dict = self.return_ship_dict(ship_name)
+
+        if ship_dict is None:
+            return await ctx.send(f"> the ship {ship_name} was not found.")
+
+        hull = ship_dict["Hull"]
+
+        if hull == "DD":
+            del aux_list[4]
+
+        combinations = list(combinations_with_replacement(aux_list, 2))
+        result = self.find_best_ehp(enemy_hit, ship_dict, combinations)
+        aux_string, aux_string_two = result[0]
+        aux_slots = "aux slot one being **{}** and aux slot two **{}**".format(aux_string, aux_string_two)
+        await ctx.send(f"> {ship_name}\'s EHP with {aux_slots} and enemy hit {enemy_hit} is **{result[1]}**")
 
     @commands.command(aliases=["ss"])
     async def ship_stats(self, ctx, *, ship_name):
