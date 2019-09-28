@@ -28,7 +28,6 @@ edit the loadconfig.py with your database credentials, img flip password and use
 * Pillow
 * lru-dict
 * Asyncpg
-* Matplotlib
 * Beautifulsoup4
 * Jishaku
 * Typing
