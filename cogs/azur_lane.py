@@ -36,12 +36,20 @@ class AzurLane(commands.Cog, name="Azur Lane"):
         self.ship_gear_hub = ship_gear_hub
         self.bot = bot
 
+        #    self.auxiliary_list = [["Repair Tool", 500],
+        #                                ["Fire Suppressor", 226],
+        #                                ["Navy Camouflage", 44, 17],
+        #                                ["Fuel Filter", 350, 5],
+        #                                ["Anti Torpedo Bulge", 350],
+        #                                ["SG Radar", 15],
+        #                                ["Beaver Badge", 75, 35],
+        #                                ["Improved Hydraulic Rudder", 60, 40]]
+
         self.auxiliary_list = [["Repair Tool", 500],
                                ["Fire Suppressor", 226],
                                ["Navy Camouflage", 44, 17],
                                ["Fuel Filter", 350, 5],
-                               ["Anti Torpedo Bulge", 350],
-                               ["SG Radar", 15],
+                               ["SG Radar", 0, 15],
                                ["Beaver Badge", 75, 35],
                                ["Improved Hydraulic Rudder", 60, 40]]
 
@@ -132,17 +140,10 @@ class AzurLane(commands.Cog, name="Azur Lane"):
         auxiliary_slot_hp = 0
         auxiliary_slot_evasion = 0
 
-        if option == 9:
-            auxiliary_slot_hp = 0
-            auxiliary_slot_evasion = 0
-
-        if option in (1, 2, 5):
+        if option in (1, 2):
             auxiliary_slot_hp = self.auxiliary_list[option - 1][1]
 
-        elif option == 6:
-            auxiliary_slot_evasion = self.auxiliary_list[option - 1][1]
-
-        elif option in (3, 4, 7, 8):
+        elif option in (3, 4, 7, 5):
             auxiliary_slot_hp = self.auxiliary_list[option - 1][1]
             auxiliary_slot_evasion = self.auxiliary_list[option - 1][2]
 
@@ -284,18 +285,18 @@ class AzurLane(commands.Cog, name="Azur Lane"):
             except ValueError:
                 pass
 
-            if index_ not in (1, 2, 3, 4, 5, 6, 7, 8, 9, 0):
+            if index_ not in (1, 2, 3, 4, 5, 6, 7, 8, 0):
 
                 await ctx.send(":no_entry: | invalid category choice was received will default to the best"
                                " average auxiliary slot for this hull ")
 
                 if hull in ("DD", "CL"):
                     display_aux_ = self.auxiliary_list[0][0]
-                    index_ = 1
+                    index_ = 0
 
                 else:
-                    display_aux_ = self.auxiliary_list[7][0]
-                    index_ = 8
+                    display_aux_ = self.auxiliary_list[6][0]
+                    index_ = 7
 
             else:
 
@@ -352,11 +353,10 @@ class AzurLane(commands.Cog, name="Azur Lane"):
                               "\n2) Fire Suppressor"
                               "\n3) Navy Camouflage "
                               "\n4) Fuel Filter "
-                              "\n5) Anti Torpedo Bulge  "
-                              "\n6) SG Radar "
-                              "\n7) Beaver Badge "
-                              "\n8) IHR "
-                              "\n9) Nothing "
+                              "\n5) SG Radar "
+                              "\n6) Beaver Badge "
+                              "\n7) IHR "
+                              "\n8) Nothing "
                               "\n ( say 0 to exit )",
                               color=discord.Color.dark_magenta())
 
@@ -429,9 +429,6 @@ class AzurLane(commands.Cog, name="Azur Lane"):
             return await ctx.send(f"> the ship {ship_name} was not found.")
 
         hull = ship_dict["Hull"]
-
-        if hull == "DD":
-            del aux_list[4]
 
         combinations = list(combinations_with_replacement(aux_list, 2))
         result = self.find_best_ehp(enemy_hit, ship_dict, combinations)

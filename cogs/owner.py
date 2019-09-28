@@ -20,6 +20,13 @@ class Info(commands.Cog):
         self.bot = bot
 
     @commands.command()
+    async def invite(self, ctx):
+        # change this if you want
+        await ctx.send(
+            "https://discordapp.com/oauth2/authorize?client_id=558747464161820723&scope=bot&permissions=1342515266"
+        )
+
+    @commands.command()
     async def source(self, ctx, *, command_name=None):
         # idea pretty much taken from
         # https://github.com/Rapptz/RoboDanny/blob/99a8545b8aa86c75701f131a29d61bbc2f703eb6/cogs/meta.py#L329
@@ -92,7 +99,7 @@ class Info(commands.Cog):
         await ctx.send(embed=embed)
 
 
-class OwnerCog(commands.Cog, name="Owner Commands", command_attrs=dict(hidden=True)):
+class OwnerCog(commands.Cog, name="Owner Commands"):
     """Owner only commands"""
 
     def __init__(self, bot):
@@ -104,13 +111,6 @@ class OwnerCog(commands.Cog, name="Owner Commands", command_attrs=dict(hidden=Tr
             raise commands.NotOwner("begone thot.")
 
         return True
-
-    @commands.command()
-    async def invite(self, ctx):
-        # change this if you want
-        await ctx.send(
-            "https://discordapp.com/oauth2/authorize?client_id=558747464161820723&scope=bot&permissions=1342515266"
-        )
 
     @commands.command(name="close", hidden=True)
     async def __close(self, ctx):

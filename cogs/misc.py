@@ -18,6 +18,8 @@ from config.utils.checks import private_guilds_check
 
 class ShapeDrawing:
     def __init__(self, emotes, emotes_two, size):
+        if not emotes:
+            raise commands.BadArgument("missing emotes")
         self.emotes = emotes
         self.emotes_two = emotes_two
         self.size = size if size <= 15 else 15
