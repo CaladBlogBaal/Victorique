@@ -8,13 +8,17 @@ class TagNameConvertor(commands.Converter):
         new_name = converted.lower().replace("\"", "").replace("'", "").rstrip()
 
         if not new_name:
-            raise commands.BadArgument(":no_entry: | missing tag name.")
+            raise commands.BadArgument("missing tag name.")
 
         if len(new_name) > 50:
-            raise commands.BadArgument(":no_entry: | tag names are a maximum of 50 characters.")
+            raise commands.BadArgument("tag names are a maximum of 50 characters.")
 
-        if new_name in {c.name for c in ctx.bot.walk_commands()}:
-            raise commands.BadArgument(":no_entry: | a bot command exists with that name.")
+        cmd_names = [c.name for c in ctx.bot.commands]
+        aliases = [alias for c in ctx.bot.commands for alias in c.aliases]
+        cmd_names.extend(aliases)
+
+        if any(new_name.startswith(name) for name in cmd_names):
+            raise commands.BadArgument("tag name starts with a bot command.")
 
         return new_name
 
@@ -58,7 +62,7 @@ class FishNameConventor(commands.Converter):
             if check:
                 return int(argument)
 
-        raise commands.BadArgument(":no_entry: | an invalid fish was passed.")
+        raise commands.BadArgument("an invalid fish was passed.")
 
 
 class SeasonConverter(commands.Converter):
@@ -105,7 +109,7 @@ class SeasonConverter(commands.Converter):
             month = "winter"
 
         if month is None:
-            raise commands.BadArgument(":no_entry: | an invalid season was passed.")
+            raise commands.BadArgument("an invalid season was passed.")
 
         return month
 
