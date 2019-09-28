@@ -21,13 +21,14 @@ class Info(commands.Cog):
 
     @commands.command()
     async def invite(self, ctx):
-        # change this if you want
-        await ctx.send(
-            "https://discordapp.com/oauth2/authorize?client_id=558747464161820723&scope=bot&permissions=1342515266"
-        )
+        """get the bot's invite url"""
+
+        discord.utils.oauth_url(ctx.me.id, discord.Permissions(1342515266))
+        await ctx.send(discord.utils.oauth_url(ctx.me.id, discord.Permissions(1342515266)))
 
     @commands.command()
     async def source(self, ctx, *, command_name=None):
+        """Get the source for a command or the bot's source"""
         # idea pretty much taken from
         # https://github.com/Rapptz/RoboDanny/blob/99a8545b8aa86c75701f131a29d61bbc2f703eb6/cogs/meta.py#L329
         git_url = "https://github.com/CaladBlogBaal/Victorique"
@@ -205,6 +206,7 @@ class OwnerCog(commands.Cog, name="Owner Commands"):
 
     @commands.command()
     async def query(self, ctx, *, _query):
+        """return rows from the postgres database"""
         wp = WarpedPaginator(ctx)
         _query = _query
         rows = await ctx.con.fetch(_query)
@@ -214,6 +216,7 @@ class OwnerCog(commands.Cog, name="Owner Commands"):
 
     @commands.command()
     async def update(self, ctx, *, _query):
+        """update data in the postgres database with a transaction"""
         async with ctx.con.transaction():
             await ctx.con.execute(_query)
 
@@ -221,6 +224,7 @@ class OwnerCog(commands.Cog, name="Owner Commands"):
 
     @commands.command()
     async def add_fish(self, ctx, fish_emote, rarity_id):
+        """add a fish to the fish table"""
         async with ctx.con.transaction():
             await ctx.con.execute("""INSERT INTO fish (fish_name, bait_id) VALUES
                                 ($1, $2) ON CONFLICT DO NOTHING""", fish_emote, rarity_id)
@@ -229,6 +233,7 @@ class OwnerCog(commands.Cog, name="Owner Commands"):
 
     @commands.command()
     async def add_default_fish(self, ctx):
+        """add the default fish"""
         async with ctx.con.transaction():
             await ctx.con.execute("""
     INSERT INTO fish (fish_name, bait_id) VALUES ('<:MutsukiIcon:603142310686883860>', 1) ON CONFLICT DO NOTHING;

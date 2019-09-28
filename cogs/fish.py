@@ -11,6 +11,7 @@ from config.utils.converters import FishNameConventor, FishRarityConventor
 
 
 class Fishing(commands.Cog):
+    """Fishing game related commands"""
 
     def __init__(self, bot):
         self.bot = bot
@@ -270,7 +271,7 @@ class Fishing(commands.Cog):
     @commands.group(invoke_without_command=True, ignore_extra=False)
     @commands.cooldown(1, 3, commands.BucketType.user)
     async def fish(self, ctx):
-        """fish for some fish
+        """the main command for fishing by itself fishes a single random fish
            rates are as follow for fish 10% for elite 1% for super 0.05% for legendary"""
 
         async def update_data(cb):

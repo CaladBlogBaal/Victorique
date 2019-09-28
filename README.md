@@ -1,6 +1,7 @@
 A personal Discord Bot written in discord.py<br>The actual code is only semi decent.
 ## Running<br>
-You can self host this bot though I'd prefer it to use the invite URL from the invite command
+You can self host this bot though I'd prefer it if you use [this](https://discordapp.com/oauth2/authorize?client_id=558747464161820723&scope=bot&permissions=1342515266
+)
 to have it in your server.
 
 1. Requires python 3 or higher
@@ -33,6 +34,4 @@ edit the loadconfig.py with your database credentials, img flip password and use
 * Typing
 * Psutil
 * Numpy
-* python-dateutil 
-
-only if you want the floof commands for some reason
+* python-dateutil

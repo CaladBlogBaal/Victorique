@@ -79,27 +79,23 @@ class AzurLane(commands.Cog, name="Azur Lane"):
 
         return False
 
-    @staticmethod
-    async def azur_lane_wiki_search(ctx, item, allow_none_png=False, paginate=True):
+    async def azur_lane_wiki_search(self, ctx, item, allow_none_png=False, paginate=True):
+
+        if "kai" in item.lower():
+            item = item[::-1].replace(" ", "", 1)[::-1]
 
         if allow_none_png is False:
-            with open(r"config/ship_list.json", "r") as f:
-                ship_json_list = json.load(f)
 
-            item = item.replace(" ", "_")
+            for row in self.ship_gear_hub:
+                if row[0].lower() == item.lower():
+
+                    item = row[0].replace("kai", "Kai")
 
             if not item.endswith(".png"):
-                item = item + ".png"
+                item = f"{item}.png"
 
-            for json_ in ship_json_list:
-
-                if json_.get("name").lower() == item.lower():
-
-                    item = json_.get("name").capitalize() + ".png"
-
-                elif json_.get("name").lower() in item.lower() and paginate:
-
-                    item = re.sub(r"\s+", "", item, flags=re.UNICODE).replace("_", "")
+        item = item.replace(" ", "_")
+        item = item.replace("'", "%27")
 
         p = PaginatorGlobal(ctx)
         kwargs = {
@@ -110,12 +106,13 @@ class AzurLane(commands.Cog, name="Azur Lane"):
             "aiprefix": item
         }
 
-        js = await ctx.bot.fetch("https://azurlane.koumakan.jp/w/api.php?action=query", params=kwargs)
+        js = await ctx.bot.fetch("https://azurlane.koumakan.jp/w/api.php", params=kwargs)
 
         for js in js["query"]["allimages"]:
+
             if paginate:
 
-                if item in js["url"]:
+                if item in js["url"].split("/")[-1]:
                     embed = discord.Embed(color=ctx.bot.default_colors(), description=f"[{js['title']}]({js['url']})")
 
                     if allow_none_png is False:
@@ -132,9 +129,9 @@ class AzurLane(commands.Cog, name="Azur Lane"):
 
         except IndexError:
             if not paginate:
-                return "https://www.sweetsquared.ie/sca-dev-kilimanjaro/img/no_image_available.jpeg" \
-                       "?resizeid=19&resizeh=1200&resizew=1200"
-            return await ctx.send(f":no_entry: | search failed for {item}")
+                return "https://i.imgur.com/la4e2G4.jpg"
+
+            return await ctx.send(f":no_entry: | search failed for {item.replace('%27', '')}")
 
     def auxiliary_slots(self, option=0):
         auxiliary_slot_hp = 0
@@ -428,9 +425,7 @@ class AzurLane(commands.Cog, name="Azur Lane"):
         if ship_dict is None:
             return await ctx.send(f"> the ship {ship_name} was not found.")
 
-        hull = ship_dict["Hull"]
-
-        combinations = list(combinations_with_replacement(aux_list, 2))
+        combinations = combinations_with_replacement(aux_list, 2)
         result = self.find_best_ehp(enemy_hit, ship_dict, combinations)
         aux_string, aux_string_two = result[0]
         aux_slots = "aux slot one being **{}** and aux slot two **{}**".format(aux_string, aux_string_two)
@@ -439,6 +434,7 @@ class AzurLane(commands.Cog, name="Azur Lane"):
     @commands.command(aliases=["ss"])
     async def ship_stats(self, ctx, *, ship_name):
         """get the stats of a ship"""
+        # this will probably be removed for a wiki web scape of ship details in the future
 
         ship_name = ship_name.lower()
 
@@ -472,8 +468,7 @@ class AzurLane(commands.Cog, name="Azur Lane"):
 
                     elif value < 10 or value < 0:
                         value *= 100
-                        value = str(int(value)) + " %"
-                    value = str(value)
+                        value = f"{value}%"
 
                 name = key.capitalize()
                 result = f"[{name.ljust(22)}: {value.ljust(5)}"

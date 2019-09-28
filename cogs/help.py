@@ -1,19 +1,10 @@
-import random
-
 from discord.ext import commands
 import discord
-
-import loadconfig
 
 
 class MyHelpCommand(commands.MinimalHelpCommand):
     def __init__(self, **options):
         super().__init__(**options, command_attrs=dict(help=""))
-        self.colours = [discord.Color.dark_magenta(), discord.Colour(15156347), discord.Color.dark_orange(),
-                        discord.Color.red(), discord.Color.dark_red(), discord.Color(15121501)]
-        self.col = int(random.random() * len(self.colours))
-        # change this if you want
-        self.url = "https://cdn.myanimelist.net/images/characters/5/108860.jpg"
 
     def get_command_signature(self, command):
         return '**{0.clean_prefix}{1.qualified_name} {1.signature}**'.format(self, command)
@@ -23,13 +14,11 @@ class MyHelpCommand(commands.MinimalHelpCommand):
 
     def get_ending_note(self):
         command_name = self.invoked_with
-        return """Use **{0}{1} [command name]** for more info on a command.
-        To get a list of commands for a category use **{0}{1} [category name]** 
-        *category names are case sensitive*. 
-        
-        :information_source: < > refers to a required argument [ ] is optional
-        **do not actually type these**
-        """.format(self.clean_prefix, command_name)
+        first_line = "Use **{0}{1} [command name/category name]** for more info on a command.\n"
+        second_line = "*category names are case sensitive*.\n"
+        third_line = ":information_source: < > refers to a required argument, [ ] is optional\n"
+        last_line = "**do not actually type these**"
+        return f"{first_line}{second_line}{third_line}{last_line}".format(self.clean_prefix, command_name)
 
     def add_subcommand_formatting(self, command):
         fmt = "**{0} {1}** \N{EN DASH} `{2}`" if command.short_doc else '**{0} {1}** \N{EN DASH} `no description`'
@@ -38,11 +27,8 @@ class MyHelpCommand(commands.MinimalHelpCommand):
     def add_bot_commands_formatting(self, commands, heading):
 
         if commands and commands[0].cog_name:
-            space = "\u2002"
-            joined = f"{space.join(c.name for c in commands)}"
 
-            self.paginator.add_line(f"**__{heading}__**")
-            self.paginator.add_line(joined)
+            self.paginator.add_line(f"`{heading}`")
 
     def add_command_formatting(self, command):
 
@@ -66,12 +52,12 @@ class MyHelpCommand(commands.MinimalHelpCommand):
 
     async def send_pages(self):
         destination = self.get_destination()
-
+        avatar_url = self.context.me.avatar_url_as(format="png")
+        name = self.context.me.name
         for page in self.paginator.pages:
 
-            embed = discord.Embed(description=page, color=self.colours[self.col])
-            embed.set_author(name=loadconfig.__username__, url="",
-                             icon_url=self.url)
+            embed = discord.Embed(description=page, color=self.context.bot.default_colors())
+            embed.set_author(name=name, icon_url=avatar_url)
             await destination.send(embed=embed)
 
 

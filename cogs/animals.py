@@ -10,6 +10,7 @@ from config.utils.paginator import Paginator
 
 
 class Animals(commands.Cog):
+    """Animal Related Commands"""
     def __init__(self, bot):
         self.bot = bot
         self.animals = ["bird", "cat", "dog", "fox", "koala", "panda"]

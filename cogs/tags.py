@@ -18,6 +18,7 @@ from config.utils.converters import TagNameConvertor
 
 
 class Tags(commands.Cog):
+    """tag related commands to call a created tag do [guild prefix][tag name}"""
     def __init__(self, bot):
         self.bot = bot
         self.cd = commands.CooldownMapping.from_cooldown(1, 4, commands.BucketType.member)

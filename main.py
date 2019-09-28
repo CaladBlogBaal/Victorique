@@ -184,7 +184,7 @@ class MyContext(commands.Context):
         self.chunk = self.chunks
 
 
-bot = Victorique(command_prefix=get_prefix, description="Current commands for this bot", case_insensitive=True)
+bot = Victorique(command_prefix=get_prefix, case_insensitive=True)
 
 
 @bot.before_invoke
