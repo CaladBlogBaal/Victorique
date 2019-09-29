@@ -45,9 +45,10 @@ class MoeBooruApi:
         if "gelbooru" in self.post_url:
             # no limit so it randomises
             params = {"tags": " "}
-            # because gelbooru sometimes return nsfw images with loli tag on safe rating
+            # because gelbooru is likely to return nsfw images with these tags on safe rating
             try:
-                if safe and "loli" in tags:
+                current_blacklisted_tags = ("loli", "pussy")
+                if safe and any(btag in tags for btag in current_blacklisted_tags):
                     return set()
             except TypeError:
                 pass
