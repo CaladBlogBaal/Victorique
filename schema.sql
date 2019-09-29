@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS tags (
     user_id bigint REFERENCES users (user_id) ON DELETE CASCADE,
     tag_name text,
     content text,
+    nsfw bool,
     created_at timestamp
 );
 
