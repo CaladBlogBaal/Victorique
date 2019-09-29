@@ -2,6 +2,7 @@ import functools
 import operator
 import re
 import datetime
+import typing
 
 from io import BytesIO
 
@@ -47,10 +48,7 @@ class Tags(commands.Cog):
     async def on_message(self, message):
         # this is crude as hell
 
-        if message.author.bot:
-            return
-
-        if message.guild:
+        if message.guild and not message.author.bot:
 
             data = await self.bot.get_guild_prefix(message.guild.id)
 
@@ -79,14 +77,19 @@ class Tags(commands.Cog):
                 if retry_after:
                     return await message.channel.send(":no_entry: | woah slow down there you're being rated limited.",
                                                       delete_after=3)
-                query = "SELECT content from tags where LOWER(tag_name) = $1 and guild_id = $2"
+                query = "SELECT content, nsfw from tags where LOWER(tag_name) = $1 and guild_id = $2"
                 if message.content.startswith(loadconfig.__prefix__):
                     name = content.replace(loadconfig.__prefix__, "", 1)
 
                 else:
                     name = content.replace(tag_prefix, "", 1)
 
-                tag = await self.bot.db.fetchval(query, name, message.guild.id)
+                tag = await self.bot.db.fetchrow(query, name, message.guild.id)
+
+                if tag["nsfw"] and not message.channel.nsfw:
+                    return
+
+                tag = tag["content"]
 
                 if tag.count("||") >= 2:
                     return await message.channel.send(tag)
@@ -300,6 +303,50 @@ class Tags(commands.Cog):
 
         else:
             await ctx.send(":no_entry: | you need manage message permissions for this command.")
+
+    @tag.command()
+    async def nsfw(self, ctx, nsfw: typing.Optional[bool] = True, *, tag_name: TagNameConvertor):
+        """set a tag to be only be usable in NSFW channels
+        pass True for nsfw False to not make it NSFW"""
+
+        check = await ctx.con.fetchval("SELECT tag_name FROM tags WHERE tag_name = $1 and guild_id = $2",
+                                       tag_name, ctx.guild.id)
+
+        if check is None:
+            return await ctx.send(f"> The tag `{tag_name}` does not exist.")
+
+        check = await self.bot.is_owner(ctx.author) or ctx.author.guild_permissions.manage_messages
+
+        if check:
+            async with ctx.con.transaction():
+                await ctx.con.execute("UPDATE tags SET nsfw = $1 where tag_name = $2 and guild_id = $3",
+                                      nsfw, tag_name, ctx.guild.id)
+
+                if nsfw:
+                    return await ctx.send(f"> The tag {tag_name} has been set to NSFW")
+
+                await ctx.send(f"> The tag {tag_name} has been set to not NSFW")
+
+        else:
+
+            await ctx.send(":no_entry: | you need manage message permissions for this command.")
+
+    @tag.command()
+    async def transfer(self, ctx, member: discord.Member, *, tag_name: TagNameConvertor):
+        """transfer a tag you own to another user"""
+
+        check = await ctx.con.fetchval("""SELECT tag_name FROM tags 
+                                          where guild_id = $1 and user_id = $2 and tag_name = $3
+                                          """, ctx.guild.id, ctx.author.id, tag_name)
+
+        if check is None:
+            return await ctx.send(f":no_entry: | does the tag {tag_name} exist and do you own it?")
+
+        async with ctx.con.transaction():
+            await ctx.con.execute("UPDATE tags SET user_id = $1 where guild_id = $2 and tag_name = $3",
+                                  member.id, ctx.guild.id, tag_name)
+
+        await ctx.send(f"> Successfully transferred ownership of the tag `{tag_name}` to {member.name}.")
 
     @create.after_invoke
     @update_content.after_invoke
