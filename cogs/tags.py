@@ -188,12 +188,16 @@ class Tags(commands.Cog):
     async def raw(self, ctx, *, name: TagNameConvertor):
         """display a tag without markdown eg spoilers."""
 
-        content = await ctx.con.fetchval("SELECT content from tags where LOWER(tag_name) = $1 and guild_id = $2",
+        content = await ctx.con.fetchrow("SELECT content, nsfw from tags where LOWER(tag_name) = $1 and guild_id = $2",
                                          name, ctx.guild.id)
-        if content:
-            return await ctx.send(discord.utils.escape_markdown(content))
 
-        await ctx.send(f":no_entry: | could not find the tag {name}.")
+        if not content:
+            return await ctx.send(f":no_entry: | could not find the tag {name}.")
+
+        if content["nsfw"] and not ctx.channel.nsfw:
+            return await ctx.send(":no_entry: | this tag can only be used in nsfw channels.", delete_after=4)
+
+        await ctx.send(discord.utils.escape_markdown(content["content"]))
 
     @tag.command()
     async def info(self, ctx, *, name: TagNameConvertor):
@@ -305,48 +309,66 @@ class Tags(commands.Cog):
             await ctx.send(":no_entry: | you need manage message permissions for this command.")
 
     @tag.command()
-    async def nsfw(self, ctx, nsfw: typing.Optional[bool] = True, *, tag_name: TagNameConvertor):
+    async def nsfw(self, ctx, nsfw: typing.Optional[bool] = True, *, name: TagNameConvertor):
         """set a tag to be only be usable in NSFW channels
         pass True for nsfw False to not make it NSFW"""
 
         check = await ctx.con.fetchval("SELECT tag_name FROM tags WHERE tag_name = $1 and guild_id = $2",
-                                       tag_name, ctx.guild.id)
+                                       name, ctx.guild.id)
 
         if check is None:
-            return await ctx.send(f"> The tag `{tag_name}` does not exist.")
+            return await ctx.send(f"> The tag `{name}` does not exist.")
 
         check = await self.bot.is_owner(ctx.author) or ctx.author.guild_permissions.manage_messages
 
         if check:
             async with ctx.con.transaction():
                 await ctx.con.execute("UPDATE tags SET nsfw = $1 where tag_name = $2 and guild_id = $3",
-                                      nsfw, tag_name, ctx.guild.id)
+                                      nsfw, name, ctx.guild.id)
 
                 if nsfw:
-                    return await ctx.send(f"> The tag {tag_name} has been set to NSFW")
+                    return await ctx.send(f"> The tag {name} has been set to NSFW")
 
-                await ctx.send(f"> The tag {tag_name} has been set to not NSFW")
+                await ctx.send(f"> The tag {name} has been set to not NSFW")
 
         else:
 
             await ctx.send(":no_entry: | you need manage message permissions for this command.")
 
     @tag.command()
-    async def transfer(self, ctx, member: discord.Member, *, tag_name: TagNameConvertor):
+    async def transfer(self, ctx, member: discord.Member, *, name: TagNameConvertor):
         """transfer a tag you own to another user"""
 
         check = await ctx.con.fetchval("""SELECT tag_name FROM tags 
                                           where guild_id = $1 and user_id = $2 and tag_name = $3
-                                          """, ctx.guild.id, ctx.author.id, tag_name)
+                                          """, ctx.guild.id, ctx.author.id, name)
 
         if check is None:
-            return await ctx.send(f":no_entry: | does the tag {tag_name} exist and do you own it?")
+            return await ctx.send(f":no_entry: | does the tag {name} exist and do you own it?")
 
         async with ctx.con.transaction():
             await ctx.con.execute("UPDATE tags SET user_id = $1 where guild_id = $2 and tag_name = $3",
-                                  member.id, ctx.guild.id, tag_name)
+                                  member.id, ctx.guild.id, name)
 
-        await ctx.send(f"> Successfully transferred ownership of the tag `{tag_name}` to {member.name}.")
+        await ctx.send(f"> Successfully transferred ownership of the tag `{name}` to {member.name}.")
+
+    @tag.command()
+    async def search(self, ctx, *, name: TagNameConvertor):
+        p = Paginator(ctx)
+        result = await ctx.con.fetch("SELECT tag_name from tags where guild_id = $1 and tag_name like $2 || '%'",
+                                     ctx.guild.id, name)
+
+        if not result:
+            return await ctx.send(f":no_entry: | could not find the tag {name}.")
+
+        result = list(f"(**{name['tag_name']}**)" for name in result)
+        results = ctx.chunk(result, 10)
+        new_line = "\n"
+
+        for result in results:
+            await p.add_page(f"> Tags found that contained `{name}`:\n{new_line.join(result)}")
+
+        await p.paginate()
 
     @create.after_invoke
     @update_content.after_invoke
