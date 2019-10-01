@@ -162,7 +162,7 @@ class Tags(commands.Cog):
         await self.create_tag(ctx, name, ".")
 
     @tag.command()
-    async def claim(self, ctx, *, name: TagNameConvertor):
+    async def claim(self, ctx, *, name):
         """Claim a tag if the tag owner has left the server"""
 
         data = await ctx.con.fetchrow("SELECT tag_id, user_id FROM tags WHERE guild_id = $1 AND LOWER(tag_name) = $2",
@@ -185,7 +185,7 @@ class Tags(commands.Cog):
         await ctx.send(f"> successfully transferred ownership of `{name}` to you.")
 
     @tag.command()
-    async def raw(self, ctx, *, name: TagNameConvertor):
+    async def raw(self, ctx, *, name):
         """display a tag without markdown eg spoilers."""
 
         content = await ctx.con.fetchrow("SELECT content, nsfw from tags where LOWER(tag_name) = $1 and guild_id = $2",
@@ -200,7 +200,7 @@ class Tags(commands.Cog):
         await ctx.send(discord.utils.escape_markdown(content["content"]))
 
     @tag.command()
-    async def info(self, ctx, *, name: TagNameConvertor):
+    async def info(self, ctx, *, name):
         """get info on a tag"""
         data = await ctx.con.fetchrow("SELECT * from tags where LOWER(tag_name) = $1 and guild_id = $2",
                                       name, ctx.guild.id)
@@ -219,7 +219,7 @@ class Tags(commands.Cog):
         await ctx.send(embed=embed)
 
     @tag.command(aliases=["content", "details", "update"])
-    async def update_content(self, ctx, name: TagNameConvertor, *, content: commands.clean_content):
+    async def update_content(self, ctx, name, *, content: commands.clean_content):
         """update a tag's content encase the tag's name in quotes if it has spaces"""
 
         check = await ctx.con.fetchval("SELECT tag_name FROM tags WHERE user_id = $1 and guild_id = $2",
@@ -267,7 +267,7 @@ class Tags(commands.Cog):
         await p.paginate()
 
     @tag.group(invoke_without_command=True, aliases=["remove", "prune"])
-    async def delete(self, ctx, *, name: TagNameConvertor):
+    async def delete(self, ctx, *, name):
         """delete a tag"""
 
         check = await self.bot.is_owner(ctx.author) or ctx.author.guild_permissions.manage_messages
@@ -309,7 +309,7 @@ class Tags(commands.Cog):
             await ctx.send(":no_entry: | you need manage message permissions for this command.")
 
     @tag.command()
-    async def nsfw(self, ctx, nsfw: typing.Optional[bool] = True, *, name: TagNameConvertor):
+    async def nsfw(self, ctx, nsfw: typing.Optional[bool] = True, *, name):
         """set a tag to be only be usable in NSFW channels
         pass True for nsfw False to not make it NSFW"""
 
@@ -336,7 +336,7 @@ class Tags(commands.Cog):
             await ctx.send(":no_entry: | you need manage message permissions for this command.")
 
     @tag.command()
-    async def transfer(self, ctx, member: discord.Member, *, name: TagNameConvertor):
+    async def transfer(self, ctx, member: discord.Member, *, name):
         """transfer a tag you own to another user"""
 
         check = await ctx.con.fetchval("""SELECT tag_name FROM tags 
@@ -353,7 +353,7 @@ class Tags(commands.Cog):
         await ctx.send(f"> Successfully transferred ownership of the tag `{name}` to {member.name}.")
 
     @tag.command()
-    async def search(self, ctx, *, name: TagNameConvertor):
+    async def search(self, ctx, *, name):
         p = Paginator(ctx)
         result = await ctx.con.fetch("SELECT tag_name from tags where guild_id = $1 and tag_name like $2 || '%'",
                                      ctx.guild.id, name)
