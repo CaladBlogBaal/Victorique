@@ -17,8 +17,8 @@ class TagNameConvertor(commands.Converter):
         aliases = [alias for c in ctx.bot.commands for alias in c.aliases]
         cmd_names.extend(aliases)
 
-        if any(new_name.startswith(name) for name in cmd_names):
-            raise commands.BadArgument("tag name starts with a bot command.")
+        if any(new_name in name for name in cmd_names):
+            raise commands.BadArgument("tag name starts with a bot command or sub command.")
 
         return new_name
 
