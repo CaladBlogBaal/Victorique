@@ -10,9 +10,24 @@ import psutil
 import humanize as h
 
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 
 from config.utils.paginator import Paginator, WarpedPaginator
+
+
+@tasks.loop(seconds=86400)
+async def random_images(ctx, amount):
+    gb = "gb"
+    db = "db"
+    kc = "kc"
+    ye = "ye"
+    apn = "apn"
+    image_boards = [gb, kc, ye, apn, db]
+
+    for board in image_boards:
+        for _ in range(amount):
+
+            await ctx.invoke(ctx.bot.get_command(board))
 
 
 class Info(commands.Cog):
@@ -257,6 +272,30 @@ class OwnerCog(commands.Cog, name="Owner Commands"):
     INSERT INTO fish (fish_name, bait_id) VALUES ('<:SeattleIcon:605216934203752448>', -1) ON CONFLICT DO NOTHING;
     INSERT INTO fish (fish_name, bait_id) VALUES ('<:MonarchIcon:606868127648710689>', -1) ON CONFLICT DO NOTHING;
             """)
+
+    @commands.group(invoke_without_command=True, aliases=["da"])
+    @commands.dm_only()
+    async def daily_anime(self, ctx, amount: int = 2):
+        """get random images from danbooru, gelbooru, anime-pictures.net and yande.re"""
+
+        if not random_images.current_loop != 1:
+            return await ctx.send("> task is already running.")
+
+        random_images.start(ctx, amount)
+        await ctx.send("> task started.")
+
+    @daily_anime.command()
+    async def cancel(self, ctx):
+        """cancel the random images task"""
+        random_images.cancel()
+        await ctx.send("> successfully cancelled")
+
+    @daily_anime.command(aliases=["ci"])
+    async def change_interval(self, ctx, seconds: int):
+        """change the interval"""
+        random_images.cancel()
+        random_images.change_interval(seconds=seconds)
+        await ctx.send(f"> successfully changed to {seconds} restart it with {ctx.prefix}daily_anime")
 
 
 def setup(bot):
