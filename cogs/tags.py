@@ -206,13 +206,13 @@ class Tags(commands.Cog):
 
         data = await ctx.con.fetchrow("SELECT * from tags where LOWER(tag_name) = $1 and guild_id = $2",
                                       name, ctx.guild.id)
+        if not data:
+            return await ctx.send(f"> A tag with name `{name}` does not exist.")
 
         nsfw = False if not data["nsfw"] else data["nsfw"]
 
         embed = discord.Embed(title=name,
                               color=self.bot.default_colors())
-        if not data:
-            return await ctx.send(f"> A tag with name `{name}` does not exist.")
 
         member = ctx.guild.get_member(data["user_id"]) or await self.bot.fetch_user(data["user_id"])
         date = h.naturaltime(datetime.datetime.utcnow() - data["created_at"])
