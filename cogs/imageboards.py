@@ -23,7 +23,14 @@ class MoeBooruApi:
     @staticmethod
     def process_tags(tags):
         tags = tags.replace("||", "\u200B").replace("|", "\u200B").replace("&&", "\u200B")
-        tags = " ".join(list(tag.rstrip().lstrip().replace(" ", "_") for tag in tags.split("\u200B")))
+        tags = list(tag.rstrip().lstrip().replace(" ", "_") for tag in tags.split("\u200B"))
+
+        for i, tag in enumerate(tags):
+            # this would break rating:safe
+            if "rating:" in tag:
+                del tags[i]
+
+        tags = " ".join(tags)
         return tags
 
     def set_post_url(self, url):
@@ -58,6 +65,7 @@ class MoeBooruApi:
             params = {"limit": limit,
                       "tags": " ",
                       "random": "true"}
+
         if safe:
             params["tags"] += " rating:safe "
 
