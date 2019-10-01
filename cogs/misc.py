@@ -105,7 +105,7 @@ class Misc(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message):
-        if message.author.id != 162065852194095104:
+        if message.author.id != 319155217373462539:
             return
 
         if "gloof" in message.content.lower():
@@ -194,7 +194,7 @@ class Misc(commands.Cog):
 
     @commands.command(aliases=["gc"])
     async def gloof_count(self, ctx):
-        if ctx.author.id != 162065852194095104:
+        if ctx.author.id != 319155217373462539:
             return
 
         with open(r"config/floof.json", "r") as f:

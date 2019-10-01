@@ -180,7 +180,7 @@ class Tags(commands.Cog):
 
         async with ctx.con.transaction():
             await ctx.con.execute("UPDATE tags set user_id = $1 WHERE guild_id = $2 and LOWER(tag_name) = $3",
-                                  ctx.author.id, ctx.guild.id, name)
+                                  ctx.author.id, ctx.guild.id, name.lower())
 
         await ctx.send(f"> successfully transferred ownership of `{name}` to you.")
 
@@ -189,7 +189,7 @@ class Tags(commands.Cog):
         """display a tag without markdown eg spoilers."""
 
         content = await ctx.con.fetchrow("SELECT content, nsfw from tags where LOWER(tag_name) = $1 and guild_id = $2",
-                                         name, ctx.guild.id)
+                                         name.lower(), ctx.guild.id)
 
         if not content:
             return await ctx.send(f":no_entry: | could not find the tag {name}.")
@@ -202,8 +202,12 @@ class Tags(commands.Cog):
     @tag.command()
     async def info(self, ctx, *, name):
         """get info on a tag"""
+        name = name.lower()
+
         data = await ctx.con.fetchrow("SELECT * from tags where LOWER(tag_name) = $1 and guild_id = $2",
                                       name, ctx.guild.id)
+
+        nsfw = False if not data["nsfw"] else data["nsfw"]
 
         embed = discord.Embed(title=name,
                               color=self.bot.default_colors())
@@ -212,7 +216,8 @@ class Tags(commands.Cog):
 
         member = ctx.guild.get_member(data["user_id"]) or await self.bot.fetch_user(data["user_id"])
         date = h.naturaltime(datetime.datetime.utcnow() - data["created_at"])
-        embed.add_field(name="Owner", value=member.name)
+        embed.add_field(name="Owner", value=member.name, inline=False)
+        embed.add_field(name="Nsfw", value=nsfw, inline=False)
         embed.add_field(name="Created", value=date, inline=False)
         embed.set_author(name=member.name, icon_url=member.avatar_url_as(static_format="png"))
 
@@ -221,6 +226,7 @@ class Tags(commands.Cog):
     @tag.command(aliases=["content", "details", "update"])
     async def update_content(self, ctx, name, *, content: commands.clean_content):
         """update a tag's content encase the tag's name in quotes if it has spaces"""
+        name = name.lower()
 
         check = await ctx.con.fetchval("SELECT tag_name FROM tags WHERE user_id = $1 and guild_id = $2",
                                        ctx.author.id, ctx.guild.id)
@@ -231,7 +237,7 @@ class Tags(commands.Cog):
 
         async with ctx.con.transaction():
             check = await ctx.con.execute("""UPDATE tags SET content = $1 WHERE guild_id = $2 and user_id = $3 
-                                             and tag_name = $4""",
+                                             and LOWER(tag_name) = $4""",
                                           content, ctx.guild.id, ctx.author.id, name)
 
             if check[-1] == "0":
@@ -269,6 +275,7 @@ class Tags(commands.Cog):
     @tag.group(invoke_without_command=True, aliases=["remove", "prune"])
     async def delete(self, ctx, *, name):
         """delete a tag"""
+        name = name.lower()
 
         check = await self.bot.is_owner(ctx.author) or ctx.author.guild_permissions.manage_messages
 
@@ -279,7 +286,7 @@ class Tags(commands.Cog):
         else:
 
             deleted = await ctx.con.fetchrow("DELETE from tags where guild_id = $1 "
-                                             "and tag_name = $2 and user_id = $3 RETURNING tag_id",
+                                             "and LOWER(tag_name) = $2 and user_id = $3 RETURNING tag_id",
                                              ctx.guild.id, name, ctx.author.id)
 
         if deleted is None:
@@ -312,8 +319,9 @@ class Tags(commands.Cog):
     async def nsfw(self, ctx, nsfw: typing.Optional[bool] = True, *, name):
         """set a tag to be only be usable in NSFW channels
         pass True for nsfw False to not make it NSFW"""
+        name = name.lower()
 
-        check = await ctx.con.fetchval("SELECT tag_name FROM tags WHERE tag_name = $1 and guild_id = $2",
+        check = await ctx.con.fetchval("SELECT tag_name FROM tags WHERE LOWER(tag_name) = $1 and guild_id = $2",
                                        name, ctx.guild.id)
 
         if check is None:
@@ -323,8 +331,8 @@ class Tags(commands.Cog):
 
         if check:
             async with ctx.con.transaction():
-                await ctx.con.execute("UPDATE tags SET nsfw = $1 where tag_name = $2 and guild_id = $3",
-                                      nsfw, name, ctx.guild.id)
+                await ctx.con.execute("UPDATE tags SET nsfw = $1 where LOWER(tag_name) = $2 and guild_id = $3",
+                                      nsfw, name.lower(), ctx.guild.id)
 
                 if nsfw:
                     return await ctx.send(f"> The tag {name} has been set to NSFW")
@@ -338,24 +346,30 @@ class Tags(commands.Cog):
     @tag.command()
     async def transfer(self, ctx, member: discord.Member, *, name):
         """transfer a tag you own to another user"""
+        name = name.lower()
+
+        if member.bot:
+            return await ctx.send(":no_entry: | can't give bots tags.")
 
         check = await ctx.con.fetchval("""SELECT tag_name FROM tags 
-                                          where guild_id = $1 and user_id = $2 and tag_name = $3
+                                          where guild_id = $1 and user_id = $2 and LOWER(tag_name) = $3
                                           """, ctx.guild.id, ctx.author.id, name)
 
         if check is None:
             return await ctx.send(f":no_entry: | does the tag {name} exist and do you own it?")
 
         async with ctx.con.transaction():
-            await ctx.con.execute("UPDATE tags SET user_id = $1 where guild_id = $2 and tag_name = $3",
+            await ctx.con.execute("UPDATE tags SET user_id = $1 where guild_id = $2 and LOWER(tag_name) = $3",
                                   member.id, ctx.guild.id, name)
 
         await ctx.send(f"> Successfully transferred ownership of the tag `{name}` to {member.name}.")
 
     @tag.command()
     async def search(self, ctx, *, name):
+        name = name.lower()
         p = Paginator(ctx)
-        result = await ctx.con.fetch("SELECT tag_name from tags where guild_id = $1 and tag_name like $2 || '%'",
+
+        result = await ctx.con.fetch("SELECT tag_name from tags where guild_id = $1 and LOWER(tag_name) like $2 || '%'",
                                      ctx.guild.id, name)
 
         if not result:
