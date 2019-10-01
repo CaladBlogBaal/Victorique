@@ -288,14 +288,14 @@ class OwnerCog(commands.Cog, name="Owner Commands"):
     async def cancel(self, ctx):
         """cancel the random images task"""
         random_images.cancel()
-        await ctx.send("> successfully cancelled")
+        await ctx.send("> successfully cancelled.")
 
     @daily_anime.command(aliases=["ci"])
     async def change_interval(self, ctx, seconds: int):
         """change the interval"""
         random_images.cancel()
         random_images.change_interval(seconds=seconds)
-        await ctx.send(f"> successfully changed to {seconds} restart it with {ctx.prefix}daily_anime")
+        await ctx.send(f"> successfully changed to `{seconds}` seconds restart the task with `{ctx.prefix}daily_anime`")
 
 
 def setup(bot):
