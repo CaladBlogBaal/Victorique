@@ -103,7 +103,7 @@ class SeasonConverter(commands.Converter):
             month = "summer"
 
         elif month in autumn:
-            month = "autumn"
+            month = "fall"
 
         elif month:
             month = "winter"
