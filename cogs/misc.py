@@ -14,6 +14,7 @@ from bs4 import BeautifulSoup
 from config.utils.emojis import TRANSPARENT, EXPLOSION, FIRE_ZERO, NUKE, GUN
 from config.utils.paginator import Paginator, WarpedPaginator
 from config.utils.checks import private_guilds_check
+from config.utils.cache import cache
 
 
 class ShapeDrawing:
@@ -101,7 +102,7 @@ class Misc(commands.Cog):
             "https://38.media.tumblr.com/fbb9d202ce5418fe96a8964d2cb63ac0/tumblr_nrulg4sv8l1qcsnnso1_500.gif",
             "http://38.media.tumblr.com/a6ff26b3fb8914a8aef9e3ee12b95f96/tumblr_nbjrmc3tiI1std21fo1_500.gif",
             "http://33.media.tumblr.com/cb86adbde8dd8feaa586eda4ad29d4be/tumblr_njx8yblrf51tiz9nro1_500.gif"
-                        ]
+        ]
 
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -136,6 +137,28 @@ class Misc(commands.Cog):
     async def bot_gif(self, ctx, url):
         if ctx.bot.user.mentioned_in(ctx.message):
             return await ctx.send(embed=discord.Embed(color=self.bot.default_colors()).set_image(url=url))
+
+    @cache()
+    async def search_youtube(self, query, top=False):
+        urls = list()
+        search_url = "https://www.youtube.com/results?"
+        params = {"search_query": "+".join(query.split())}
+
+        result = await self.bot.fetch(search_url, params=params)
+        soup = BeautifulSoup(result, "html.parser")
+
+        for tag in soup.find_all("a", href=re.compile("^(?!https://www.youtube.com).*/watch\\?v=")):
+
+            url = f"https://www.youtube.com{tag.get('href')}"
+
+            if top:
+                return url
+
+            if url not in urls:
+
+                urls.append(url)
+
+        return urls
 
     @commands.command()
     async def triangle(self, ctx, size: typing.Optional[int] = 5, emote=":small_red_triangle:",
@@ -262,6 +285,7 @@ class Misc(commands.Cog):
         """
         display the current emojis for the guild
         """
+
         async def paginate(list_of_chunks):
             p = Paginator(ctx)
 
@@ -414,7 +438,7 @@ class Misc(commands.Cog):
                        f"**{author} is slapping themselves??! {mention}**"]
 
         await ctx.send(embed=await self.bot.api_get_image(content, "https://nekos.life/api/v2/img/slap", "url"))
-    
+
     @commands.command()
     async def pat(self, ctx, member: typing.Union[discord.Member, discord.User]):
         """
@@ -464,7 +488,7 @@ class Misc(commands.Cog):
         poke a guild member or user
         """
         if await self.bot_gif(ctx, "https://66.media.tumblr.com/b061114bf8251a4f037c651bd2a86a1c"
-                              "/tumblr_mr1bfrQ9Jb1qeysf2o3_500.gif"):
+                                   "/tumblr_mr1bfrQ9Jb1qeysf2o3_500.gif"):
             return
         author = ctx.message.author.mention
 
@@ -570,7 +594,8 @@ class Misc(commands.Cog):
             amount = 20
 
         for _ in range(amount):
-            await p.add_page(await self.bot.api_get_image([" ", " "], "https://nekos.life/api/v2/img/kemonomimi", "url"))
+            await p.add_page(
+                await self.bot.api_get_image([" ", " "], "https://nekos.life/api/v2/img/kemonomimi", "url"))
 
         await p.paginate()
 
@@ -625,7 +650,7 @@ class Misc(commands.Cog):
         Check how long the bot takes to respond
         """
 
-        await ctx.send(f":information_source: | :ping_pong: **{self.bot.latency*1000:.0f}**ms")
+        await ctx.send(f":information_source: | :ping_pong: **{self.bot.latency * 1000:.0f}**ms")
 
     @commands.command()
     async def choose(self, ctx, *, choices):
@@ -662,7 +687,7 @@ class Misc(commands.Cog):
 
             url = result["permalink"]
             author = "written by " + result["author"] + f" on " \
-                f"{dateutil.parser.parse(result['written_on']).strftime('%Y-%m-%d %H:%M:%S')}"
+                                                        f"{dateutil.parser.parse(result['written_on']).strftime('%Y-%m-%d %H:%M:%S')}"
 
             embed = discord.Embed(title='Word/Term: ' + word,
                                   description=f"**Definition**:\n{definition_txt}",
@@ -702,7 +727,7 @@ class Misc(commands.Cog):
             msg = await ctx.send(f"there's no image for {content} to be found")
             await asyncio.sleep(2)
             await msg.delete()
-    
+
     @commands.command()
     @commands.bot_has_permissions(read_message_history=True)
     async def react(self, ctx, *, msg: to_lower):
@@ -712,8 +737,8 @@ class Misc(commands.Cog):
         msg = ctx.emote_unescape(msg)
         reactions = []
 
-        unicode_dict = {"a": u"\U0001F1E6", "b": u"\U0001F1E7", 
-                        "c": u"\U0001F1E8", "d": u"\U0001F1E9", 
+        unicode_dict = {"a": u"\U0001F1E6", "b": u"\U0001F1E7",
+                        "c": u"\U0001F1E8", "d": u"\U0001F1E9",
                         "e": u"\U0001F1EA", "f": u"\U0001F1EB",
                         "g": u"\U0001F1EC", "h": u"\U0001F1ED",
                         "i": u"\U0001F1EE", "j": u"\U0001F1EF",
@@ -728,7 +753,7 @@ class Misc(commands.Cog):
         for c in msg:
             if c.isalpha():
                 reactions.append(unicode_dict.get(c))
-            
+
             elif c.isdigit():
                 reactions.append(f"{c}\N{combining enclosing keycap}")
 
@@ -739,6 +764,26 @@ class Misc(commands.Cog):
 
                 except discord.errors.HTTPException:
                     pass
+
+    @commands.group(invoke_without_command=True)
+    async def youtube(self, ctx, *, query):
+        """Search for videos on youtube"""
+
+        await ctx.trigger_typing()
+
+        p = Paginator(ctx)
+        urls = await self.search_youtube(query)
+        for url in urls:
+            await p.add_page(url)
+
+        await p.paginate()
+
+    @youtube.command()
+    async def one(self, ctx, *, query):
+        """return ony one youtube video"""
+
+        await ctx.trigger_typing()
+        await ctx.send(await self.search_youtube(query, True))
 
 
 def setup(bot):
