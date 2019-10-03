@@ -176,7 +176,7 @@ class Casino(commands.Cog):
     @commands.group(invoke_without_command=True)
     async def coinflip(self, ctx, times: int = 1):
         """
-        flip a coin
+        Flip a coin
         """
 
         if times < 0:
@@ -205,7 +205,7 @@ class Casino(commands.Cog):
     @commands.cooldown(1, 3, commands.BucketType.user)
     async def bet(self, ctx, choice, bet: int):
         """
-        flip a coin and bet the outcome choices (heads or tails)
+        Flip a coin and bet the outcome choices (heads or tails)
         """
 
         if choice.lower() not in ("heads", "tails"):

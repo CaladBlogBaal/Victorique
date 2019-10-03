@@ -190,7 +190,7 @@ class Games(commands.Cog):
     @commands.command(aliases=["8ball", "8-ball", "magic_eight_ball"])
     async def eight_ball(self, ctx, *, message):
         """
-        answers from cthulu
+        Answers from cthulu
         """
 
         possible_responses = [
@@ -432,7 +432,7 @@ class Games(commands.Cog):
     @commands.command(aliases=["ttt"])
     async def tictactoe(self, ctx, mention: discord.Member):
         """
-        play a game of TicTacToe
+        Play a game of TicTacToe
         """
 
         default_board_np = np.array([[1, 1, 1], [1, 1, 1], [1, 1, 1]])
@@ -644,7 +644,7 @@ class Games(commands.Cog):
     @checking_for_multiple_channel_instances()
     async def black_jack(self, ctx):
         """
-        start a game of black jack
+        Start a game of black jack
         rules for black jack are as follows taken from www.blackjackchamp.com
         ------------------------------------------------------------------------------------------------------------
         Blackjack card values:

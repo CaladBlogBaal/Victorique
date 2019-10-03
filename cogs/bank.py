@@ -17,7 +17,7 @@ class Bank(commands.Cog):
     @commands.command()
     async def transfer_credits(self, ctx, member: discord.Member, amount: float):
         """
-        transfer credits to a guild member
+        Transfer credits to a guild member
         """
 
         if member == ctx.author:
@@ -78,7 +78,7 @@ class Bank(commands.Cog):
     @commands.command()
     async def credits(self, ctx, member: discord.Member = None):
         """
-        view a guild member's credits
+        View a guild member's credits
         """
         member = member or ctx.author
 
@@ -91,7 +91,7 @@ class Bank(commands.Cog):
     @commands.command()
     async def daily(self, ctx):
         """
-        get your daily credits
+        Get your daily credits
         """
         statement = "UPDATE users SET daily_cooldown = $1 where user_id = $2"
 

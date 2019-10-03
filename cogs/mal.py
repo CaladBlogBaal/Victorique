@@ -110,17 +110,17 @@ class MyAnimeList(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
 
     @commands.command()
     async def anime(self, ctx, *, anime_name):
-        """search for an anime on mal"""
+        """Search for an anime on mal"""
         await self.search_mal(ctx, "anime", anime_name)
 
     @commands.command()
     async def manga(self, ctx, *, manga_name):
-        """search for a manga on mal"""
+        """Search for a manga on mal"""
         await self.search_mal(ctx, "manga", manga_name)
 
     @commands.command()
     async def seasonal(self, ctx, year: typing.Optional[int] = d.now().year, season: SeasonConverter = None):
-        """get a list of anime for a year and season will default to the currently airing season."""
+        """Get a list of anime for a year and season will default to the currently airing season."""
 
         archive = await self.aio_jikan.season_archive()
         archive = list(result["year"] for result in archive["archive"])
@@ -140,7 +140,7 @@ class MyAnimeList(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
     @commands.command()
     async def schedule(self, ctx, day=None):
 
-        """get a list anime based on their schedule"""
+        """Get a list anime based on their schedule"""
 
         weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
@@ -195,12 +195,12 @@ class MyAnimeList(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
 
     @commands.command()
     async def random_anime(self, ctx):
-        """get a random anime"""
+        """Get a random anime"""
         await ctx.send(embed=await self.random_anime_manga(ctx, "anime"))
 
     @commands.command()
     async def random_manga(self, ctx):
-        """get a random manga"""
+        """Get a random manga"""
         await ctx.send(embed=await self.random_anime_manga(ctx, "manga"))
 
 

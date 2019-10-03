@@ -217,7 +217,7 @@ class Images(commands.Cog):
     @commands.command(aliases=["kicc"])
     @commands.guild_only()
     async def fake_kick(self, ctx, *, member: discord.Member):
-        """get a false kick image of a guild/user member"""
+        """Get a false kick image of a guild/user member"""
         await ctx.trigger_typing()
         image = ImageDrawText(self.bot, "images/kick.png")
         avatar_icon_bytes_list = [member]
@@ -305,7 +305,7 @@ class Images(commands.Cog):
 
     @commands.command()
     async def two_cats(self, ctx, *, text: commands.clean_content):
-        """write some text on two signs
+        """Write some text on two signs
         to write on both signs split the text with || or | if no separator is passed the text will be halved
         and written on both signs."""
         image = ImageDrawText(self.bot, "images/two_cats.jpg")
@@ -340,7 +340,7 @@ class Images(commands.Cog):
     @private_guilds_check()
     @commands.command()
     async def nimi(self, ctx, *, message: commands.clean_content):
-        """have nimi say something"""
+        """Have nimi say something"""
         image = ImageDrawText(self.bot, "images/warnimage.PNG")
         date = ctx.message.created_at
         date = date.strftime("%d/%m/20%y")

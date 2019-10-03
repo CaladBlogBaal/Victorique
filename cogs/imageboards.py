@@ -384,7 +384,7 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
     @commands.command(aliases=["snc"])
     @commands.has_permissions(manage_channels=True)
     async def set_nsfw_channel(self, ctx, channel: discord.TextChannel = None):
-        """set the current channel or another channel as the NSFW channel."""
+        """Set the current channel or another channel as the NSFW channel."""
 
         channel = channel or ctx.channel
 
@@ -396,6 +396,7 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
     @commands.command(aliases=["dnc"])
     @commands.has_permissions(manage_channels=True)
     async def delete_nsfw_channel(self, ctx):
+        """Delete's the set NSFW channel"""
         channel = await self.get_nsfw_channel(ctx)
 
         if channel is None:
@@ -409,7 +410,7 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
     @commands.group(invoke_without_command=True, name="sb", ignore_extra=False)
     async def sb(self, ctx):
         """
-        gets a random image from safebooru
+        Gets a random image from safebooru
         """
 
         d = SafebooruAPI(ctx)
@@ -428,7 +429,7 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
 
     @sb.command(name="search")
     async def search_sb(self, ctx, amount: typing.Optional[int] = 1, *, tags):
-        """search for a picture on safebooru from a random page"""
+        """Search for a picture on safebooru from a random page"""
         await ctx.trigger_typing()
 
         tags = tags.replace("||", "\u200B").replace("|", "\u200B").replace("&&", "\u200B")
@@ -477,7 +478,7 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
     @commands.group(invoke_without_command=True, ignore_extra=False)
     async def apn(self, ctx):
         """
-        gets a random image from anime-pictues.net
+        Gets a random image from anime-pictues.net
         """
 
         a = AnimePicturesNet(ctx)
@@ -490,7 +491,7 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
 
     @apn.command(name="search")
     async def search_apn(self, ctx, amount: typing.Optional[int] = 1, *, tags):
-        """search for a picture on anime pictures net
+        """Search for a picture on anime pictures net
            20 is the maximum"""
         if amount > 20:
             amount = 20
@@ -524,14 +525,14 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
     @commands.group(invoke_without_command=True, ignore_extra=False)
     async def ye(self, ctx):
         """
-        gets a random image from yande.re eg
+        Gets a random image from yande.re eg
         """
 
         await self.random_image(ctx, "https://yande.re/post.json")
 
     @ye.command(aliases=["yande_search", "search"])
     async def ye_search(self, ctx, amount: typing.Optional[int] = 1, *, tags):
-        """search for a picture on yande.re
+        """Search for a picture on yande.re
         20 is the maximum"""
 
         await self.post_request(ctx, amount, tags, "https://yande.re/post.json")
@@ -540,7 +541,7 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
     async def gb(self, ctx):
 
         """
-        gets a random image from gelbooru
+        Gets a random image from gelbooru
         """
 
         safe = False
@@ -564,7 +565,7 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
 
     @gb.command(aliases=["gelbooru_search", "search"])
     async def gb_search(self, ctx, amount: typing.Optional[int] = 1, *, tags):
-        """search for a picture on gelbooru
+        """Search for a picture on gelbooru
         20 is the maximum"""
 
         await self.post_request(ctx, amount, tags, "https://gelbooru.com/index.php?page=dapi&s=post&q=index&json=1")
@@ -572,14 +573,14 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
     @commands.group(invoke_without_command=True, ignore_extra=False)
     async def db(self, ctx):
         """
-        gets a random image from danbooru
+        Gets a random image from danbooru
         """
 
         await self.random_image(ctx, "https://danbooru.donmai.us/posts.json")
 
     @db.command(aliases=["danbooru_search", "search"])
     async def db_search(self, ctx, amount: typing.Optional[int] = 1, *, tags):
-        """search for a picture on danbooru
+        """Search for a picture on danbooru
         20 is the maximum"""
 
         await self.post_request(ctx, amount, tags, "https://danbooru.donmai.us/posts.json")
@@ -587,14 +588,14 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
     @commands.group(invoke_without_command=True, ignore_extra=False)
     async def kc(self, ctx):
         """
-        gets a random image from konochan
+        Gets a random image from konochan
         """
 
         await self.random_image(ctx, "https://konachan.com/post.json")
 
     @kc.command(aliases=["konochan_search", "search"])
     async def kc_search(self, ctx, amount: typing.Optional[int] = 1, *, tags):
-        """search for a picture on konochan
+        """Search for a picture on konochan
         20 is the maximum"""
 
         await self.post_request(ctx, amount, tags, "https://konachan.com/post.json")

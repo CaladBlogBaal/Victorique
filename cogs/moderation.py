@@ -37,7 +37,7 @@ class Moderation(commands.Cog):
     @commands.command()
     @combined_permissions_check(manage_messages=True)
     async def purge_bot(self, ctx, amount=1):
-        """delete x amount of bot messages"""
+        """Delete x amount of bot messages"""
 
         if amount > 100:
             amount = 100
@@ -55,7 +55,7 @@ class Moderation(commands.Cog):
     async def kick(self, ctx, members: commands.Greedy[discord.Member], *,
                    reason="No reason"):
         """
-        kick a guild member or members
+        Kick a guild member or members
         """
         member_display = []
         for member in members:
@@ -74,7 +74,7 @@ class Moderation(commands.Cog):
     @combined_permissions_check(manage_messages=True)
     async def purge(self, ctx, amount: int, member: discord.Member = None):
         """
-        purge any an amount of messages
+        Purge any an amount of messages
         """
         if amount > 100:
             return await ctx.send(":no_entry: | The max amount of messages you can purge is 100")
@@ -100,7 +100,7 @@ class Moderation(commands.Cog):
     @commands.command()
     @combined_permissions_check(manage_roles=True)
     async def mute(self, ctx, members: commands.Greedy[discord.Member], reason="no reason"):
-        """mute a guild member or members"""
+        """Mute a guild member or members"""
 
         role = discord.utils.get(ctx.guild.roles, name="Muted")
         member_display = []
@@ -136,7 +136,7 @@ class Moderation(commands.Cog):
     @commands.command()
     @combined_permissions_check(manage_roles=True)
     async def unmute(self, ctx, members: commands.Greedy[discord.Member], *, reason: str = None):
-        """unmute a guild member or members"""
+        """Unmute a guild member or members"""
 
         role = discord.utils.get(ctx.guild.roles, name="Muted")
         member_display = []
@@ -159,7 +159,7 @@ class Moderation(commands.Cog):
     @commands.command()
     @combined_permissions_check(manage_roles=True)
     async def addrole(self, ctx, member: typing.Optional[discord.Member] = None, *, role: discord.Role):
-        """add a role to a guild member"""
+        """Add a role to a guild member"""
         member = member or ctx.author
         role_name = await self.role_check(ctx, member, role)
 
@@ -172,7 +172,7 @@ class Moderation(commands.Cog):
     @commands.command()
     @combined_permissions_check(manage_roles=True)
     async def removerole(self, ctx, member: typing.Optional[discord.Member] = None, *, role: discord.Role):
-        """remove a role to a guild member"""
+        """Remove a role to a guild member"""
 
         member = member or ctx.author
         role_name = await self.role_check(ctx, member, role)
@@ -186,7 +186,7 @@ class Moderation(commands.Cog):
     @commands.command()
     @combined_permissions_check(manage_emojis=True)
     async def emote(self, ctx, *, url=None):
-        """create an emoji accepts file attachments"""
+        """Create an emoji accepts file attachments"""
         if url is None:
             url = ""
 
@@ -248,8 +248,8 @@ class Moderation(commands.Cog):
     @commands.command()
     @combined_permissions_check(manage_messages=True)
     async def pin(self, ctx, message_id: int = None):
-        """pin a message
-        ir no message id is passed will pin the command message."""
+        """Pin a message
+        if no message id is passed will pin the command message."""
 
         if message_id is None:
             return await ctx.message.pin()
@@ -265,7 +265,7 @@ class Moderation(commands.Cog):
     @commands.command()
     @commands.has_permissions(manage_guild=True)
     async def set_prefix(self, ctx, prefix: commands.clean_content, allow_default=False):
-        """set a guilds prefix
+        """Set a guilds prefix
            True for yes False for no to allow the bots default prefix"""
 
         if len(prefix) > 25:

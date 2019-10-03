@@ -186,7 +186,7 @@ class Tags(commands.Cog):
 
     @tag.command()
     async def raw(self, ctx, *, name):
-        """display a tag without markdown eg spoilers."""
+        """Display a tag without markdown eg spoilers."""
 
         content = await ctx.con.fetchrow("SELECT content, nsfw from tags where LOWER(tag_name) = $1 and guild_id = $2",
                                          name.lower(), ctx.guild.id)
@@ -201,7 +201,7 @@ class Tags(commands.Cog):
 
     @tag.command()
     async def info(self, ctx, *, name):
-        """get info on a tag"""
+        """Get info on a tag"""
         name = name.lower()
 
         data = await ctx.con.fetchrow("SELECT * from tags where LOWER(tag_name) = $1 and guild_id = $2",
@@ -225,7 +225,7 @@ class Tags(commands.Cog):
 
     @tag.command(aliases=["content", "details", "update"])
     async def update_content(self, ctx, name, *, content: commands.clean_content):
-        """update a tag's content encase the tag's name in quotes if it has spaces"""
+        """Update a tag's content encase the tag's name in quotes if it has spaces"""
         name = name.lower()
 
         check = await ctx.con.fetchval("SELECT tag_name FROM tags WHERE user_id = $1 and guild_id = $2",
@@ -249,7 +249,7 @@ class Tags(commands.Cog):
 
     @tag.command()
     async def list(self, ctx):
-        """get a list of tags for the current guild"""
+        """Get a list of tags for the current guild"""
 
         tags = await ctx.con.fetch("select tag_name, user_id from tags where guild_id =  $1",
                                    ctx.guild.id)
@@ -274,7 +274,7 @@ class Tags(commands.Cog):
 
     @tag.group(invoke_without_command=True, aliases=["remove", "prune"])
     async def delete(self, ctx, *, name):
-        """delete a tag"""
+        """Delete a tag"""
         name = name.lower()
 
         check = await self.bot.is_owner(ctx.author) or ctx.author.guild_permissions.manage_messages
@@ -299,7 +299,7 @@ class Tags(commands.Cog):
 
     @delete.command()
     async def all(self, ctx, member: discord.Member):
-        """delete all of a member's tags"""
+        """Delete all of a member's tags"""
 
         check = await self.bot.is_owner(ctx.author) or ctx.author.guild_permissions.manage_messages
 
@@ -317,7 +317,7 @@ class Tags(commands.Cog):
 
     @tag.command()
     async def nsfw(self, ctx, nsfw: typing.Optional[bool] = True, *, name):
-        """set a tag to be only be usable in NSFW channels
+        """Set a tag to be only be usable in NSFW channels
         pass True for nsfw False to not make it NSFW"""
         name = name.lower()
 
@@ -345,7 +345,7 @@ class Tags(commands.Cog):
 
     @tag.command()
     async def transfer(self, ctx, member: discord.Member, *, name):
-        """transfer a tag you own to another user"""
+        """Transfer a tag you own to another user"""
         name = name.lower()
 
         if member.bot:
@@ -366,6 +366,7 @@ class Tags(commands.Cog):
 
     @tag.command()
     async def search(self, ctx, *, name):
+        """Search for tags that start with a name"""
         name = name.lower()
         p = Paginator(ctx)
 

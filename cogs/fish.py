@@ -271,7 +271,7 @@ class Fishing(commands.Cog):
     @commands.group(invoke_without_command=True, ignore_extra=False)
     @commands.cooldown(1, 3, commands.BucketType.user)
     async def fish(self, ctx):
-        """the main command for fishing by itself fishes a single random fish
+        """The main command for fishing by itself fishes a single random fish
            rates are as follow for fish 10% for elite 1% for super 0.05% for legendary"""
 
         async def update_data(cb):
@@ -309,7 +309,7 @@ class Fishing(commands.Cog):
     @fish.group(invoke_without_command=True, aliases=["favourite"])
     @commands.cooldown(1, 3, commands.BucketType.user)
     async def favourites(self, ctx):
-        """view your favourite fish"""
+        """View your favourite fish"""
         favs = await self.__fish_get_favourites(ctx)
 
         if favs in (None, []):
@@ -322,14 +322,14 @@ class Fishing(commands.Cog):
 
     @favourites.command()
     async def add(self, ctx, fish_ids: commands.Greedy[FishNameConventor]):
-        """add a fish/fishes to your favorites
+        """Add a fish/fishes to your favorites
         separate multiple fish ids with a space"""
 
         await self.__fish_update_favourites(ctx, fish_ids)
 
     @favourites.command()
     async def remove(self, ctx, fish_ids: commands.Greedy[FishNameConventor]):
-        """remove a fish/fishes from your favorites
+        """Remove a fish/fishes from your favorites
         separate multiple fish ids with a space"""
 
         await self.__fish_update_favourites(ctx, fish_ids, True)
@@ -464,13 +464,13 @@ class Fishing(commands.Cog):
 
     @inventory.command()
     async def use(self, ctx, amount: int = 1):
-        """use your bait to catch a fish of specific rarity
+        """Use your bait to catch a fish of specific rarity
            legendary fish can only be caught with super rare bait."""
 
     @fish.group(aliases=["catch", "captures", "reels", "fishy", "stats", "collection"])
     @commands.cooldown(1, 3, commands.BucketType.user)
     async def catches(self, ctx, member: typing.Optional[discord.Member] = None, rarity_id=None):
-        """view all the fishes you've caught or someone else's
+        """View all the fishes you've caught or someone else's
            can filter by rarity by passing in a rarity name or id 1 for common,
            2 for elite, 3 for super, and -1 for legendary"""
 
@@ -602,7 +602,7 @@ class Fishing(commands.Cog):
 
     @sell.command()
     async def all(self, ctx, rarity_id: FishRarityConventor, excluded_fish_ids: commands.Greedy[FishNameConventor]):
-        """sell all of a fish with a specified rarity id
+        """Sell all of a fish with a specified rarity id
         pass a rarity name or 1 for common, 2 for elite, 3 for super and -1 for legendary into the rarity_id
         pass into the excluded fish parameter a list of fish ids or names
         separated by a space to exclude from the selling."""
@@ -669,7 +669,7 @@ class Fishing(commands.Cog):
 
     @sell.command(name="fish")
     async def fish_sell(self, ctx, amount: int, fish_id: FishNameConventor):
-        """sell an amount of a specific fish"""
+        """Sell an amount of a specific fish"""
 
         if amount < 0:
             return await ctx.send(":no_entry: | enter in a valid amount to sell.")

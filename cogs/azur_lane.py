@@ -415,7 +415,7 @@ class AzurLane(commands.Cog, name="Azur Lane"):
 
     @ehp.command()
     async def default(self, ctx, enemy_hit: typing.Optional[int] = 45, *, ship_name):
-        """attempts to find the best ehp with default aux slots set and formation set to diamond"""
+        """Attempts to find the best ehp with default aux slots set and formation set to diamond"""
         # it just works.tm function and goes beyond
 
         aux_list = copy.deepcopy(self.auxiliary_list)
@@ -433,7 +433,7 @@ class AzurLane(commands.Cog, name="Azur Lane"):
 
     @commands.command(aliases=["ss"])
     async def ship_stats(self, ctx, *, ship_name):
-        """get the stats of a ship"""
+        """Get the stats of a ship"""
         # this will probably be removed for a wiki web scape of ship details in the future
 
         ship_name = ship_name.lower()
@@ -531,12 +531,12 @@ class AzurLane(commands.Cog, name="Azur Lane"):
 
     @commands.command(aliases=["ais"])
     async def al_img_search(self, ctx, *, item):
-        """search for a image on the al wiki"""
+        """Search for a image on the al wiki"""
         await self.azur_lane_wiki_search(ctx, item)
 
     @commands.group(aliases=["gg"], invoke_without_command=True)
     async def gear_guide(self, ctx, *, ship_name):
-        """the main command for gear guides by itself gets the gear guide of a ship"""
+        """The main command for gear guides by itself gets the gear guide of a ship"""
 
         if "kai" in ship_name.lower():
             ship_name = ship_name[::-1].replace(" ", "", 1)[::-1]
@@ -552,13 +552,13 @@ class AzurLane(commands.Cog, name="Azur Lane"):
 
     @gear_guide.command()
     async def hull(self, ctx, *, hull):
-        """get a list of gear guides based on hull type."""
+        """Get a list of gear guides based on hull type."""
         await ctx.trigger_typing()
         await self.get_hull_or_rarity(ctx, 2, hull)
 
     @gear_guide.command()
     async def rarity(self, ctx, *, rarity):
-        """get a list of gear guides based on rarity
+        """Get a list of gear guides based on rarity
            rarities are as follow common, rare, elite, super rare or ssr."""
         await ctx.trigger_typing()
 
@@ -570,7 +570,7 @@ class AzurLane(commands.Cog, name="Azur Lane"):
     @commands.is_owner()
     @gear_guide.command(name="add")
     async def add_ship_to_ggh(self, ctx, url, hull, rarity, *, ship_name):
-        """add a new ship to the gear guide hub"""
+        """Add a new ship to the gear guide hub"""
         new_row = [ship_name, rarity, hull, url]
 
         for row in self.ship_gear_hub:
@@ -585,7 +585,7 @@ class AzurLane(commands.Cog, name="Azur Lane"):
     @commands.is_owner()
     @gear_guide.command(name="delete")
     async def delete_ship_from_ggh(self, ctx, *, ship_name):
-        """remove a ship from the gear guide hub."""
+        """Remove a ship from the gear guide hub."""
         if not self.delete_from_reader(ship_name, self.ship_gear_hub, self.update_ship_gear_hub):
             return await ctx.send(f":no_entry: | {ship_name} doesn't exist")
 
@@ -595,12 +595,12 @@ class AzurLane(commands.Cog, name="Azur Lane"):
     @commands.is_owner()
     @commands.group(name="uss", invoke_without_command=True)
     async def update_ship_stats(self, ctx):
-        """main command for updating the ship stats csv does nothing by itself"""
+        """Main command for updating the ship stats csv does nothing by itself"""
 
     @commands.is_owner()
     @update_ship_stats.command(name="add")
     async def add_ship_to_ss_csv(self, ctx, *fields):
-        """add a ship to the ship stats csv"""
+        """Add a ship to the ship stats csv"""
 
         keys = ["# Lvl 120", "Name", "Hull", "HP", "EVA", "LUK", "Armor", "EVA Rate", "EVAS", "DMGR"]
 
@@ -621,7 +621,7 @@ class AzurLane(commands.Cog, name="Azur Lane"):
     @commands.is_owner()
     @update_ship_stats.command(name="delete")
     async def delete_ship_from_ss_csv(self, ctx, *, ship_name):
-        """remove a ship from the ship stats csv"""
+        """Remove a ship from the ship stats csv"""
         if not self.delete_from_reader(ship_name, self.ship_stats_reader, self.update_ship_stats_csv):
             return await ctx.send(f":no_entry: | {ship_name} doesn't exist")
 

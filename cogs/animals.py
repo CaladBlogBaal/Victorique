@@ -48,38 +48,38 @@ class Animals(commands.Cog):
 
     @animal_fact.command(name="cat")
     async def cat_fact(self):
-        """get a cat fact"""
+        """Get a cat fact"""
         return
 
     @animal_fact.command(name="dog")
     async def dog_fact(self):
-        """get a dog fact"""
+        """Get a dog fact"""
         return
 
     @animal_fact.command(name="bird")
     async def bird_fact(self):
-        """get a bird fact"""
+        """Get a bird fact"""
         return
 
     @animal_fact.command(name="panda")
     async def panda_fact(self):
-        """get a panda fact"""
+        """Get a panda fact"""
         return
 
     @animal_fact.command(name="fox")
     async def fox_fact(self):
-        """get a fox fact"""
+        """Get a fox fact"""
         return
 
     @animal_fact.command(name="koala")
     async def koala_fact(self):
-        """get a koala fact"""
+        """Get a koala fact"""
         return
 
     @commands.command()
     async def fox(self, ctx, amount=1):
         """
-        get a random picture of a fox
+        Get a random picture of a fox
         20 is the maximum
         """
         await self.api_get_image_repeated([""], "https://randomfox.ca/floof/", "image", ctx, amount)
@@ -87,7 +87,7 @@ class Animals(commands.Cog):
     @commands.command()
     async def duck(self, ctx, amount=1):
         """
-        get a random picture of a duck
+        Get a random picture of a duck
         20 is the maximum
         """
         await self.api_get_image_repeated([""], "https://random-d.uk/api/v2/random", "url", ctx, amount)
@@ -95,7 +95,7 @@ class Animals(commands.Cog):
     @commands.command(aliases=["catto", "kitty", "cattie"])
     async def cat(self, ctx, amount=1):
         """
-        get a random picture of a cat
+        Get a random picture of a cat
         20 is the maximum
         """
         await self.api_get_image_repeated([""], "http://aws.random.cat/meow", "file", ctx, amount)
@@ -103,7 +103,7 @@ class Animals(commands.Cog):
     @commands.command(aliases=["birb"])
     async def bird(self, ctx, amount=1):
         """
-        get a random picture of a bird
+        Get a random picture of a bird
         20 is the maximum
         """
         p = Paginator(ctx)
@@ -122,7 +122,7 @@ class Animals(commands.Cog):
     @commands.command(aliases=["doggo", "trooper"])
     async def dog(self, ctx, amount: typing.Optional[int]=1, breed=None):
         """
-        get a random picture of a dog
+        Get a random picture of a dog
         20 is the maximum
         """
 
@@ -134,6 +134,7 @@ class Animals(commands.Cog):
 
     @commands.command()
     async def pug(self, ctx, amount):
+        """Get a random picture of a pug"""
         msg = copy.copy(ctx.message)
         msg.content = f"{ctx.prefix}dog {amount} pug"
         new_ctx = await self.bot.get_context(msg)
@@ -142,7 +143,7 @@ class Animals(commands.Cog):
     @commands.command()
     async def lizard(self, ctx, amount=1):
         """
-        get a random picture of a lizard
+        Get a random picture of a lizard
         20 is the maximum
         """
 
@@ -151,7 +152,7 @@ class Animals(commands.Cog):
     @commands.command()
     async def koala(self, ctx, amount=1):
         """
-        get a random picture of a koala
+        Get a random picture of a koala
         20 is the maximum
         """
 
@@ -160,7 +161,7 @@ class Animals(commands.Cog):
     @commands.command()
     async def panda(self, ctx, amount=1):
         """
-        get a random picture of a panda
+        Get a random picture of a panda
         20 is the maximum
         """
 

@@ -36,9 +36,8 @@ class Info(commands.Cog):
 
     @commands.command()
     async def invite(self, ctx):
-        """get the bot's invite url"""
+        """Get the bot's invite url"""
 
-        discord.utils.oauth_url(ctx.me.id, discord.Permissions(1342515266))
         await ctx.send(discord.utils.oauth_url(ctx.me.id, discord.Permissions(1342515266)))
 
     @commands.command()
@@ -130,14 +129,14 @@ class OwnerCog(commands.Cog, name="Owner Commands"):
 
     @commands.command(name="close", hidden=True)
     async def __close(self, ctx):
-        """closes the bot"""
+        """Closes the bot"""
         await ctx.send("*shutting down...*")
         await asyncio.sleep(1)
         await self.bot.logout()
 
     @commands.command(hidden=True, name="bot_avatar")
     async def __edit_bot_avatar(self, ctx, url: str):
-        """edits the bots avatar"""
+        """Edits the bots avatar"""
 
         async with self.bot.session.get(url) as response:
             image_bytes = await response.read()
@@ -151,7 +150,7 @@ class OwnerCog(commands.Cog, name="Owner Commands"):
 
     @commands.command()
     async def count(self, ctx):
-        """count lines of code"""
+        """Count lines of code"""
 
         def get_total(file_dir, check_sql=False):
             line_total = 0
@@ -200,7 +199,7 @@ class OwnerCog(commands.Cog, name="Owner Commands"):
 
     @commands.command(aliases=["usj"])
     async def update_ship_json(self, ctx, *args):
-        """update the azur lane ship json"""
+        """Update the azur lane ship json"""
         keys = ['name', 'nation', 'rarity', 'type', 'hp', 'armor_type',
                 'reload', 'fp', 'tp', 'evasion', 'aa', 'airp', 'oil',
                 'asw', 'speed', 'luck', 'hit', 'eff', 'secff', 'trieff',
@@ -221,7 +220,7 @@ class OwnerCog(commands.Cog, name="Owner Commands"):
 
     @commands.command()
     async def query(self, ctx, *, _query):
-        """return rows from the postgres database"""
+        """Return rows from the postgres database"""
         wp = WarpedPaginator(ctx)
         _query = _query
         rows = await ctx.con.fetch(_query)
@@ -231,7 +230,7 @@ class OwnerCog(commands.Cog, name="Owner Commands"):
 
     @commands.command()
     async def update(self, ctx, *, _query):
-        """update data in the postgres database with a transaction"""
+        """Update rows in the postgres database with a transaction"""
         async with ctx.con.transaction():
             await ctx.con.execute(_query)
 
@@ -239,7 +238,7 @@ class OwnerCog(commands.Cog, name="Owner Commands"):
 
     @commands.command()
     async def add_fish(self, ctx, fish_emote, rarity_id):
-        """add a fish to the fish table"""
+        """Add a fish to the fish table"""
         async with ctx.con.transaction():
             await ctx.con.execute("""INSERT INTO fish (fish_name, bait_id) VALUES
                                 ($1, $2) ON CONFLICT DO NOTHING""", fish_emote, rarity_id)
@@ -248,7 +247,7 @@ class OwnerCog(commands.Cog, name="Owner Commands"):
 
     @commands.command()
     async def add_default_fish(self, ctx):
-        """add the default fish"""
+        """Add the default fish"""
         async with ctx.con.transaction():
             await ctx.con.execute("""
     INSERT INTO fish (fish_name, bait_id) VALUES ('<:MutsukiIcon:603142310686883860>', 1) ON CONFLICT DO NOTHING;
@@ -276,7 +275,7 @@ class OwnerCog(commands.Cog, name="Owner Commands"):
     @commands.group(invoke_without_command=True, aliases=["da"])
     @commands.dm_only()
     async def daily_anime(self, ctx, amount: int = 2):
-        """get random images from danbooru, gelbooru, anime-pictures.net and yande.re"""
+        """Get random images from danbooru, gelbooru, anime-pictures.net and yande.re"""
 
         if not random_images.current_loop != 1:
             return await ctx.send("> task is already running.")
@@ -286,13 +285,13 @@ class OwnerCog(commands.Cog, name="Owner Commands"):
 
     @daily_anime.command()
     async def cancel(self, ctx):
-        """cancel the random images task"""
+        """Cancel the random images task"""
         random_images.cancel()
         await ctx.send("> successfully cancelled.")
 
     @daily_anime.command(aliases=["ci"])
     async def change_interval(self, ctx, seconds: int):
-        """change the interval"""
+        """Change the interval"""
         random_images.cancel()
         random_images.change_interval(seconds=seconds)
         await ctx.send(f"> successfully changed to `{seconds}` seconds restart the task with `{ctx.prefix}daily_anime`")

@@ -163,7 +163,7 @@ class Misc(commands.Cog):
     @commands.command()
     async def triangle(self, ctx, size: typing.Optional[int] = 5, emote=":small_red_triangle:",
                        emote_two=None, reverse=False):
-        """draw a triangle
+        """Draw a triangle
         say trans as a wild card for a transparent emote and True for a reversed triangle."""
         emote = await commands.clean_content().convert(ctx, emote)
 
@@ -185,7 +185,7 @@ class Misc(commands.Cog):
 
     @commands.command()
     async def diamond(self, ctx, size: typing.Optional[int] = 5, *emotes: commands.clean_content):
-        """draw a diamond
+        """Draw a diamond
         if more then one emote is passed will default to random emote for each row"""
         shape = ShapeDrawing(list(emotes), [self.transparent], size)
 
@@ -202,7 +202,7 @@ class Misc(commands.Cog):
     @commands.dm_only()
     @commands.command()
     async def chat(self, ctx, message):
-        """get a response from the bot"""
+        """Get a response from the bot"""
 
         params = {"message": message}
 
@@ -231,7 +231,7 @@ class Misc(commands.Cog):
     @commands.command()
     async def matb(self, ctx, *, text: commands.clean_content = None):
         """
-        me and the boys
+        Me and the boys
         by calling this command you summon the boys
         this command takes one optional parameter the text to
         accompany the boys eg ?matb posting a dead meme
@@ -246,7 +246,7 @@ class Misc(commands.Cog):
     @commands.command()
     async def destroy(self, ctx, *, message=None):
         """
-        destroy something
+        Destroy something
         """
 
         message = ctx.safe_everyone(message)
@@ -273,7 +273,7 @@ class Misc(commands.Cog):
     @commands.command()
     async def clap(self, ctx, *, message: commands.clean_content):
         """
-        fill your message with claps
+        Fill your message with claps
         """
         text = re.findall(r"\[[^\]]*\]|\([^)]*\)|\"[^\"]*\"|\S+", message)
         text = " :clap: ".join(word for word in text)
@@ -283,7 +283,7 @@ class Misc(commands.Cog):
     @commands.guild_only()
     async def display_emotes(self, ctx):
         """
-        display the current emojis for the guild
+        Display the current emojis for the guild
         """
 
         async def paginate(list_of_chunks):
@@ -315,7 +315,7 @@ class Misc(commands.Cog):
     @private_guilds_check()
     async def pat_cyber(self, ctx):
         """
-        pat cyber and only cyber
+        Pat cyber and only cyber
         """
         member = ctx.guild.get_member(162065852194095104)
         author = ctx.author.mention
@@ -334,7 +334,7 @@ class Misc(commands.Cog):
     @private_guilds_check()
     async def licc_calad(self, ctx):
         """
-        lick calad
+        Lick calad
         """
         member = ctx.guild.get_member(295325269558951936)
         author = ctx.author.mention
@@ -356,14 +356,14 @@ class Misc(commands.Cog):
     @commands.command(alasies=["genetically_engineered_cat_girls"])
     async def gecg(self, ctx):
         """
-        get a random genetically egineered cat girl meme
+        Get a random genetically egineered cat girl meme
         """
         await ctx.send(embed=await self.bot.api_get_image([""], "https://nekos.life/api/v2/img/gecg", "url"))
 
     @commands.command()
     async def cuddle(self, ctx, member: typing.Union[discord.Member, discord.User]):
         """
-        cuddle a guild member
+        Cuddle a guild member
         """
         author = ctx.author.mention
 
@@ -381,7 +381,7 @@ class Misc(commands.Cog):
     @commands.command()
     async def tickle(self, ctx, member: typing.Union[discord.Member, discord.User]):
         """
-        tickle a guild member
+        Tickle a guild member
         """
         author = ctx.author.mention
 
@@ -398,14 +398,14 @@ class Misc(commands.Cog):
 
     @commands.command()
     async def wink(self, ctx):
-        """get a random wink"""
+        """Get a random wink"""
         await ctx.send(embed=await self.bot.api_get_image([f"{ctx.author.mention} is winking"],
                                                           "https://some-random-api.ml/animu/wink", "link"))
 
     @commands.command()
     async def smug(self, ctx):
         """
-        get a random image to express your smugness
+        Get a random image to express your smugness
         """
 
         author = ctx.message.author.mention
@@ -419,7 +419,7 @@ class Misc(commands.Cog):
     @commands.command()
     async def slap(self, ctx, member: typing.Union[discord.Member, discord.User]):
         """
-        slap a guild member or user
+        Slap a guild member or user
         """
 
         if await self.bot_gif(ctx, "https://giffiles.alphacoders.com/197/197854.gif"):
@@ -442,7 +442,7 @@ class Misc(commands.Cog):
     @commands.command()
     async def pat(self, ctx, member: typing.Union[discord.Member, discord.User]):
         """
-        pat a guild member or user
+        Pat a guild member or user
         """
         if await self.bot_gif(ctx, "https://thumbs.gfycat.com/ClearFalseFulmar-small.gif"):
             return
@@ -463,7 +463,7 @@ class Misc(commands.Cog):
     @commands.command()
     async def kiss(self, ctx, member: typing.Union[discord.Member, discord.User]):
         """
-        kiss a guild member or user
+        Kiss a guild member or user
         """
         if await self.bot_gif(ctx, "https://media2.giphy.com/media/24PHsMnvGUVdS/source.gif"):
             return
@@ -485,7 +485,7 @@ class Misc(commands.Cog):
     @commands.command()
     async def poke(self, ctx, member: typing.Union[discord.Member, discord.User]):
         """
-        poke a guild member or user
+        Poke a guild member or user
         """
         if await self.bot_gif(ctx, "https://66.media.tumblr.com/b061114bf8251a4f037c651bd2a86a1c"
                                    "/tumblr_mr1bfrQ9Jb1qeysf2o3_500.gif"):
@@ -505,7 +505,7 @@ class Misc(commands.Cog):
     @commands.command()
     async def lick(self, ctx, member: typing.Union[discord.Member, discord.User]):
         """
-        lick a guild member or user
+        Lick a guild member or user
         """
         author = ctx.message.author.mention
 
@@ -528,7 +528,7 @@ class Misc(commands.Cog):
     @commands.command(aliases=["tb", "rub"])
     async def tummy_rub(self, ctx, member: typing.Union[discord.Member, discord.User]):
         """
-        rub a guild member's tummy or user
+        Rub a guild member's tummy or user
         """
         author = ctx.message.author.mention
 
@@ -561,7 +561,7 @@ class Misc(commands.Cog):
     @commands.command()
     async def hug(self, ctx, *, member: typing.Union[discord.Member, discord.User]):
         """
-        hug a guild member or user
+        Hug a guild member or user
         """
 
         if await self.bot_gif(ctx, "https://media1.tenor.com/images/ebba558cbe12af15a4422f583ef2bb86/tenor.gif"):
@@ -584,7 +584,7 @@ class Misc(commands.Cog):
     @commands.command(name="kemo")
     async def kemonomimi(self, ctx, amount=1):
         """
-        get a random picture/pictues kemonomimis
+        Get a random picture/pictues kemonomimis
         20 is the maximum
         """
         p = Paginator(ctx)
@@ -602,7 +602,7 @@ class Misc(commands.Cog):
     @commands.command()
     async def funfact(self, ctx):
         """
-        get a random fun fact you may or may not know
+        Get a random fun fact you may or may not know
         """
         js = await self.bot.fetch("https://nekos.life/api/v2/fact")
 
@@ -655,7 +655,7 @@ class Misc(commands.Cog):
     @commands.command()
     async def choose(self, ctx, *, choices):
         """
-        have the bot pick an option choices separated by a space or |
+        Have the bot pick an option choices separated by a space or |
         """
 
         choices = " ".join(choices.split())
@@ -707,7 +707,7 @@ class Misc(commands.Cog):
     @commands.command()
     async def imgur(self, ctx, *, content):
         """
-        look for an image on imgur
+        Look for an image on imgur
         """
         img_link_list = []
         content = content.replace(" ", "+")
@@ -732,7 +732,7 @@ class Misc(commands.Cog):
     @commands.bot_has_permissions(read_message_history=True)
     async def react(self, ctx, *, msg: to_lower):
         """
-        place reactions on the above message
+        Place reactions on the above message
         """
         msg = ctx.emote_unescape(msg)
         reactions = []
@@ -784,7 +784,7 @@ class Misc(commands.Cog):
 
     @youtube.command()
     async def one(self, ctx, *, query):
-        """return ony one youtube video"""
+        """Return only one youtube video"""
 
         await ctx.trigger_typing()
         result = await self.search_youtube(query, True)

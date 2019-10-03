@@ -14,7 +14,7 @@ class Members(commands.Cog):
     @commands.guild_only()
     async def info(self, ctx,  *, member: discord.Member = None):
         """
-        get info on a guild member
+        Get info on a guild member
         """
 
         member = member or ctx.author
@@ -56,7 +56,7 @@ class Members(commands.Cog):
     @commands.guild_only()
     async def check_permissions(self, ctx, *, member: discord.Member = None):
         """
-        check a members permissions
+        Check a members permissions
         """
 
         member = member or ctx.author
@@ -71,7 +71,7 @@ class Members(commands.Cog):
     @commands.command()
     async def avatar(self, ctx, *, member: typing.Union[discord.Member, discord.User] = None):
         """
-         check a guild member's or user's avatar
+         Check a guild member's or user's avatar
          """
 
         member = member or ctx.author
