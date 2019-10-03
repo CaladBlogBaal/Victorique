@@ -772,8 +772,12 @@ class Misc(commands.Cog):
         await ctx.trigger_typing()
 
         p = Paginator(ctx)
-        urls = await self.search_youtube(query)
-        for url in urls:
+        results = await self.search_youtube(query)
+
+        if not results:
+            return await ctx.send(f":no_entry: | search failed for `{query}.`")
+
+        for url in results:
             await p.add_page(url)
 
         await p.paginate()
@@ -783,7 +787,11 @@ class Misc(commands.Cog):
         """return ony one youtube video"""
 
         await ctx.trigger_typing()
-        await ctx.send(await self.search_youtube(query, True))
+        result = await self.search_youtube(query, True)
+        if not result:
+            return await ctx.send(f":no_entry: | search failed for `{query}.`")
+
+        await ctx.send(result)
 
 
 def setup(bot):

@@ -5,7 +5,8 @@ class TagNameConvertor(commands.Converter):
     async def convert(self, ctx, argument):
 
         converted = await commands.clean_content().convert(ctx, argument.lower())
-        new_name = converted.lower().replace("\"", "").replace("'", "").rstrip()
+
+        new_name = converted.replace("\"", "").replace("'", "").rstrip()
 
         if not new_name:
             raise commands.BadArgument("missing tag name.")

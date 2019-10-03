@@ -206,10 +206,14 @@ class AnimePicturesNet:
             source_links = await sources(soup)
             source_links = " ".join(source_links)
 
-            img_link = [tag.get("src") for tag in soup.find_all("img", {"id": "big_preview"})]
+            sample_urls = [tag.get("src") for tag in soup.find_all("img", {"id": "big_preview"})]
 
-            if img_link != []:
-                img_links.add((img_link[0], source_links))
+            if sample_urls:
+                sample_url = f"https:{sample_urls[0]}"
+                og_url = sample_url.replace("_bp", "")
+                og_url = og_url.replace("//cdn.anime-pictures.net/jvwall_images/", "//images.anime-pictures.net/")
+
+                img_links.add((sample_url, og_url, source_links))
 
         return img_links
 
@@ -480,9 +484,9 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
         results = await a.post_request(1)
 
         results, = results
-        url, sources = results
-        url = f"https:{url}"
-        await ctx.send(embed=self._embed(url, sources, url))
+        url, og_url, sources = results
+
+        await ctx.send(embed=self._embed(url, sources, og_url))
 
     @apn.command(name="search")
     async def search_apn(self, ctx, amount: typing.Optional[int] = 1, *, tags):
@@ -508,13 +512,12 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
             await ctx.trigger_typing()
 
         for result in results:
-            url, sources = result
-            url = f"https:{url}"
+            url, og_url, sources = result
 
             if sources == "":
                 sources = "null"
 
-            await p.add_page(self._embed(url, sources, url))
+            await p.add_page(self._embed(url, sources, og_url))
 
         await p.paginate()
 
