@@ -24,12 +24,6 @@ class MoeBooruApi:
     def process_tags(tags):
         tags = tags.replace("||", "\u200B").replace("|", "\u200B").replace("&&", "\u200B")
         tags = list(tag.rstrip().lstrip().replace(" ", "_") for tag in tags.split("\u200B"))
-
-        for i, tag in enumerate(tags):
-            # this would break rating:safe
-            if "rating:" in tag:
-                del tags[i]
-
         tags = " ".join(tags)
         return tags
 
@@ -42,9 +36,8 @@ class MoeBooruApi:
             tags = self.process_tags(tags)
 
         params = {
-
-            "limit":  limit,
-            "tags": "order:random",
+            "limit": limit,
+            "tags": "rating:safe order:random ",
             "page": random.randint(1, 3)
 
         }
@@ -63,11 +56,18 @@ class MoeBooruApi:
         if "danbooru" in self.post_url:
 
             params = {"limit": limit,
-                      "tags": " ",
+                      "tags": "rating:safe ",
                       "random": "true"}
 
-        if safe:
-            params["tags"] += " rating:safe "
+        if safe and tags:
+            tags = tags.split()
+
+            for i, tag in enumerate(tags):
+                # this would break rating:safe
+                if "rating:" in tag:
+                    tags[i] = ""
+
+            tags = " ".join(tags)
 
         if tags:
             params.pop("page", None)
@@ -91,8 +91,8 @@ class MoeBooruApi:
             for js in pictures:
 
                 picture_data_set.add((js.get("file_url"),
+                                      js.get("source", " "),
                                       js.get("sample_url") or js.get("file_url"),
-                                      js.get("source", "null"),
                                       js.get("tags") or js.get("tag_string")))
 
             return picture_data_set
@@ -121,36 +121,27 @@ class AnimePicturesNet:
 
     async def post_response(self, tags=None):
 
-        search_tag = f"search_tag={tags}"
-        self.post_url = self.post_url.replace("0", str(random.randint(0, 4)))
+        params = {"lang": "en", "order_by": "date"}
 
         if tags is not None:
-            self.post_url = self.post_url + search_tag
+            params["search_tag"] = tags
 
-        content = await self.fetch(self.post_url)
+        else:
+            self.post_url = self.post_url.replace("0", str(random.randint(0, 4)))
 
-        soup = BeautifulSoup(content, "html.parser")
+        response = await self.fetch(self.post_url, params=params)
+
+        soup = BeautifulSoup(response, "html.parser")
         divs = soup.find_all('div', attrs={'style': 'text-align: center;line-height: 16px;'})
         text = [a.text for a in divs]
-
         amount_of_pages = int(text[0].split(" ")[2]) // 80
 
         if amount_of_pages >= 1 and tags:
 
             random_page = random.randint(0, amount_of_pages)
+            self.post_url = self.post_url.replace("0", str(random_page))
+            content = await self.fetch(self.post_url, params=params)
 
-            content = await self.fetch(f"https://anime-pictures.net/pictures/view_posts/"
-                                       f"{random_page}?{search_tag}"
-                                       f"&order_by=date&ldate=0&lang=en")
-
-            soup = BeautifulSoup(content, "html.parser")
-
-        elif amount_of_pages == 0:
-            response = await self.session.get(f"https://anime-pictures.net/pictures/view_posts/"
-                                              f"0?{search_tag}"
-                                              f"&order_by=date&ldate=0&lang=en")
-
-            content = await response.read()
             soup = BeautifulSoup(content, "html.parser")
 
         list_of_urls = ["https://anime-pictures.net" + a.find("a").get("href")
@@ -160,7 +151,7 @@ class AnimePicturesNet:
 
     async def post_request(self, limit, tags=None):
 
-        if tags is not None:
+        if tags:
             list_of_urls = await self.post_response(tags)
 
         else:
@@ -213,47 +204,33 @@ class AnimePicturesNet:
                 og_url = sample_url.replace("_bp", "")
                 og_url = og_url.replace("//cdn.anime-pictures.net/jvwall_images/", "//images.anime-pictures.net/")
 
-                img_links.add((sample_url, og_url, source_links))
+                img_links.add((sample_url, source_links, og_url))
 
         return img_links
 
 
 class SafebooruAPI:
-    __slots__ = ("post_url", "comments_url", "session")
+    __slots__ = ("post_url", "bot")
 
     def __init__(self, ctx):
         self.post_url = "https://safebooru.org/index.php?page=dapi&s=post&q=index"
-        self.comments_url = "https://safebooru.org/index.php?page=dapi&s=comment&q=index"
-        self.session = ctx.bot.session
+        self.bot = ctx.bot
 
-    async def post_request(self, limit=1, tags=None):
-        limit = f"&limit={str(limit)}"
+    async def post_request(self, tags=None):
+        params = {}
 
-        query = f"&tags="
-        if tags is not None:
-            for arg_ in tags:
-                query += arg_ + "+"
+        if tags:
+            params["tags"] = tags
+            content = await self.bot.fetch(self.post_url, params=params)
 
-        if query != "&tags=":
-
-            async with self.session.get(self.post_url + query) as response:
-                content = await response.read()
-                soup = BeautifulSoup(content, "lxml")
-                count = int(soup.find("posts").get("count"))
-                page = "&pid="
-
-                if count != 0:
-                    page = f"&pid={str(random.randint(1, count) // 40)}"
-
-            async with self.session.get(self.post_url + limit + page + query) as response:
-                content = await response.read()
         else:
-            async with self.session.get(self.post_url + limit + f"&pid={str(random.randint(1, 68634))}") as response:
-                content = await response.read()
+            params["pid"] = random.randint(1, 4)
+            content = await self.bot.fetch(self.post_url, params=params)
 
         soup = BeautifulSoup(content, "lxml")
-        soup.find_all()
-        return [(tag.get("file_url"), tag.get("source")) for tag in soup.find_all("post")]
+
+        return [(tag["sample_url"], tag["source"], tag["file_url"], tag["tags"].lstrip())
+                for tag in soup.find_all("post")]
 
 
 class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1, 3, commands.BucketType.user))):
@@ -271,14 +248,11 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
     async def random_image(self, ctx, post_url):
         m = MoeBooruApi(ctx)
         m.set_post_url(post_url)
-        results = await m.get_image()
-        results = list(results)[0]
-        url, og_url, source, tags = results
-
-        await ctx.send(embed=self._embed(url, source, og_url, tags))
+        results, = await m.get_image()
+        await ctx.send(embed=self.embed_(*results))
 
     @staticmethod
-    def _embed(image_url, source, og_url="", tags="no tags"):
+    def embed_(image_url, source, og_url="", tags=" "):
         # to not exceed the 2048 embed text limit.
         tags = html.unescape(tags)
         if len(tags) > 1200:
@@ -298,18 +272,18 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
 
         if len(sources) > 1:
             sources_hyper_links = ""
-            for source in sources:
+            for link in sources:
 
-                if source != "":
-                    sources_hyper_links += f"[Image source({count})]({source})\n"
+                if link != "":
+                    sources_hyper_links += f"[Image source({count})]({link})\n"
                     count += 1
 
                 if count == 4:
                     break
 
         embed = discord.Embed(colour=discord.Colour.dark_magenta(),
-                              description=f"{sources_hyper_links}{tags}\n[Full size img url]({og_url})"
-                              )
+                              description=f"{sources_hyper_links}{tags}\n[Full size img url]({og_url})")
+
         embed.set_image(url=image_url)
 
         if og_url != "":
@@ -351,15 +325,14 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
 
         if missed > 0:
             await ctx.send(f":information_source: | {missed} results were not found.")
-            await asyncio.sleep(2)
             await ctx.trigger_typing()
 
         p = PaginatorGlobal(ctx)
 
         for result in results:
-            og_url, url, sources, tags = result
+            og_url, sources, url, tags = result
             if url.endswith(("jpg", "png", "gif", "jpeg")):
-                await p.add_page(self._embed(url, sources, og_url, tags))
+                await p.add_page(self.embed_(url, sources, og_url, tags))
 
             else:
                 if sources == "":
@@ -368,18 +341,19 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
 
         await p.paginate()
 
-    async def check_invalid_url(self, url):
+    async def check_invalid_url(self, result):
+        url, url2, preview, tags = result
 
         try:
             async with self.bot.session.get(url) as response:
 
                 if response.status == 403:
-                    return True
+                    return url2, url, preview, tags
 
-                return False
+                return url, url2, preview, tags
 
         except(aiohttp.client_exceptions.ClientConnectionError, aiohttp.client_exceptions.InvalidURL):
-            return True
+            return url2, url, preview
 
     @commands.command(aliases=["snc"])
     @commands.has_permissions(manage_channels=True)
@@ -413,19 +387,11 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
         Gets a random image from safebooru
         """
 
-        d = SafebooruAPI(ctx)
-        result = await d.post_request(random.randint(1, 40))
+        sb = SafebooruAPI(ctx)
         await ctx.trigger_typing()
-        url, url2 = result[0]
-        if "https://safebooru.org/images" in url:
-            if await self.check_invalid_url(url2):
-                url2 = "unavailable"
-            await ctx.send(embed=self._embed(url, url2))
-
-        else:
-            if await self.check_invalid_url(url):
-                url2 = "unavailable"
-            await ctx.send(embed=self._embed(url2, url))
+        result = await sb.post_request()
+        result = await self.check_invalid_url(random.choice(result))
+        await ctx.send(embed=self.embed_(*result))
 
     @sb.command(name="search")
     async def search_sb(self, ctx, amount: typing.Optional[int] = 1, *, tags):
@@ -435,45 +401,22 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
         tags = tags.replace("||", "\u200B").replace("|", "\u200B").replace("&&", "\u200B")
         tags = " ".join(list(tag.rstrip().lstrip().replace(" ", "_") for tag in tags.split("\u200B")))
 
-        if amount > 20:
-            await ctx.send(":information_source: | max limit is 20 will default to 20.")
-            amount = 20
-            await asyncio.sleep(2)
-
         if amount < 1:
             return await ctx.send(":no_entry: | invalid number was passed.")
 
-        d = SafebooruAPI(ctx)
+        sb = SafebooruAPI(ctx)
         p = PaginatorGlobal(ctx)
 
-        results = await d.post_request(amount, tags)
+        results = await sb.post_request(tags)
 
         if not results:
             return await ctx.send(":no_entry: | search failed")
 
-        for result in results:
+        for result in random.sample(results, amount):
 
-            url, url2 = result
+            await p.add_page(self.embed_(*(await self.check_invalid_url(result))))
 
-            if "https://safebooru.org/images" in url:
-
-                if await self.check_invalid_url(url2):
-                    url2 = "unavailable"
-
-                await p.add_page(self._embed(url, url2))
-
-            elif "https://safebooru.org/images" in url2:
-
-                if await self.check_invalid_url(url):
-                    url = "unavailable"
-
-                await p.add_page(self._embed(url2, url))
-        try:
-
-            await p.paginate()
-
-        except IndexError:
-            pass
+        await p.paginate()
 
     @commands.group(invoke_without_command=True, ignore_extra=False)
     async def apn(self, ctx):
@@ -483,11 +426,9 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
 
         a = AnimePicturesNet(ctx)
         results = await a.post_request(1)
-
         results, = results
-        url, og_url, sources = results
 
-        await ctx.send(embed=self._embed(url, sources, og_url))
+        await ctx.send(embed=self.embed_(*results))
 
     @apn.command(name="search")
     async def search_apn(self, ctx, amount: typing.Optional[int] = 1, *, tags):
@@ -505,20 +446,15 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
         if results == list():
             return await ctx.send(":no_entry: | search failed")
 
-        duplicates = amount - len(results)
+        missing = amount - len(results)
 
-        if duplicates > 0:
-            await ctx.send(f":information_source: | {duplicates} duplicates were removed from the result")
-            await asyncio.sleep(2)
+        if missing > 0:
+            await ctx.send(f":information_source: | {missing} were not found.")
             await ctx.trigger_typing()
 
         for result in results:
-            url, og_url, sources = result
 
-            if sources == "":
-                sources = "null"
-
-            await p.add_page(self._embed(url, sources, og_url))
+            await p.add_page(self.embed_(*result))
 
         await p.paginate()
 
@@ -554,14 +490,14 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
                 id_ = "".join(c for c in str(r.url) if c.isdigit())
                 m.set_post_url(f"http://gelbooru.com/index.php?page=dapi&s=post&q=index&id={id_}&json=1")
                 js = (await self.bot.fetch(m.post_url))[0]
-                if js.get("rating") in ("s", "safe"):
+                if js["rating"] in ("s", "safe"):
                     safe = True
 
-        url = js.get("file_url")
-        og_url = js.get("file_url")
-        source = js.get("source")
-        tags = js.get("tags")
-        await ctx.send(embed=self._embed(url, source, og_url, tags))
+        url = js["file_url"]
+        og_url = js["file_url"]
+        source = js["source"]
+        tags = js["tags"]
+        await ctx.send(embed=self.embed_(url, source, og_url, tags))
 
     @gb.command(aliases=["gelbooru_search", "search"])
     async def gb_search(self, ctx, amount: typing.Optional[int] = 1, *, tags):
