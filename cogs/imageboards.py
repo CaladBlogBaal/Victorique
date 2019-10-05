@@ -412,7 +412,10 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
         if not results:
             return await ctx.send(":no_entry: | search failed")
 
-        for result in random.sample(results, amount):
+        if len(results) >= 20:
+            results = random.sample(results, amount)
+
+        for result in results:
 
             await p.add_page(self.embed_(*(await self.check_invalid_url(result))))
 
