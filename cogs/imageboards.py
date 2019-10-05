@@ -37,15 +37,16 @@ class MoeBooruApi:
 
         params = {
             "limit": limit,
-            "tags": "rating:safe order:random ",
+            "tags": "order:random",
             "page": random.randint(1, 3)
 
         }
 
         if "gelbooru" in self.post_url:
             # no limit so it randomises
-            params = {"tags": " "}
+            params = {}
             # because gelbooru is likely to return nsfw images with these tags on safe rating
+
             try:
                 current_blacklisted_tags = ("loli", "pussy")
                 if safe and any(btag in tags for btag in current_blacklisted_tags):
@@ -56,7 +57,6 @@ class MoeBooruApi:
         if "danbooru" in self.post_url:
 
             params = {"limit": limit,
-                      "tags": "rating:safe ",
                       "random": "true"}
 
         if safe and tags:
@@ -67,13 +67,13 @@ class MoeBooruApi:
                 if "rating:" in tag:
                     tags[i] = ""
 
+            tags.append("rating:safe")
+
             tags = " ".join(tags)
 
         if tags:
             params.pop("page", None)
-            params["tags"] += tags
-
-        params["tags"] = params["tags"].lstrip().rstrip()
+            params["tags"] = tags
 
         js = await self.bot.fetch(self.post_url, params=params)
 
