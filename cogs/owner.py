@@ -23,7 +23,7 @@ async def random_images(ctx, tags="rating:safe score:>100"):
     for picture in js:
 
         result = (picture.get("file_url"), picture.get("source", "null"),
-                  picture.get("preview_file_url"), picture.get("tag_string"))
+                  picture.get("file_url"), picture.get("tag_string"))
 
         await ctx.send(embed=ctx.bot.cogs["ImageBoards"].embed_(*result))
 
