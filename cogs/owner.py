@@ -15,19 +15,17 @@ from discord.ext import commands, tasks
 from config.utils.paginator import Paginator, WarpedPaginator
 
 
-@tasks.loop(seconds=86400)
-async def random_images(ctx, amount):
-    gb = "gb"
-    db = "db"
-    kc = "kc"
-    ye = "ye"
-    apn = "apn"
-    image_boards = [gb, kc, ye, apn, db]
+@tasks.loop(hours=24)
+async def random_images(ctx, tags="rating:safe score:>100"):
+    params = {"random": "true", "tags": tags}
+    js = await ctx.bot.fetch("https://danbooru.donmai.us/posts.json", params=params)
 
-    for board in image_boards:
-        for _ in range(amount):
+    for picture in js:
 
-            await ctx.invoke(ctx.bot.get_command(board))
+        result = (picture.get("file_url"), picture.get("source", "null"),
+                  picture.get("preview_file_url"), picture.get("tag_string"))
+
+        await ctx.send(embed=ctx.bot.cogs["ImageBoards"].embed_(*result))
 
 
 class Info(commands.Cog):
@@ -273,15 +271,21 @@ class OwnerCog(commands.Cog, name="Owner Commands"):
             """)
 
     @commands.group(invoke_without_command=True, aliases=["da"])
-    @commands.dm_only()
-    async def daily_anime(self, ctx, amount: int = 2):
-        """Get random images from danbooru, gelbooru, anime-pictures.net and yande.re"""
+    async def daily_anime(self, ctx, *, tags=None):
+        """Get x amount of random images from danbooru and send them to the current channel periodically."""
+        try:
 
-        if not random_images.current_loop != 1:
-            return await ctx.send("> task is already running.")
+            if tags:
+                random_images.start(ctx, tags)
 
-        random_images.start(ctx, amount)
-        await ctx.send("> task started.")
+            else:
+
+                random_images.start(ctx)
+
+            await ctx.send("> task started.")
+
+        except RuntimeError:
+            await ctx.send(":no_entry: task it already launched.")
 
     @daily_anime.command()
     async def cancel(self, ctx):
@@ -290,11 +294,11 @@ class OwnerCog(commands.Cog, name="Owner Commands"):
         await ctx.send("> successfully cancelled.")
 
     @daily_anime.command(aliases=["ci"])
-    async def change_interval(self, ctx, seconds: int):
+    async def change_interval(self, ctx, hours: float):
         """Change the interval"""
         random_images.cancel()
-        random_images.change_interval(seconds=seconds)
-        await ctx.send(f"> successfully changed to `{seconds}` seconds restart the task with `{ctx.prefix}daily_anime`")
+        random_images.change_interval(hours=hours)
+        await ctx.send(f"> successfully changed to `{hours}` hours restart the task with `{ctx.prefix}daily_anime`")
 
 
 def setup(bot):
