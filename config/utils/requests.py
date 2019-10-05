@@ -44,9 +44,13 @@ class Request:
     @error_handle
     async def fetch(self, url, **kwargs):
         async with self.session.get(url, **kwargs) as response:
+
             if not response.status == 200:
-                raise RequestFailed(f"seems like an error occurred for this request this api might be experiencing "
-                                    f"problems `{response.reason}`.")
+
+                if "danbooru" in url and response.status == 422:
+                    return dict()
+
+                raise RequestFailed(f"seems like an unexpected error occurred for this request `{response.reason}`.")
 
             headers = response.headers.get("content-type")
             return await self.return_content(response, headers)

@@ -292,6 +292,7 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
         return embed
 
     async def post_request(self, ctx, amount, tags, post_url):
+
         if amount > 20:
             amount = 20
 
@@ -303,13 +304,14 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
         m = MoeBooruApi(ctx)
         m.set_post_url(post_url)
 
-        results = await m.get_image(amount, tags)
-
         with suppress(AttributeError):
-            channel = await self.get_nsfw_channel(ctx)
+            nsfw_ch_id = await self.get_nsfw_channel(ctx)
 
-            if ctx.channel.id == channel:
+            if ctx.channel.id == nsfw_ch_id:
                 results = await m.get_image(amount, tags, False)
+
+            else:
+                results = await m.get_image(amount, tags)
 
         if results in (set(), dict()):
             tags = MoeBooruApi.process_tags(tags)
@@ -452,7 +454,7 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
         missing = amount - len(results)
 
         if missing > 0:
-            await ctx.send(f":information_source: | {missing} were not found.")
+            await ctx.send(f":information_source: | {missing} results were not found on this page.")
             await ctx.trigger_typing()
 
         for result in results:
