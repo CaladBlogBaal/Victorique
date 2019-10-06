@@ -251,7 +251,6 @@ class Fishing(commands.Cog):
         if amount > 10000:
             await ctx.send(":information_source: | the max amount of bait you can use is 10000")
             amount = 10000
-            await asyncio.sleep(1)
 
         async with ctx.con.transaction():
             await ctx.con.execute(
@@ -283,7 +282,6 @@ class Fishing(commands.Cog):
             async with ctx.con.transaction():
                 await ctx.con.execute("UPDATE users SET credits = credits - $1 WHERE user_id = $2",
                                       10, ctx.author.id)
-            await asyncio.sleep(1)
 
         current_balance = await ctx.con.fetchval("select credits from users where user_id = $1", ctx.author.id)
         data = await ctx.con.fetchrow(
@@ -441,7 +439,6 @@ class Fishing(commands.Cog):
 
             if amount < 0 or amount == 0:
                 await ctx.send(":no_entry: | an invalid amount of bait to use was passed.")
-                await asyncio.sleep(1)
 
                 return await msg.delete()
 
@@ -579,7 +576,7 @@ class Fishing(commands.Cog):
                 data = [{"bait_id": x, "sum": amount_list[i]} for i, x in enumerate(bait_list)]
 
                 await ctx.send(":information_source: | selling all dupes.")
-                await asyncio.sleep(1)
+
                 amount = self.price_sum_setter(data)
 
                 if amount == 0:
@@ -637,7 +634,6 @@ class Fishing(commands.Cog):
 
             if await self.transaction_check(ctx) is True:
                 await ctx.send(f"selling all fish of rarity {rarity}")
-                await asyncio.sleep(1)
 
                 amount = await ctx.con.fetchval("""SELECT DISTINCT SUM(fish_users_catches.amount) 
                                                        from fish_users_catches 

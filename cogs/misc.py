@@ -78,6 +78,15 @@ def reverse(argument):
 class Misc(commands.Cog):
     """Some misc related commands"""
 
+    def hardcoded_image_list_embed(self, content, list_in):
+        colours = [discord.Color.dark_magenta(), discord.Color.dark_teal(), discord.Color.dark_orange()]
+        col = int(random.random() * len(colours))
+
+        embed = discord.Embed(color=colours[col], description=random.choice(content))
+        embed.set_image(url=random.choice(list_in))
+
+        return embed
+
     def __init__(self, bot):
         self.bot = bot
         self.transparent = str(TRANSPARENT)
@@ -310,25 +319,6 @@ class Misc(commands.Cog):
 
         await paginate(emote_chunks)
 
-    @commands.command(aliases=["p_c"], description="Fluff cyber", hidden=True)
-    @commands.guild_only()
-    @private_guilds_check()
-    async def pat_cyber(self, ctx):
-        """
-        Pat cyber and only cyber
-        """
-        member = ctx.guild.get_member(162065852194095104)
-        author = ctx.author.mention
-        mention = member.mention
-
-        content = [f"**woah {author} gave a pat {mention}**",
-                   f"**{author} fluffed {mention}**"]
-
-        if author == mention:
-            content = [f"**{author} has fluffed himself?**", f"**{author} has fluffed himself?**"]
-
-        await ctx.send(embed=await self.bot.api_get_image(content, "https://nekos.life/api/v2/img/pat", "url"))
-
     @commands.command(aliases=["l_c"], hidden=True)
     @commands.guild_only()
     @private_guilds_check()
@@ -517,13 +507,7 @@ class Misc(commands.Cog):
         if author == mention:
             return await ctx.send("https://m.imgur.com/gallery/Br00TCn")
 
-        colours = [discord.Color.dark_magenta(), discord.Color.dark_teal(), discord.Color.dark_orange()]
-        col = int(random.random() * len(colours))
-
-        embed = discord.Embed(color=colours[col], description=random.choice(content))
-        embed.set_image(url=random.choice(self.lick_list))
-
-        await ctx.send(embed=embed)
+        await ctx.send(embed=self.hardcoded_image_list_embed(content, self.lick_list))
 
     @commands.command(aliases=["tb", "rub"])
     async def tummy_rub(self, ctx, member: typing.Union[discord.Member, discord.User]):
@@ -547,16 +531,7 @@ class Misc(commands.Cog):
         content = [f"**{author} is rubbing {mention}'s tummy.**",
                    f"**{author} gave {mention} a tummy rub kinky.**"]
 
-        if author == mention:
-            content = [f"**{author} is rubbing their tummy**"]
-
-        colours = [discord.Color.dark_magenta(), discord.Color.dark_teal(), discord.Color.dark_orange()]
-        col = int(random.random() * len(colours))
-
-        embed = discord.Embed(color=colours[col], description=random.choice(content))
-        embed.set_image(url=random.choice(rub_list))
-
-        await ctx.send(embed=embed)
+        await ctx.send(embed=self.hardcoded_image_list_embed(content, rub_list))
 
     @commands.command()
     async def hug(self, ctx, *, member: typing.Union[discord.Member, discord.User]):
@@ -667,17 +642,17 @@ class Misc(commands.Cog):
         """
         Get the urban dictionary value of a term
         """
-        await ctx.trigger_typing()
-        term = term.replace(" ", "+")
+        params = {"term": term}
         wp = WarpedPaginator(ctx, 1024)
 
-        js = await self.bot.fetch("https://api.urbandictionary.com/v0/define?term=" + term)
+        js = await self.bot.fetch("https://api.urbandictionary.com/v0/define", params=params)
 
         if "list" not in js or js["list"] == []:
             return await ctx.send(":no_entry: | nothing was found.")
 
         results = js["list"]
         for result in results:
+
             word = result["word"]
             definition_txt = result["definition"]
             example_txt = result["example"]
@@ -686,18 +661,19 @@ class Misc(commands.Cog):
                 example_txt = "No example"
 
             url = result["permalink"]
-            author = "written by " + result["author"] + f" on " \
-                                                        f"{dateutil.parser.parse(result['written_on']).strftime('%Y-%m-%d %H:%M:%S')}"
+            written_on = dateutil.parser.parse(result['written_on']).strftime('%Y-%m-%d %H:%M:%S')
+            author = f"written by {result['author']} on {written_on}"
 
             embed = discord.Embed(title='Word/Term: ' + word,
                                   description=f"**Definition**:\n{definition_txt}",
                                   color=discord.Color.dark_magenta(),
                                   url=url)
-            embed.add_field(name='Example', value=example_txt)
-            embed.add_field(name='Contributor', value=author, inline=False)
-            embed.set_footer(text=f'Requested by {ctx.message.author.name}', icon_url=ctx.message.author.avatar_url)
-            embed.set_image(url='https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/UD_'
-                                'logo-01.svg/1280px-UD_logo-01.svg.png')
+            embed.add_field(name="Example", value=example_txt)
+            embed.add_field(name="Contributor", value=author, inline=False)
+            embed.add_field(name="Rating", value=f"\👍**{result['thumbs_up']}** \👎**{result['thumbs_down']}**")
+            embed.set_footer(text=f"Requested by {ctx.message.author.name}", icon_url=ctx.message.author.avatar_url)
+            embed.set_image(url="https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/UD_"
+                                "logo-01.svg/1280px-UD_logo-01.svg.png")
 
             embed.timestamp = ctx.message.created_at
             await wp.add_page(embed)
@@ -710,9 +686,9 @@ class Misc(commands.Cog):
         Look for an image on imgur
         """
         img_link_list = []
-        content = content.replace(" ", "+")
+        params = {"q": content, "qs": "thumbs"}
 
-        content = await self.bot.fetch("https://imgur.com/search/score/week?q=" + content + "&qs=thumbs")
+        content = await self.bot.fetch("https://imgur.com/search/score/week", params=params)
 
         soup = BeautifulSoup(content, "html.parser")
         img_list_link = soup.find_all("a", {"class": "image-list-link"})
@@ -723,10 +699,7 @@ class Misc(commands.Cog):
             await ctx.send("https://imgur.com/" + random.choice(img_link_list))
 
         except IndexError:
-            content = content.replace("+", " ")
-            msg = await ctx.send(f"there's no image for {content} to be found")
-            await asyncio.sleep(2)
-            await msg.delete()
+            await ctx.send(f"there's no image for {content} to be found", delete_after=4)
 
     @commands.command()
     @commands.bot_has_permissions(read_message_history=True)
@@ -763,7 +736,7 @@ class Misc(commands.Cog):
                     await message.add_reaction(reaction)
 
                 except discord.errors.HTTPException:
-                    pass
+                    return
 
     @commands.group(invoke_without_command=True)
     async def youtube(self, ctx, *, query):
@@ -786,7 +759,6 @@ class Misc(commands.Cog):
     async def one(self, ctx, *, query):
         """Return only one youtube video"""
 
-        await ctx.trigger_typing()
         result = await self.search_youtube(query, True)
         if not result:
             return await ctx.send(f":no_entry: | search failed for `{query}.`")

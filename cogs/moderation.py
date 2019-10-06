@@ -52,8 +52,7 @@ class Moderation(commands.Cog):
 
     @commands.command(aliases=['boot', 'massboot', 'prune_members'])
     @combined_permissions_check(kick_members=True)
-    async def kick(self, ctx, members: commands.Greedy[discord.Member], *,
-                   reason="No reason"):
+    async def kick(self, ctx, members: commands.Greedy[discord.Member], *, reason="No reason"):
         """
         Kick a guild member or members
         """
@@ -88,14 +87,12 @@ class Moderation(commands.Cog):
         else:
             deleted = await ctx.channel.purge(limit=amount, before=ctx.message, check=check)
 
-        embed = discord.Embed(title='Sufficient Perms! :white_check_mark:',
-                              description=f'Deleted __**{len(deleted)}**__ message(s)!',
+        embed = discord.Embed(title="Purge",
+                              description=f"Deleted __**{len(deleted)}**__ message(s)",
                               color=self.bot.default_colors())
-        embed.set_footer(text=f'Requested by {ctx.message.author.name}', icon_url=ctx.message.author.avatar_url)
+        embed.set_footer(text=f"Requested by {ctx.message.author.name}", icon_url=ctx.message.author.avatar_url)
         embed.timestamp = ctx.message.created_at
-        msg = await ctx.send(embed=embed)
-        await asyncio.sleep(10)
-        await msg.delete()
+        await ctx.send(embed=embed, delete_after=4)
 
     @commands.command()
     @combined_permissions_check(manage_roles=True)
@@ -117,10 +114,10 @@ class Moderation(commands.Cog):
             permissions.read_message_history = True
             role = await ctx.guild.create_role(name="Muted", permissions=permissions)
 
-        overwrite = discord.PermissionOverwrite()
-        overwrite.update(send_messages=False)
-        for channel in ctx.guild.channels:
-            await channel.set_permissions(role, overwrite=overwrite)
+            overwrite = discord.PermissionOverwrite()
+            overwrite.update(send_messages=False)
+            for channel in ctx.guild.channels:
+                await channel.set_permissions(role, overwrite=overwrite)
 
         for member in members:
             member_display.append(member.mention)

@@ -51,15 +51,11 @@ class Imgflip:
 class NekoBot:
     def __init__(self, ctx):
         self.bot = ctx.bot
-        self.post_url = ""
-
-    def set_post_url(self, url):
-        self.post_url = url
 
     async def get_image(self, **kwargs):
         key = kwargs["key"]
         del kwargs["key"]
-        js = await self.bot.fetch(self.post_url, params=kwargs)
+        js = await self.bot.fetch("https://nekobot.xyz/api/imagegen", params=kwargs)
         colours = [discord.Color.dark_magenta(), discord.Color.dark_teal(), discord.Color.dark_orange()]
         col = int(random.random() * len(colours))
         embed = discord.Embed(color=colours[col])
@@ -84,9 +80,8 @@ class ImageFlip(commands.Cog):
         p = Paginator(ctx)
         i = Imgflip(ctx)
         results = i.memes
-        colours = [discord.Color.dark_magenta(), discord.Color.dark_teal(), discord.Color.dark_orange()]
-        col = int(random.random() * len(colours))
-        embed = discord.Embed(title=" ", description=" ", color=colours[col])
+
+        embed = discord.Embed(title=" ", description=" ", color=self.bot.default_colours())
         count = 0
         for dict_ in results:
             for meme_name, meme_id in dict_.items():
@@ -94,7 +89,7 @@ class ImageFlip(commands.Cog):
                 count += 1
                 if count == 5:
                     await p.add_page(embed)
-                    embed = discord.Embed(title=" ", description=" ", color=colours[col])
+                    embed = discord.Embed(title=" ", description=" ", color=self.bot.default_colors())
                     count = 0
         await p.paginate()
 
@@ -138,11 +133,11 @@ class ImageFlip(commands.Cog):
         comment = ctx.emote_unescape(comment)
         comment = comment.replace("&", "%26")
         n = NekoBot(ctx)
-        n.set_post_url("https://nekobot.xyz/api/imagegen?type=phcomment")
 
-        kwargs = {"image": f"{ctx.author.avatar_url_as(format='png')}",
-                  "text": f"{comment}",
-                  "username": f"{ctx.author.name}",
+        kwargs = {"type": "phcomment",
+                  "image": str(ctx.author.avatar_url_as(format="png")),
+                  "text": comment,
+                  "username": ctx.author.name,
                   "key": "message"}
 
         await ctx.send(embed=await n.get_image(**kwargs))
@@ -151,7 +146,6 @@ class ImageFlip(commands.Cog):
     async def tweet(self, ctx, *, comment: commands.clean_content):
         """Generate a tweet using the nekobot api"""
         n = NekoBot(ctx)
-        n.set_post_url("https://nekobot.xyz/api/imagegen?type=tweet")
         comment = ctx.emote_unescape(comment)
         comment = re.findall(r"\[[^\]]*\]|\([^)]*\)|\"[^\"]*\"|\S+", comment)
 
@@ -167,8 +161,9 @@ class ImageFlip(commands.Cog):
         comment = " ".join(comment)
         comment = self.string_splice(comment, 72)
 
-        kwargs = {"text": f"{comment}",
-                  "username": f"{username}",
+        kwargs = {"type": "tweet",
+                  "text": comment,
+                  "username": username,
                   "key": "message"}
 
         await ctx.send(embed=await n.get_image(**kwargs))
@@ -177,26 +172,27 @@ class ImageFlip(commands.Cog):
     async def t_tweet(self, ctx, *, comment: commands.clean_content):
         """Generate a trump tweet using the neko bot api"""
         n = NekoBot(ctx)
-        n.set_post_url("https://nekobot.xyz/api/imagegen?type=trumptweet")
+
         comment = ctx.emote_unescape(comment)
         comment = self.string_splice(comment, 72)
 
-        kwargs = {"text": f"{comment}",
+        kwargs = {"type": "trumptweet",
+                  "text": comment,
                   "key": "message"}
 
         await ctx.send(embed=await n.get_image(**kwargs))
 
     @commands.command()
     async def cmm(self, ctx, *, comment: commands.clean_content):
-        """Generate a change my mind image"""
+        """Generate a change my mind image using the nekobot api."""
         await ctx.trigger_typing()
         n = NekoBot(ctx)
-        n.set_post_url("https://nekobot.xyz/api/imagegen?type=changemymind")
         comment = ctx.emote_unescape(comment)
         comment = self.string_splice(comment, 79)
 
         kwargs = {
-            "text": f"{comment}",
+            "type": "changemymind",
+            "text": comment,
             "key": "message"}
 
         await ctx.send(embed=await n.get_image(**kwargs))
@@ -206,9 +202,9 @@ class ImageFlip(commands.Cog):
         """Generate a who would win image using the nekobot api."""
 
         n = NekoBot(ctx)
-        n.set_post_url("https://nekobot.xyz/api/imagegen?type=whowouldwin")
-        kwargs = {"user1": f"{ctx.author.avatar_url_as(format='png')}",
-                  "user2": f"{member.avatar_url_as(format='png')}",
+        kwargs = {"type": "whowouldwin",
+                  "user1": str(ctx.author.avatar_url_as(format="png")),
+                  "user2": str(member.avatar_url_as(format="png")),
                   "key": "message"}
 
         await ctx.send(embed=await n.get_image(**kwargs))

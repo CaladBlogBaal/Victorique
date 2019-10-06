@@ -26,7 +26,7 @@ class Bank(commands.Cog):
         if member.bot:
             return
 
-        current_balance = await ctx.bot.db.fetchval("select credits from users where user_id = $1", ctx.author.id)
+        current_balance = await ctx.con.fetchval("select credits from users where user_id = $1", ctx.author.id)
 
         if current_balance - amount * 1.05 < 0:
             return await ctx.send(":no_entry: | you do not have enough credits for this transaction.")

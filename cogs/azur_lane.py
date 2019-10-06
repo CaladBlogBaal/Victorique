@@ -484,12 +484,8 @@ class AzurLane(commands.Cog, name="Azur Lane"):
         p = PaginatorGlobal(ctx)
         count = 1
 
-        kwargs = {"search": search}
-        results = await self.bot.fetch("https://azurlane.koumakan.jp/w/api.php?action=opensearch", params=kwargs)
-        length = len(results)
-
-        link = f"https://azurlane.koumakan.jp/w/index.php?" \
-            f"search={search}&title=Special%3ASearch&profile=default&fulltext=1"
+        params = {"search": search}
+        results = await self.bot.fetch("https://azurlane.koumakan.jp/w/api.php?action=opensearch", params=params)
 
         for result in results:
 
@@ -500,23 +496,6 @@ class AzurLane(commands.Cog, name="Azur Lane"):
                     embed.add_field(name=f"Search result: {count}", value=url, inline=False)
                     count += 1
                     await p.add_page(embed)
-
-        if length == 0:
-            content = await self.bot.fetch(link)
-
-            soup = BeautifulSoup(content, "html.parser")
-
-            a = soup.find("ul", {"class": "mw-search-results"})
-
-            if a is None:
-                return await ctx.send(f":no_entry: | no search results for {search}")
-
-            for link in a.find_all("a", href=True):
-                embed = discord.Embed(title=f"Main search failed searched for any page that contained "
-                                            f"{search}", color=self.bot.default_colors())
-                embed.add_field(name=f"Search result: {count}", value=f"https://azurlane.koumakan.jp{link.get('href')}"
-                                , inline=False)
-                await p.add_page(embed)
         try:
 
             await p.paginate()
