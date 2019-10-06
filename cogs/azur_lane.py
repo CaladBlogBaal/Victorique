@@ -14,8 +14,6 @@ from tempfile import NamedTemporaryFile
 import discord
 from discord.ext import commands
 
-from bs4 import BeautifulSoup
-
 from config.utils.paginator import PaginatorGlobal, Paginator
 
 
