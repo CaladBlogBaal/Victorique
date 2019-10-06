@@ -1,6 +1,7 @@
 import re
 import copy
 import random
+import typing
 
 import discord
 from discord.ext import commands
@@ -198,7 +199,7 @@ class ImageFlip(commands.Cog):
         await ctx.send(embed=await n.get_image(**kwargs))
 
     @commands.command()
-    async def whw(self, ctx, *, member: discord.Member):
+    async def whw(self, ctx, *, member: typing.Union[discord.Member, discord.User]):
         """Generate a who would win image using the nekobot api."""
 
         n = NekoBot(ctx)
