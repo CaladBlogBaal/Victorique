@@ -4,9 +4,7 @@ from discord.ext import commands
 class TagNameConvertor(commands.Converter):
     async def convert(self, ctx, argument):
 
-        converted = await commands.clean_content().convert(ctx, argument.lower())
-
-        new_name = converted.replace("\"", "").replace("'", "").rstrip()
+        new_name = await commands.clean_content().convert(ctx, argument.lower())
 
         if not new_name:
             raise commands.BadArgument("missing tag name.")
@@ -18,7 +16,7 @@ class TagNameConvertor(commands.Converter):
         aliases = [alias for c in ctx.bot.commands for alias in c.aliases]
         cmd_names.extend(aliases)
 
-        if any(new_name in name for name in cmd_names):
+        if any(new_name == name for name in cmd_names):
             raise commands.BadArgument("tag name starts with a bot command or sub command.")
 
         return new_name
