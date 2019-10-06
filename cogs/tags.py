@@ -241,9 +241,9 @@ class Tags(commands.Cog):
                                           content, ctx.guild.id, ctx.author.id, name)
 
             if check[-1] == "0":
-                return await ctx.send(f":no_entry: | could not edit the tag in question {name} do you own it "
+                return await ctx.send(f":no_entry: | could not edit the tag in question `{name}` do you own it "
                                       f"and it exists? `note you must encase a tag's name in quotes if it contains "
-                                      f"spaces eg  {ctx.prefix}tag content \"hello world\" hi`")
+                                      f"spaces eg  {ctx.prefix}tag update \"hello world\" hi`")
 
             await ctx.send(f":information_source: | successfully updated tag with content `{content}`.")
 
