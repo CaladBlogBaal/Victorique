@@ -244,8 +244,12 @@ class Tags(commands.Cog):
                 return await ctx.send(f":no_entry: | could not edit the tag in question `{name}` do you own it "
                                       f"and it exists? `note you must encase a tag's name in quotes if it contains "
                                       f"spaces eg  {ctx.prefix}tag update \"hello world\" hi`")
+        try:
 
             await ctx.send(f":information_source: | successfully updated tag with content `{content}`.")
+
+        except discord.HTTPException:
+            await ctx.send(f":information_source: | successfully updated tag but content too long to display.")
 
     @tag.command()
     async def list(self, ctx):
