@@ -303,6 +303,9 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
             if ctx.channel.id == nsfw_ch_id:
                 results = await m.get_image(amount, tags, False)
 
+            else:
+                results = await m.get_image(amount, tags)
+
         else:
             results = await m.get_image(amount, tags)
 
