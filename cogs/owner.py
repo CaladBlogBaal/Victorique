@@ -118,6 +118,9 @@ class OwnerCog(commands.Cog, name="Owner Commands"):
     def __init__(self, bot):
         self.bot = bot
 
+    async def cog_unload(self):
+        random_images.cancel()
+
     async def cog_check(self, ctx):
 
         if not await self.bot.is_owner(ctx.author):
@@ -285,7 +288,7 @@ class OwnerCog(commands.Cog, name="Owner Commands"):
             await ctx.send("> task started.")
 
         except RuntimeError:
-            await ctx.send(":no_entry: task it already launched.")
+            await ctx.send(":no_entry: task is already launched.")
 
     @daily_anime.command()
     async def cancel(self, ctx):

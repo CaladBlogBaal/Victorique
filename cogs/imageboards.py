@@ -31,7 +31,7 @@ class MoeBooruApi:
         self.post_url = url
 
     async def get_image(self, limit=1, tags=None, safe=True):
-
+        # this is hacky but meh
         if tags is not None:
             tags = self.process_tags(tags)
 
@@ -58,6 +58,9 @@ class MoeBooruApi:
 
             params = {"limit": limit,
                       "random": "true"}
+        if safe:
+            with suppress(KeyError):
+                params["tags"] += " rating:safe"
 
         if safe and tags:
             tags = tags.split()
@@ -99,16 +102,6 @@ class MoeBooruApi:
 
         except TypeError:
             return dict()
-
-
-class GelbooruSafeBooruApi(MoeBooruApi):
-
-    def __init__(self, ctx):
-        self.base_url = ""
-        super().__init__(ctx)
-
-    def random_post(self):
-        return self.base_url + "/index.php?page=post&s=random"
 
 
 class AnimePicturesNet:
@@ -304,14 +297,14 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
         m = MoeBooruApi(ctx)
         m.set_post_url(post_url)
 
-        with suppress(AttributeError):
+        if ctx.guild:
             nsfw_ch_id = await self.get_nsfw_channel(ctx)
 
             if ctx.channel.id == nsfw_ch_id:
                 results = await m.get_image(amount, tags, False)
 
-            else:
-                results = await m.get_image(amount, tags)
+        else:
+            results = await m.get_image(amount, tags)
 
         if results in (set(), dict()):
             tags = MoeBooruApi.process_tags(tags)
@@ -486,15 +479,16 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
         """
 
         safe = False
-        m = GelbooruSafeBooruApi(ctx)
-        m.base_url = "https://gelbooru.com"
-        js = {}
 
         while not safe:
-            async with self.bot.session.get(m.random_post()) as r:
+            async with self.bot.session.get("https://gelbooru.com/index.php?page=post&s=random") as r:
                 id_ = "".join(c for c in str(r.url) if c.isdigit())
-                m.set_post_url(f"http://gelbooru.com/index.php?page=dapi&s=post&q=index&id={id_}&json=1")
-                js = (await self.bot.fetch(m.post_url))[0]
+                params = {"id": id_}
+                js = (await self.bot.fetch("http://gelbooru.com/index.php?page=dapi&s=post&q=index&json=1",
+                                           params=params))
+                if not js:
+                    continue
+                js = js[0]
                 if js["rating"] in ("s", "safe"):
                     safe = True
 
