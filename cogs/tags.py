@@ -135,7 +135,7 @@ class Tags(commands.Cog):
 
     @commands.group(invoke_without_command=True, aliases=["tags"])
     async def tag(self, ctx, member: discord.Member = None):
-        """The main command for tags returns your current tags by itself.."""
+        """The main command for tags returns your current tags by itself or another member's."""
 
         p = Paginator(ctx)
         member = member or ctx.author
@@ -251,7 +251,7 @@ class Tags(commands.Cog):
         except discord.HTTPException:
             await ctx.send(f":information_source: | successfully updated tag but content too long to display.")
 
-    @tag.command()
+    @tag.command(ignore_extra=False)
     async def list(self, ctx):
         """Get a list of tags for the current guild"""
 
@@ -278,7 +278,8 @@ class Tags(commands.Cog):
 
     @tag.group(invoke_without_command=True, aliases=["remove", "prune"])
     async def delete(self, ctx, *, name):
-        """Delete a tag"""
+        """Delete a tag that you own
+        Members with manage messages permissions can delete any tag."""
         name = name.lower()
 
         check = await self.bot.is_owner(ctx.author) or ctx.author.guild_permissions.manage_messages
@@ -294,10 +295,8 @@ class Tags(commands.Cog):
                                              ctx.guild.id, name, ctx.author.id)
 
         if deleted is None:
-            return await ctx.send(":no_entry: | tag deletion failed, does the tag exist,"
-                                  " do you own this tag or have the manage server"
-                                  " permissions to delete"
-                                  " tags?")
+            return await ctx.send(":no_entry: | tag deletion failed, either the tag doesn't exist or you lack "
+                                  "the permissions to do so.")
 
         await ctx.send(f"> tag `{name}` successfully deleted.")
 
