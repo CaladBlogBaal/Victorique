@@ -194,11 +194,7 @@ class PaginatorGlobal(Paginator):
     def __init__(self, ctx):
         super().__init__(ctx)
 
-        self.reactions = [(str(DLEFT_POINT), self.first_page),
-                          (str(LEFT_POINT), self.backward),
-                          (str(RIGHT_POINT), self.forward),
-                          (str(DRIGHT_POINT), self.last_page)
-                          ]
+        del self.reactions[-1]
 
     def _check(self, reaction, user):
         if reaction.message.id != self.msg.id or user.bot:
