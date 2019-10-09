@@ -113,36 +113,6 @@ class Misc(commands.Cog):
             "http://33.media.tumblr.com/cb86adbde8dd8feaa586eda4ad29d4be/tumblr_njx8yblrf51tiz9nro1_500.gif"
         ]
 
-    @commands.Cog.listener()
-    async def on_message(self, message):
-        if message.author.id != 319155217373462539:
-            return
-
-        if "gloof" in message.content.lower():
-            with open(r"config/floof.json", "r") as f:
-                gloof_tracker = json.load(f)
-                total = gloof_tracker["total"]
-                cfd = gloof_tracker["Count_for_day"]
-                total += 1
-                cfd += 1
-                gloof_tracker["total"] = total
-                gloof_tracker["Count_for_day"] = cfd
-                date = gloof_tracker["date"]
-
-            if date == "date":
-                gloof_tracker["date"] = {}
-                gloof_tracker["date"] = discord.utils.snowflake_time(message.id).__str__()
-
-            msg_date = datetime.datetime.strptime(gloof_tracker["date"], "%Y-%m-%d %H:%M:%S.%f")
-            now = datetime.datetime.now()
-
-            if now.date() != msg_date.date() and date != "date":
-                gloof_tracker["date"] = "date"
-                gloof_tracker["Count_for_day"] = 0
-
-            with open(r"config/floof.json", "w") as f:
-                json.dump(gloof_tracker, f, indent=4)
-
     async def bot_gif(self, ctx, url):
         if ctx.bot.user.mentioned_in(ctx.message):
             return await ctx.send(embed=discord.Embed(color=self.bot.default_colors()).set_image(url=url))
@@ -223,19 +193,6 @@ class Misc(commands.Cog):
         await ctx.trigger_typing()
 
         await ctx.send(result["response"])
-
-    @commands.command(aliases=["gc"])
-    async def gloof_count(self, ctx):
-        if ctx.author.id != 319155217373462539:
-            return
-
-        with open(r"config/floof.json", "r") as f:
-            gloof_tracker = json.load(f)
-            total = gloof_tracker["total"]
-
-        cfd = gloof_tracker.get("Count_for_day", 0)
-
-        await ctx.send(f"You've gloof {cfd} times today \nTotal all time gloofs {total}")
 
     @commands.command()
     async def matb(self, ctx, *, text: commands.clean_content = None):
