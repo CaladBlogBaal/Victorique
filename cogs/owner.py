@@ -86,9 +86,7 @@ class Info(commands.Cog):
 
         ignore_these = (604816023291428874, 604688858591920148, 604688905190637598, 604688959640961038)
         guild_count = len(list(g for g in self.bot.guilds if g.id not in ignore_these))
-        invite_url = "[invite url](https://discordapp.com" \
-                     "/oauth2/authorize?client_id=558747464161820723&scope=bot&permissions=1342564418)"
-
+        invite_url = f"[invite url]({discord.utils.oauth_url(ctx.me.id, discord.Permissions(1342515266))})"
         # pretty much a modified version of the jishaku, jsk/jishaku command
         proc = psutil.Process()
         mem = proc.memory_full_info()
@@ -109,6 +107,7 @@ class Info(commands.Cog):
         # get these emotes by joining the discord.py server
         embed.add_field(name="Members", value=f"<:status_online:596576749790429200> Online: {member_online}\n"
                                               f"<:status_offline:596576752013279242> Offline: {member_offline}\n")
+        embed.add_field(name="Unique Members", value=str(len(self.bot.users)))
         await ctx.send(embed=embed)
 
 

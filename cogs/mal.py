@@ -144,6 +144,10 @@ class MyAnimeList(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
 
         weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
+        for weekday in weekdays:
+            if day.lower() in (weekday.lower()[:3], weekday.lower()[:4]):
+                day = weekday
+
         p = Paginator(ctx)
 
         if not day:
@@ -152,12 +156,12 @@ class MyAnimeList(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
         else:
             scheduled = await self.aio_jikan.schedule(day=day)
 
-        for day_ in weekdays:
+        for weekday in weekdays:
 
-            if day_.lower() in scheduled:
-                results = scheduled[day_.lower()]
+            if weekday.lower() in scheduled:
+                results = scheduled[weekday.lower()]
 
-                embed = discord.Embed(title=f"Anime schedule for {day_}", color=ctx.bot.default_colors())
+                embed = discord.Embed(title=f"Anime schedule for {weekday}", color=ctx.bot.default_colors())
                 embed_two = None
 
                 title_url_episodes_list = ((a["episodes"], a["title"], a["url"]) for a in results)
@@ -182,7 +186,7 @@ class MyAnimeList(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
 
                     embed.description = "\n".join(a for a in first_half)
 
-                    embed_two = discord.Embed(title=f"Anime Schedule for {day_} continued.",
+                    embed_two = discord.Embed(title=f"Anime Schedule for {weekday} continued.",
                                               color=ctx.bot.default_colors())
                     embed_two.description = "\n".join(a for a in second_half)
 
