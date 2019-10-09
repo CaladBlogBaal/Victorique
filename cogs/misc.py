@@ -2,9 +2,7 @@ import typing
 import random
 import math
 import re
-import json
 import asyncio
-import datetime
 import dateutil.parser
 
 import discord
@@ -78,7 +76,8 @@ def reverse(argument):
 class Misc(commands.Cog):
     """Some misc related commands"""
 
-    def hardcoded_image_list_embed(self, content, list_in):
+    @staticmethod
+    def hardcoded_image_list_embed(content, list_in):
         colours = [discord.Color.dark_magenta(), discord.Color.dark_teal(), discord.Color.dark_orange()]
         col = int(random.random() * len(colours))
 
@@ -141,7 +140,7 @@ class Misc(commands.Cog):
 
     @commands.command()
     async def triangle(self, ctx, size: typing.Optional[int] = 5, emote=":small_red_triangle:",
-                       emote_two=None, reverse=False):
+                       emote_two=None, reverse_triangle=False):
         """Draw a triangle
         say trans as a wild card for a transparent emote and True for a reversed triangle."""
         emote = await commands.clean_content().convert(ctx, emote)
@@ -153,14 +152,14 @@ class Misc(commands.Cog):
             emote_two = await commands.clean_content().convert(ctx, emote_two)
 
         shape = ShapeDrawing([emote], [emote_two], size)
-        triangle = shape.triangle_draw(reverse)
+        triangle = shape.triangle_draw(reverse_triangle)
 
         while len(triangle) >= 2000:
             size -= 1
             shape.size = size
-            triangle = shape.triangle_draw(reverse)
+            triangle = shape.triangle_draw(reverse_triangle)
 
-        await ctx.send(shape.triangle_draw(reverse))
+        await ctx.send(shape.triangle_draw(reverse_triangle))
 
     @commands.command()
     async def diamond(self, ctx, size: typing.Optional[int] = 5, *emotes: commands.clean_content):
@@ -667,19 +666,19 @@ class Misc(commands.Cog):
         msg = ctx.emote_unescape(msg)
         reactions = []
 
-        unicode_dict = {"a": u"\U0001F1E6", "b": u"\U0001F1E7",
-                        "c": u"\U0001F1E8", "d": u"\U0001F1E9",
-                        "e": u"\U0001F1EA", "f": u"\U0001F1EB",
-                        "g": u"\U0001F1EC", "h": u"\U0001F1ED",
-                        "i": u"\U0001F1EE", "j": u"\U0001F1EF",
-                        "k": u"\U0001F1F0", "l": u"\U0001F1F1",
-                        "m": u"\U0001F1F2", "o": u"\U0001F1F4",
-                        "n": u"\U0001F1F3", "p": u"\U0001F1F5",
-                        "q": u"\U0001F1F6", "r": u"\U0001F1F7",
-                        "s": u"\U0001F1F8", "t": u"\U0001F1F9",
-                        "u": u"\U0001F1FA", "v": u"\U0001F1FB",
-                        "w": u"\U0001F1FC", "x": u"\U0001F1FD",
-                        "y": u"\U0001F1FE", "z": u"\U0001F1FF"}
+        unicode_dict = {"a": "\U0001F1E6", "b": "\U0001F1E7",
+                        "c": "\U0001F1E8", "d": "\U0001F1E9",
+                        "e": "\U0001F1EA", "f": "\U0001F1EB",
+                        "g": "\U0001F1EC", "h": "\U0001F1ED",
+                        "i": "\U0001F1EE", "j": "\U0001F1EF",
+                        "k": "\U0001F1F0", "l": "\U0001F1F1",
+                        "m": "\U0001F1F2", "o": "\U0001F1F4",
+                        "n": "\U0001F1F3", "p": "\U0001F1F5",
+                        "q": "\U0001F1F6", "r": "\U0001F1F7",
+                        "s": "\U0001F1F8", "t": "\U0001F1F9",
+                        "u": "\U0001F1FA", "v": "\U0001F1FB",
+                        "w": "\U0001F1FC", "x": "\U0001F1FD",
+                        "y": "\U0001F1FE", "z": "\U0001F1FF"}
         for c in msg:
             if c.isalpha():
                 reactions.append(unicode_dict.get(c))
