@@ -25,14 +25,24 @@ class Moderation(commands.Cog):
         role_name = self.bot.safe_everyone(role.name)
 
         if member.top_role <= role:
-            await ctx.send(f":no_entry: | your top role is below the role {role_name} in the hierarchy")
+            await ctx.send(f":no_entry: | member's top role is below the role `{role_name}` in the hierarchy")
             return False
 
         if ctx.me.top_role <= role:
-            await ctx.send(f":no_entry: | the role {role_name} is above mine in the hierarchy")
+            await ctx.send(f":no_entry: | the role `{role_name}` is above mine in the hierarchy")
             return False
 
         return role_name
+
+    @staticmethod
+    async def hiearchy_check(ctx, member):
+
+        if ctx.me.top_role <= member.top_role:
+            await ctx.send(f"> I can't manage {member.name} due to hierarchy.", delete_after=8)
+            await asyncio.sleep(1)
+            return True
+
+        return False
 
     @commands.command()
     @combined_permissions_check(manage_messages=True)
@@ -58,15 +68,18 @@ class Moderation(commands.Cog):
         """
         member_display = []
         for member in members:
+            if self.hiearchy_check(ctx, member):
+                continue
+
             await member.kick(reason=reason)
-            member_display.append(member.mention)
+            member_display.append(str(member))
 
-        member_display = ", ".join(repr(member) for member in member_display).replace("'", "")
+        member_display = ", ".join(member_display)
 
-        if len(member_display) == 0:
+        if not member_display:
             member_display = "no one"
 
-        await ctx.send(f"{ctx.author.name} kicked {member_display}")
+        await ctx.send(f"> {ctx.author.name} kicked {member_display}")
 
     @commands.command()
     @commands.cooldown(1, 10, commands.BucketType.user)
@@ -104,7 +117,7 @@ class Moderation(commands.Cog):
 
         for i, member in enumerate(members):
             if role in member.roles:
-                await ctx.send(f"guild member [ {member.display_name} ] is already muted")
+                await ctx.send(f"guild member `{member.display_name}` is already muted", delete_after=8)
                 del members[i]
 
         if role is None:
@@ -120,15 +133,19 @@ class Moderation(commands.Cog):
                 await channel.set_permissions(role, overwrite=overwrite)
 
         for member in members:
-            member_display.append(member.mention)
+
+            if self.hiearchy_check(ctx, member):
+                continue
+
+            member_display.append(str(member))
             await member.add_roles(role, reason=reason)
 
-        member_display = ", ".join(repr(member) for member in member_display).replace("'", "")
+        member_display = ", ".join(member_display)
 
-        if len(member_display) == 0:
+        if not member_display:
             member_display = "no one"
 
-        await ctx.send(f"{ctx.author.name} muted {member_display}")
+        await ctx.send(f"> {ctx.author.name} muted {member_display}")
 
     @commands.command()
     @combined_permissions_check(manage_roles=True)
@@ -140,18 +157,22 @@ class Moderation(commands.Cog):
 
         for member in members:
             if role not in member.roles:
-                await ctx.send(f"guild member [ {member.display_name} ] is already unmuted")
+                await ctx.send(f"guild member `{member.display_name}` is already unmuted")
 
             else:
-                member_display.append(member.mention)
+
+                if self.hiearchy_check(ctx, member):
+                    continue
+
+                member_display.append(str(member))
                 await member.remove_roles(role, reason=reason)
 
-        member_display = ", ".join(repr(member) for member in member_display).replace("'", "")
+        member_display = ", ".join(member_display)
 
-        if len(member_display) == 0:
+        if not member_display:
             member_display = "no one"
 
-        await ctx.send(f"{ctx.author.name} unmuted {member_display}")
+        await ctx.send(f"> {ctx.author.name} unmuted {member_display}")
 
     @commands.command()
     @combined_permissions_check(manage_roles=True)
@@ -225,9 +246,8 @@ class Moderation(commands.Cog):
                     image = images[i]
                     emoji = await ctx.guild.create_custom_emoji(name=name, image=image, reason=None)
                     await ctx.send(f"{emoji.url} \nemoji {emoji.name} was created")
-                    await asyncio.sleep(1)
 
-            if len(custom_emojis_ids) != 0:
+            if custom_emojis_ids:
                 for i, _id in enumerate(custom_emojis_ids):
                     url = f"https://cdn.discordapp.com/emojis/{_id}.png?v=1"
                     name = custom_emojis_names[i]
@@ -251,13 +271,14 @@ class Moderation(commands.Cog):
         if message_id is None:
             return await ctx.message.pin()
 
-        msg = await ctx.channel.fetch_message(message_id)
+        try:
 
-        if msg:
+            msg = await ctx.channel.fetch_message(message_id)
             await msg.pin()
 
-        else:
-            await ctx.send(":no_entry: | couldn't find the message to pin")
+        except discord.errors.NotFound:
+
+            await ctx.send(":no_entry: | couldn't find the message to pin.")
 
     @commands.command()
     @commands.has_permissions(manage_guild=True)
