@@ -321,7 +321,7 @@ class Tags(commands.Cog):
     @tag.group(invoke_without_command=True)
     async def nsfw(self, ctx, nsfw: typing.Optional[bool] = True, *, name):
         """The main command for NSFW tags, by itself sets a tag to be only be usable in NSFW channels
-        pass True for nsfw False to not make it NSFW"""
+        pass True for nsfw False to not make it NSFW **this command requires manage messages perms*"""
         name = name.lower()
 
         check = await ctx.con.fetchval("SELECT tag_name FROM tags WHERE LOWER(tag_name) = $1 and guild_id = $2",
@@ -330,12 +330,10 @@ class Tags(commands.Cog):
         if check is None:
             return await ctx.send(f"> The tag `{name}` does not exist.")
 
-        tag_owner = ctx.author.id == await ctx.con.fetchval("""
-        SELECT user_id FROM tags where LOWER (tag_name) = $1 and guild_id = $2""", name, ctx.guild.id)
-
-        check = await self.bot.is_owner(ctx.author) or ctx.author.guild_permissions.manage_messages or tag_owner
+        check = await self.bot.is_owner(ctx.author) or ctx.author.guild_permissions.manage_messages
 
         if check:
+
             async with ctx.con.transaction():
                 await ctx.con.execute("UPDATE tags SET nsfw = $1 where LOWER(tag_name) = $2 and guild_id = $3",
                                       nsfw, name.lower(), ctx.guild.id)
