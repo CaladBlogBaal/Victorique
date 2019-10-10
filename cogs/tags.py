@@ -87,7 +87,7 @@ class Tags(commands.Cog):
                 tag = await self.bot.db.fetchrow(query, name, message.guild.id)
 
                 if tag["nsfw"] and not message.channel.nsfw:
-                    return
+                    return await message.channel.send(f"> This tag can only be used in NSFW channels.", delete_after=4)
 
                 tag = tag["content"]
 
@@ -300,8 +300,8 @@ class Tags(commands.Cog):
 
         await ctx.send(f"> tag `{name}` successfully deleted.")
 
-    @delete.command()
-    async def all(self, ctx, member: discord.Member):
+    @delete.command(name="all")
+    async def delete_all(self, ctx, member: discord.Member):
         """Delete all of a member's tags"""
 
         check = await self.bot.is_owner(ctx.author) or ctx.author.guild_permissions.manage_messages
@@ -318,9 +318,9 @@ class Tags(commands.Cog):
         else:
             await ctx.send(":no_entry: | you need manage message permissions for this command.")
 
-    @tag.command()
+    @tag.group(invoke_without_command=True)
     async def nsfw(self, ctx, nsfw: typing.Optional[bool] = True, *, name):
-        """Set a tag to be only be usable in NSFW channels
+        """The main command for NSFW tags, by itself sets a tag to be only be usable in NSFW channels
         pass True for nsfw False to not make it NSFW"""
         name = name.lower()
 
@@ -330,7 +330,10 @@ class Tags(commands.Cog):
         if check is None:
             return await ctx.send(f"> The tag `{name}` does not exist.")
 
-        check = await self.bot.is_owner(ctx.author) or ctx.author.guild_permissions.manage_messages
+        tag_owner = ctx.author.id == await ctx.con.fetchval("""
+        SELECT user_id FROM tags where LOWER (tag_name) = $1 and guild_id = $2""", name, ctx.guild.id)
+
+        check = await self.bot.is_owner(ctx.author) or ctx.author.guild_permissions.manage_messages or tag_owner
 
         if check:
             async with ctx.con.transaction():
@@ -344,6 +347,28 @@ class Tags(commands.Cog):
 
         else:
 
+            await ctx.send(":no_entry: | you lack the permissions to make this tag NSFW.")
+
+    @nsfw.command(name="all")
+    async def nsfw_all(self, ctx, nsfw: typing.Optional[bool] = True, *, member: discord.Member):
+        """Set all of a members tag to be NSFW or not NSFW."""
+
+        check = await self.bot.is_owner(ctx.author) or ctx.author.guild_permissions.manage_messages
+
+        if check:
+            async with ctx.con.transaction():
+                result = await ctx.con.execute("""
+                UPDATE tags SET nsfw = $1 where user_id = $2 and guild_id = $3 RETURNING user_id""",
+                                               nsfw, member.id, ctx.guild.id)
+
+                if not result:
+                    return await ctx.send(f":no_entry: | {member.name} has no tags.")
+
+                if nsfw:
+                    return await ctx.send(f"> set all of {member.name} tags to NSFW")
+
+                await ctx.send(f"> set all of {member.name} tags to not NSFW")
+        else:
             await ctx.send(":no_entry: | you need manage message permissions for this command.")
 
     @tag.command()
