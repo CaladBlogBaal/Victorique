@@ -17,7 +17,7 @@ to have it in your server.
 You will have to setup your token, bot prefix and owner ids as environment variables.
 
  
-edit the loadconfig.py with your database credentials, img flip password and username.
+example configuration can be found in the loadconfigexample.py, create a loadconfig.py similar to this
 
 
 ## Requirements<br>

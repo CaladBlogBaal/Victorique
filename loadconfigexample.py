@@ -2,6 +2,7 @@ import os
 from config.cogs import __cogs__
 from config.presence import __presences__, __presenceTimer__
 
+
 __token__ = os.environ.get("BOT_TOKEN")
 __prefix__ = os.environ.get("BOT_PREFIX")
 __owner_ids__ = os.environ.get("BOT_OWNER_IDS")
