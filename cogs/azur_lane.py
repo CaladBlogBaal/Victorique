@@ -77,17 +77,30 @@ class AzurLane(commands.Cog, name="Azur Lane"):
 
         return False
 
+    def check_ship_name(self, ship_name):
+
+        for row in self.ship_gear_hub:
+            if row[0].lower() == ship_name.lower():
+                ship_name = row[0].replace("kai", "Kai")
+
+        return ship_name
+
     async def azur_lane_wiki_search(self, ctx, item, allow_none_png=False, paginate=True):
+
+        params = {
+            "aisort": "name",
+            "action": "query",
+            "format": "json",
+            "list": "allimages"
+        }
 
         if "kai" in item.lower():
             item = item[::-1].replace(" ", "", 1)[::-1]
 
         if allow_none_png is False:
+            params["aimime"] = "image/png"
 
-            for row in self.ship_gear_hub:
-                if row[0].lower() == item.lower():
-
-                    item = row[0].replace("kai", "Kai")
+            item = self.check_ship_name(item)
 
             if not item.endswith(".png"):
                 item = f"{item}.png"
@@ -96,21 +109,15 @@ class AzurLane(commands.Cog, name="Azur Lane"):
         item = item.replace("'", "%27")
 
         p = PaginatorGlobal(ctx)
-        kwargs = {
-            "aisort": "name",
-            "action": "query",
-            "format": "json",
-            "list": "allimages",
-            "aiprefix": item
-        }
 
-        js = await ctx.bot.fetch("https://azurlane.koumakan.jp/w/api.php", params=kwargs)
+        params["aiprefix"] = item
+        js = await ctx.bot.fetch("https://azurlane.koumakan.jp/w/api.php", params=params)
 
         for js in js["query"]["allimages"]:
 
             if paginate:
 
-                if item in js["url"].split("/")[-1]:
+                if item in js["title"]:
                     embed = discord.Embed(color=ctx.bot.default_colors(), description=f"[{js['title']}]({js['url']})")
 
                     if allow_none_png is False:
@@ -503,12 +510,12 @@ class AzurLane(commands.Cog, name="Azur Lane"):
 
     @commands.command(aliases=["afs"])
     async def al_file_search(self, ctx, *, item):
-        """Search for any file type on the al aiki"""
+        """Search for any file type on the al wiki by filename, **file names are case sensitive**"""
         await self.azur_lane_wiki_search(ctx, item, True)
 
     @commands.command(aliases=["ais"])
     async def al_img_search(self, ctx, *, item):
-        """Search for a image on the al wiki"""
+        """Search for a image on the al wiki by filename, **file names are case sensitive**"""
         await self.azur_lane_wiki_search(ctx, item)
 
     @commands.group(aliases=["gg"], invoke_without_command=True)
@@ -604,6 +611,35 @@ class AzurLane(commands.Cog, name="Azur Lane"):
 
         await ctx.send("> successfully updated.")
         self.bot.reload_extension("cogs.azur_lane")
+
+    @commands.command(aliases=["fsi"])
+    async def find_ship_image(self, ctx, *, ship_name):
+        """Attempts to find image file names for a ship."""
+        # hacky code
+        await ctx.trigger_typing()
+        ship_name = self.check_ship_name(ship_name)
+        params = {
+            "aisort": "name",
+            "action": "query",
+            "format": "json",
+            "aiprop": "size",
+            "list": "allimages",
+            "aimime": "image/png",
+            "aifrom": ship_name,
+            "ailimit": 60
+        }
+
+        results = await self.bot.fetch("https://azurlane.koumakan.jp/w/api.php", params=params)
+
+        names = [result["name"] for result in results["query"]["allimages"]
+                 if ship_name in result["name"] and result["height"] >= 800]
+
+        names = "\n".join(f"> **{name}**" for name in names)
+
+        if not names:
+            return await ctx.send(f":no_entry: | no images for the ship {ship_name} were found.")
+
+        await ctx.send(f"> Image File names for `{ship_name}`\n{names}")
 
 
 def setup(bot):
