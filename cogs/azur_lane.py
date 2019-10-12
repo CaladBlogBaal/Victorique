@@ -612,12 +612,12 @@ class AzurLane(commands.Cog, name="Azur Lane"):
         await ctx.send("> successfully updated.")
         self.bot.reload_extension("cogs.azur_lane")
 
-    @commands.command(aliases=["fsi"])
-    async def find_ship_image(self, ctx, *, ship_name):
-        """Attempts to find image file names for a ship."""
+    @commands.command(aliases=["fsi", "fai"])
+    async def find_ship_image(self, ctx, *, word):
+        """Attempts to find image file names for a ship or any image that starts with the word."""
         # hacky code
         await ctx.trigger_typing()
-        ship_name = self.check_ship_name(ship_name)
+        word = self.check_ship_name(word)
         params = {
             "aisort": "name",
             "action": "query",
@@ -625,21 +625,21 @@ class AzurLane(commands.Cog, name="Azur Lane"):
             "aiprop": "size",
             "list": "allimages",
             "aimime": "image/png",
-            "aifrom": ship_name,
+            "aifrom": word,
             "ailimit": 60
         }
 
         results = await self.bot.fetch("https://azurlane.koumakan.jp/w/api.php", params=params)
 
         names = [result["name"] for result in results["query"]["allimages"]
-                 if ship_name in result["name"] and result["height"] >= 800]
+                 if word.lower() in result["name"].lower() and result["height"] >= 800]
 
         names = "\n".join(f"> **{name}**" for name in names)
 
         if not names:
-            return await ctx.send(f":no_entry: | no images for the ship {ship_name} were found.")
+            return await ctx.send(f":no_entry: | no images for the ship {word} were found.")
 
-        await ctx.send(f"> Image File names for `{ship_name}`\n{names}")
+        await ctx.send(f"> Image File names for `{word}`\n{names}")
 
 
 def setup(bot):
