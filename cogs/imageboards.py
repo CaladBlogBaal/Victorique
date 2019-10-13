@@ -3,7 +3,6 @@ import asyncio
 import typing
 import html
 
-from contextlib import suppress
 import aiohttp.client_exceptions
 
 from bs4 import BeautifulSoup
@@ -21,62 +20,102 @@ class MoeBooruApi:
         self.post_url = ""
 
     @staticmethod
-    def process_tags(tags):
+    def process_tags(tags, safe):
+        if not tags:
+            return None
+
         tags = tags.replace("||", "\u200B").replace("|", "\u200B").replace("&&", "\u200B")
         tags = list(tag.rstrip().lstrip().replace(" ", "_") for tag in tags.split("\u200B"))
+
+        if safe and tags:
+            for i, tag in enumerate(tags):
+                # this would break rating:safe
+                if "rating:" in tag:
+                    del tags[i]
+
         tags = " ".join(tags)
         return tags
 
     def set_post_url(self, url):
         self.post_url = url
 
-    async def get_image(self, limit=1, tags=None, safe=True):
-        # this is hacky but meh
-        if tags is not None:
-            tags = self.process_tags(tags)
+    @staticmethod
+    def get_gelbooru_params(tags, safe):
+
+        # no limit so it randomises
+        params = {}
+        if safe:
+            params["tags"] = "rating:safe "
+
+        # because gelbooru is likely to return nsfw images with these tags on safe rating
+
+        try:
+            current_blacklisted_tags = ("loli", "pussy")
+            if safe and any(btag in tags for btag in current_blacklisted_tags):
+                return False
+        except TypeError:
+            pass
+
+        if tags:
+            try:
+                params["tags"] += tags
+            except KeyError:
+                params["tags"] = tags
+
+        return params
+
+    @staticmethod
+    def get_danbooru_params(limit, tags, safe):
+        params = {"limit": limit, "random": "true"}
+        if safe:
+            params["tags"] = "rating:safe "
+
+        if tags:
+            try:
+                params["tags"] += tags
+            except KeyError:
+                params["tags"] = tags
+
+        params["tags"] = params["tags"].rstrip()
+
+        return params
+
+    @staticmethod
+    def get_ye_kc_params(limit, tags, safe):
 
         params = {
             "limit": limit,
-            "tags": "order:random",
+            "tags": "order:random ",
             "page": random.randint(1, 3)
 
         }
 
-        if "gelbooru" in self.post_url:
-            # no limit so it randomises
-            params = {}
-            # because gelbooru is likely to return nsfw images with these tags on safe rating
-
-            try:
-                current_blacklisted_tags = ("loli", "pussy")
-                if safe and any(btag in tags for btag in current_blacklisted_tags):
-                    return set()
-            except TypeError:
-                pass
-
-        if "danbooru" in self.post_url:
-
-            params = {"limit": limit,
-                      "random": "true"}
         if safe:
-            with suppress(KeyError):
-                params["tags"] += " rating:safe"
-
-        if safe and tags:
-            tags = tags.split()
-
-            for i, tag in enumerate(tags):
-                # this would break rating:safe
-                if "rating:" in tag:
-                    tags[i] = ""
-
-            tags.append("rating:safe")
-
-            tags = " ".join(tags)
+            params["tags"] += "rating:safe "
 
         if tags:
             params.pop("page", None)
-            params["tags"] = tags
+            params["tags"] += tags
+
+        params["tags"] = params["tags"].rstrip()
+
+        return params
+
+    async def get_image(self, limit=1, tags=None, safe=True):
+        # this is hacky but meh
+        tags = self.process_tags(tags, safe)
+
+        if "gelbooru" in self.post_url:
+            params = self.get_gelbooru_params(tags, safe)
+
+            if params is False:
+                return set()
+
+        elif "danbooru" in self.post_url:
+            params = self.get_danbooru_params(limit, tags, safe)
+
+        else:
+            params = self.get_ye_kc_params(limit, tags, safe)
 
         js = await self.bot.fetch(self.post_url, params=params)
 
@@ -310,7 +349,7 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
             results = await m.get_image(amount, tags)
 
         if results in (set(), dict()):
-            tags = MoeBooruApi.process_tags(tags)
+            tags = MoeBooruApi.process_tags(tags, True)
 
             if isinstance(results, dict) and "danbooru" in post_url:
 
@@ -334,7 +373,7 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
 
             else:
                 if sources == "":
-                    sources = "null"
+                    sources = " "
                 await p.add_page(f":information_source: | **Image source** `{sources}`\n {url}")
 
         await p.paginate()
