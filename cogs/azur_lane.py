@@ -105,9 +105,6 @@ class AzurLane(commands.Cog, name="Azur Lane"):
             if not item.endswith(".png"):
                 item = f"{item}.png"
 
-        item = item.replace(" ", "_")
-        item = item.replace("'", "%27")
-
         p = PaginatorGlobal(ctx)
 
         params["aiprefix"] = item
@@ -135,8 +132,7 @@ class AzurLane(commands.Cog, name="Azur Lane"):
         except IndexError:
             if not paginate:
                 return "https://i.imgur.com/la4e2G4.jpg"
-
-            return await ctx.send(f":no_entry: | search failed for {item.replace('%27', '')}")
+            return await ctx.send(f":no_entry: | search failed for {item}")
 
     def auxiliary_slots(self, option=0):
         auxiliary_slot_hp = 0
