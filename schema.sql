@@ -15,8 +15,8 @@ CREATE TABLE IF NOT EXISTS users (
 
 CREATE TABLE IF NOT EXISTS tags (
     tag_id SERIAL PRIMARY KEY,
-    guild_id bigint REFERENCES guilds (guild_id) ON DELETE CASCADE,
-    user_id bigint REFERENCES users (user_id) ON DELETE CASCADE,
+    guild_id bigint REFERENCES guilds (guild_id),
+    user_id bigint REFERENCES users (user_id),
     tag_name text,
     content text,
     nsfw bool,
@@ -63,4 +63,57 @@ CREATE TABLE IF NOT EXISTS fish_users_catches (
     fish_name text REFERENCES fish (fish_name),
     amount int,
     PRIMARY KEY (user_id, fish_id)
+);
+
+CREATE TABLE IF NOT EXISTS category (
+    category_id smallint PRIMARY KEY,
+    name text
+);
+
+INSERT INTO category (category_id, name) VALUES (1, 'General Knowledge') ON CONFLICT DO NOTHING;
+INSERT INTO category (category_id, name) VALUES (2, 'Entertainment: Books') ON CONFLICT DO NOTHING;
+INSERT INTO category (category_id, name) VALUES (3, 'Entertainment: Film') ON CONFLICT DO NOTHING;
+INSERT INTO category (category_id, name) VALUES (4, 'Entertainment: Music') ON CONFLICT DO NOTHING;
+INSERT INTO category (category_id, name) VALUES (5, 'Entertainment: Musicals') ON CONFLICT DO NOTHING;
+INSERT INTO category (category_id, name) VALUES (6, 'Entertainment: Television') ON CONFLICT DO NOTHING;
+INSERT INTO category (category_id, name) VALUES (7, 'Entertainment: Video Games') ON CONFLICT DO NOTHING;
+INSERT INTO category (category_id, name) VALUES (8, 'Entertainment: Board Games') ON CONFLICT DO NOTHING;
+INSERT INTO category (category_id, name) VALUES (9, 'Science & Nature') ON CONFLICT DO NOTHING;
+INSERT INTO category (category_id, name) VALUES (10, 'Science: Computers') ON CONFLICT DO NOTHING;
+INSERT INTO category (category_id, name) VALUES (11, 'Science: Mathematics') ON CONFLICT DO NOTHING;
+INSERT INTO category (category_id, name) VALUES (12, 'Mythology') ON CONFLICT DO NOTHING;
+INSERT INTO category (category_id, name) VALUES (13, 'Sports') ON CONFLICT DO NOTHING;
+INSERT INTO category (category_id, name) VALUES (14, 'Geography') ON CONFLICT DO NOTHING;
+INSERT INTO category (category_id, name) VALUES (15, 'History') ON CONFLICT DO NOTHING;
+INSERT INTO category (category_id, name) VALUES (16, 'Politics') ON CONFLICT DO NOTHING;
+INSERT INTO category (category_id, name) VALUES (17, 'Art') ON CONFLICT DO NOTHING;
+INSERT INTO category (category_id, name) VALUES (18, 'Celebrities') ON CONFLICT DO NOTHING;
+INSERT INTO category (category_id, name) VALUES (19, 'Animals') ON CONFLICT DO NOTHING;
+INSERT INTO category (category_id, name) VALUES (20, 'Vehicles') ON CONFLICT DO NOTHING;
+INSERT INTO category (category_id, name) VALUES (21, 'Entertainment: Comics') ON CONFLICT DO NOTHING;
+INSERT INTO category (category_id, name) VALUES (22, 'Science: Gadgets') ON CONFLICT DO NOTHING;
+INSERT INTO category (category_id, name) VALUES (23, 'Entertainment: Japanese Anime & Manga') ON CONFLICT DO NOTHING;
+INSERT INTO category (category_id, name) VALUES (24, 'Entertainment: Cartoon & Animations') ON CONFLICT DO NOTHING;
+
+
+DO $$ BEGIN
+    CREATE TYPE  question_type AS ENUM ('multiple choice', 'True or False');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+CREATE TABLE IF NOT EXISTS question (
+    question_id SMALLSERIAL PRIMARY KEY,
+    category_id smallint REFERENCES category (category_id),
+    content text UNIQUE,
+    type question_type default 'multiple choice',
+    difficulty text
+
+);
+
+CREATE TABLE IF NOT EXISTS answer (
+    answer_id SMALLSERIAL,
+    question_id smallint REFERENCES question (question_id) ON DELETE CASCADE,
+    content text,
+    is_correct boolean
 );
