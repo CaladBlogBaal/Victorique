@@ -1,7 +1,8 @@
+import copy
 import contextlib
 import asyncio
 import random
-import html
+import typing
 
 import numpy as np
 
@@ -9,6 +10,8 @@ import discord
 from discord.ext import commands
 
 from config.utils.checks import checking_for_multiple_channel_instances
+from config.utils.paginator import Paginator
+from config.utils.converters import TriviaCategoryConvertor, TriviaDiffcultyConventor
 
 
 class Card:
@@ -142,6 +145,7 @@ class QuizPoints:
 
 class Games(commands.Cog):
     """Some general games"""
+
     def __init__(self, bot):
         self.bot = bot
 
@@ -166,26 +170,64 @@ class Games(commands.Cog):
                     ctx.bot.channels_running_commands.pop(key, None)
 
     async def cog_command_error(self, ctx, error):
+
+        if isinstance(error, commands.CommandInvokeError):
+            error = error.original
+
+        if isinstance(error, (asyncio.TimeoutError, asyncio.futures.TimeoutError)):
+            await ctx.send(f"> no response was received for awhile cancelling the game for `{ctx.command.name}`",
+                           delete_after=10)
+
         if isinstance(error, commands.CheckFailure):
             await ctx.send(f":no_entry: | only one instance of this {ctx.command.name} command per channel",
                            delete_after=3)
 
     @staticmethod
-    def set_questions(question_json):
+    async def set_questions(ctx, category, difficulty, amount_of_questions):
 
-        category = question_json.get("category")
-        _type = question_json.get("type")
-        difficulty = question_json.get("difficulty")
-        question = question_json.get("question")
-        correct_answer = question_json.get("correct_answer")
-        incorrect_answers = question_json.get("incorrect_answers")
-        incorrect_answers.insert(0, correct_answer)
-        answers = list(html.unescape(q) for q in incorrect_answers)
+        if amount_of_questions > 10:
+            amount_of_questions = 10
 
-        question_list = [category, _type, difficulty,
-                         html.unescape(question), answers]
+        query = "SELECT question_id from question"
 
-        return question_list
+        if not category and not difficulty:
+            results = await ctx.con.fetch(query)
+
+        elif category and not difficulty:
+            query += " WHERE category_id = $1"
+            results = await ctx.con.fetch(query, category)
+
+        elif difficulty and not category:
+            query += " WHERE difficulty = $1"
+            results = await ctx.con.fetch(query, difficulty)
+
+        else:
+            query += " WHERE category_id = $1 and difficulty = $2"
+            results = await ctx.con.fetch(query, category, difficulty)
+
+        results = random.sample(results, amount_of_questions)
+        return results
+
+    @staticmethod
+    def build_answers(answers):
+        answers = sorted(answers, key=lambda ans: ans["is_correct"], reverse=True)
+        return [ans["content"] for ans in answers]
+
+    async def build_question(self, ctx, question_id):
+        question_id = question_id["question_id"]
+        data = await ctx.con.fetchrow("""SELECT content, difficulty, type 
+                                          from question where question_id = $1""", question_id)
+
+        question, difficulty, type_ = data["content"], data["difficulty"], data["type"]
+
+        answers = await ctx.con.fetch("SELECT content, is_correct from answer where question_id = $1", question_id)
+        answers = self.build_answers(answers)
+
+        category = await ctx.con.fetchval("""
+        SELECT name from category where category_id = (SELECT category_id from question where question_id = $1)""",
+                                          question_id)
+
+        return category, type_, difficulty, question, answers
 
     @commands.command(aliases=["8ball", "8-ball", "magic_eight_ball"])
     async def eight_ball(self, ctx, *, message):
@@ -237,130 +279,38 @@ class Games(commands.Cog):
 
         await ctx.send(results)
 
-    @commands.command()
-    @checking_for_multiple_channel_instances()
-    async def trivia(self, ctx, amount_of_questions=5):
+    @commands.group(aliases=["tri"], invoke_without_command=True)
+    async def trivia(self, ctx, difficulty: typing.Optional[TriviaDiffcultyConventor] = None,
+                     amount_of_questions: typing.Optional[int] = 5, *, category: TriviaCategoryConvertor = None):
         """
-        Answer some trivia questions
+        Answer some trivia questions category accepts either an id or name
+        possible difficulties are easy, medium hard
         """
 
-        self.multiple_user_instance_set(ctx)
+        msg = await ctx.send("Starting the trivia game....")
 
         score_count = 0
 
         if amount_of_questions <= 0:
             return await ctx.send(":no_entry: | please type in a valid amount of questions.")
 
-        if amount_of_questions > 100:
-            await ctx.send(":information_source: | the max amount of questions allowed is 100, will default to 100.",
-                           delete_after=3)
-            amount_of_questions = 100
-            await asyncio.sleep(3)
-
-        diot_keys = {'1': 9, '2': 10, '3': 11, '4': 12, '5': 13,
-                     '6': 14, '7': 15, '8': 16, '9': 17, '10': 18,
-                     '11': 19, '12': 20, '13': 21, '14': 22, '15': 23,
-                     '16': 24, '17': 25, '18': 26, '19': 27, '20': 28,
-                     '21': 29, '22': 30, '23': 31, '24': 32}
-
         time_out_count = 0
 
-        embed = discord.Embed(title=f"Trivia game",
-                              description="Select an option by typing it's number"
-                                          "\n1) General Knowledge "
-                                          "\n2) Entertainment: Books"
-                                          "\n3) Entertainment: Film "
-                                          "\n4) Entertainment: Music "
-                                          "\n5) Entertainment: Musicals  "
-                                          "\n6) Entertainment: Television "
-                                          "\n7) Entertainment: Video Games "
-                                          "\n8) Entertainment: Board Games "
-                                          "\n9) Science & Nature "
-                                          "\n10) Science: Computers "
-                                          "\n11) Science: Mathematics "
-                                          "\n12) Mythology "
-                                          "\n13) Sports "
-                                          "\n14) Geography "
-                                          "\n15) History "
-                                          "\n16) Politics "
-                                          "\n17) Art"
-                                          "\n18) Celebrities "
-                                          "\n19) Animals "
-                                          "\n20) Vehicles "
-                                          "\n21) Entertainment: Comics "
-                                          "\n22) Science: Gadgets "
-                                          "\n23) Entertainment: Japanese Anime & Manga "
-                                          "\n24) Entertainment: Cartoon & Animations",
-                              color=self.bot.default_colors())
+        score = QuizPoints(ctx.author.name)
 
-        embed.set_footer(text=f'Requested by {ctx.message.author.name}', icon_url=ctx.message.author.avatar_url)
-        embed.timestamp = ctx.message.created_at
-        msg = await ctx.send(embed=embed)
-
-        message = await self.bot.wait_for('message', check=lambda message: message.author == ctx.author,
-                                          timeout=60)
-
-        category_choice = diot_keys.get(message.content, None)
-
-        if category_choice is not None:
-            pass
-
-        else:
-            category_choice = ""
-            await ctx.send("Number not in category options will default to random categories")
-
-        embed = discord.Embed(title="Trivia Game Difficulty",
-                              description="Choose a difficulty by saying it's name"
-                              "\nEasy"
-                              "\nMedium"
-                              "\nHard",
-                              color=self.bot.default_colors()
-                              )
-        embed.set_footer(text=f'Requested by {ctx.message.author.name}', icon_url=ctx.message.author.avatar_url)
-        embed.timestamp = ctx.message.created_at
-        await asyncio.sleep(1)
-        await msg.edit(embed=embed)
-        difficulty_choice = await self.bot.wait_for('message', check=lambda message: message.author == ctx.author)
-        difficulty_choice = difficulty_choice.content.lower()
-        difficulties_list = ["easy", "medium", "hard"]
-
-        if difficulty_choice.lower() in difficulties_list:
-            pass
-
-        else:
-            await ctx.send("Invalid response will default to random difficulties")
-            difficulty_choice = ""
-
-        score = QuizPoints(ctx.message.author.name)
-        questions_left = amount_of_questions
-
-        question_list = []
-
-        params = {"category": category_choice,
-                  "difficulty": difficulty_choice,
-                  "amount": amount_of_questions,
-                  "type": "multiple"}
-
-        results = await self.bot.fetch("https://opentdb.com/api.php", params=params)
-
-        if results["response_code"] == 0:
-            for js in results["results"]:
-                question_list.append(self.set_questions(js))
-
-        else:
-            return await ctx.send(":information_source: | seems like an error occurred the api this trivia game is "
-                                  "using may be experiencing some problems.")
+        question_list = await self.set_questions(ctx, category, difficulty, amount_of_questions)
 
         reactions = ["🇦", "🇧", "🇨", "🇩", "⏩"]
 
         for reaction in reactions:
             await msg.add_reaction(reaction)
 
-        for data in question_list:
+        for questiton_id in question_list:
+            data = await self.build_question(ctx, questiton_id)
 
             correct_answer = data[4][0]
             text = f"**Category:** {data[0]}\n**Type:** {data[1]}\n**Difficulty:** {data[2]}\n**Question:** {data[3]}"
-            embed = discord.Embed(title=f'Trivia Question! :white_check_mark: {questions_left} questions left',
+            embed = discord.Embed(title=f"Trivia Question! :white_check_mark: {amount_of_questions} questions left",
                                   color=self.bot.default_colors())
             embed.set_footer(text=f'Requested by {ctx.message.author.name}', icon_url=ctx.message.author.avatar_url)
             embed.timestamp = ctx.message.created_at
@@ -387,22 +337,26 @@ class Games(commands.Cog):
                 time_out_count += 1
 
                 if time_out_count >= 5:
-
                     with contextlib.suppress(discord.Forbidden):
                         return await msg.clear_reactions()
 
                 s = "\n\n:information_source: | {}, you took too long to give a response this question will be skipped."
                 text += s.format(ctx.author.name)
                 await msg.edit(embed=embed, content=text)
-                questions_left -= 1
+                amount_of_questions -= 1
                 await asyncio.sleep(3)
                 continue
 
             else:
+                reactions_copy = copy.copy(reactions)
+
+                if len(data[4]) == 2:
+                    del reactions_copy[2]
+                    del reactions_copy[2]
 
                 while True:
 
-                    if reaction.emoji in reactions:
+                    if reaction.emoji in reactions_copy:
                         index = reactions.index(reaction.emoji)
 
                         if reaction.emoji == reactions[-1]:
@@ -415,19 +369,49 @@ class Games(commands.Cog):
 
                         else:
                             score_count += -2
-                            s = f"\n\n> incorrect answer, the correct answer was `{correct_answer}` {ctx.author.name}"
+                            s = f"\n\n> Incorrect answer, the correct answer was `{correct_answer}` {ctx.author.name}"
 
                         text += s
                         await msg.edit(embed=embed, content=text)
-                        questions_left -= 1
-                        await asyncio.sleep(3)
+                        amount_of_questions -= 1
                         time_out_count = 0
+                        await asyncio.sleep(3)
                         break
 
-        await asyncio.sleep(2)
-        score.score = score_count
+                    else:
+                        reaction, user = await self.bot.wait_for('reaction_add', timeout=10, check=check)
 
-        await ctx.send(f"quiz finished :white_check_mark: {score.score}")
+        score.score = score_count
+        await msg.edit(content=f"quiz finished :white_check_mark: {score.score}")
+
+    @trivia.group(aliases=["cat"], invoke_without_command=True)
+    async def categorises(self, ctx):
+        """The main command for finding questions based on category by itself returns all the categories available"""
+        results = await ctx.con.fetch("""
+                                      SELECT c.category_id, c.name, COUNT(q.question_id) 
+                                      from category as c INNER JOIN question as q on c.category_id = q.category_id
+                                      GROUP BY c.category_id""")
+
+        results = sorted(results, key=lambda res: res["category_id"])
+
+        description = "\n".join(f"ID: `{result['category_id']}`: **{result['name']}** `({result['count']}) questions`"
+                                for result in results)
+        await ctx.send(description)
+
+    @categorises.command()
+    async def search(self, ctx, *, category: TriviaCategoryConvertor):
+        """Search returns all questions based on their category, category accepts either an id or name"""
+        p = Paginator(ctx)
+        results = await ctx.con.fetch("SELECT content, question_id from question where category_id = $1", category)
+        results = ctx.chunk(results, 10)
+
+        for chunk in results:
+            amt = await ctx.con.fetchval("SELECT COUNT(question_id) from question where category_id = $1", category)
+            name = await ctx.con.fetchval("SELECT name from category where category_id = $1", category)
+            chunk = "\n".join(f"> ID: `{result['question_id']}`: **{result['content']}**" for result in chunk)
+            await p.add_page(f"Category Name: ```{name}```\nAmount of questions ({amt})\n{chunk}")
+
+        await p.paginate()
 
     @commands.command(aliases=["ttt"])
     async def tictactoe(self, ctx, mention: discord.Member):
@@ -447,24 +431,18 @@ class Games(commands.Cog):
 
         await ctx.send(f"awaiting a response from {mention.display_name} (options yes or no)")
 
-        try:
-            message = await self.bot.wait_for('message', check=lambda message: message.author == mention,
-                                              timeout=60)
+        message = await self.bot.wait_for('message', check=lambda message: message.author == mention,
+                                          timeout=60)
 
-            while message.content.lower() != "yes" and message.content.lower() != "no":
-                message = await self.bot.wait_for('message', check=lambda message: message.author == mention,
-                                                  timeout=60)
+        while message.content.lower() != "yes" and message.content.lower() != "no":
+            message = await self.bot.wait_for('message', check=lambda message: message.author == mention, timeout=60)
 
-            if message.content.lower() == "yes":
-                pass
+        if message.content.lower() == "yes":
+            pass
 
-            elif message.content.lower() == "no":
-                return await ctx.send(f":information_source: | seems like {mention.display_name} doesn't want a game "
-                                      f"shutting down the game...")
-
-        except asyncio.TimeoutError:
-            return await ctx.send(f":no_entry: | "
-                                  f"{mention.display_name} took to long to give a response shutting down the game..")
+        elif message.content.lower() == "no":
+            return await ctx.send(f":information_source: | seems like {mention.display_name} doesn't want a game "
+                                  f"shutting down the game...")
 
         def display_board():
 
@@ -501,7 +479,6 @@ class Games(commands.Cog):
             check_ = return_open_spaces()
 
             if check_ == []:
-
                 return False
 
             for i in range(3):
@@ -545,9 +522,7 @@ class Games(commands.Cog):
         def embed():
             display = display_board()
 
-            embed__ = discord.Embed(title=f"Tic Tac Toe",
-                                    description=display[0],
-                                    color=self.bot.default_colors())
+            embed__ = discord.Embed(title=f"Tic Tac Toe", description=display[0], color=self.bot.default_colors())
 
             embed__.set_footer(text=f'Requested by {ctx.message.author.name}')
             embed__.timestamp = ctx.message.created_at
@@ -588,42 +563,39 @@ class Games(commands.Cog):
 
             with contextlib.suppress(discord.HTTPException):
                 cancel_after = 0
-                try:
-                    reaction, user = await self.bot.wait_for('reaction_add', timeout=30, check=_check)
-                    await msg.remove_reaction(reaction, user)
 
-                    while True:
+                reaction, user = await self.bot.wait_for('reaction_add', timeout=30, check=_check)
+                await msg.remove_reaction(reaction, user)
 
-                        if reactions.index(reaction.emoji) + 1 in return_open_spaces():
-                            place_letter(_letter, reactions.index(reaction.emoji) + 1)
-                            break
+                while True:
 
-                        else:
-                            await ctx.send(":no_entry: | " + member.name + " invalid move react again", delete_after=3)
-                            reaction, user = await self.bot.wait_for('reaction_add', timeout=30, check=_check)
-                            cancel_after += 1
-                            if cancel_after == 5:
-                                return await ctx.send(":no_entry: | too many invalid moves cancelling the game.",
-                                                      delete_after=10)
+                    if reactions.index(reaction.emoji) + 1 in return_open_spaces():
+                        place_letter(_letter, reactions.index(reaction.emoji) + 1)
+                        break
 
+                    else:
+                        await ctx.send(":no_entry: | " + member.name + " invalid move react again", delete_after=3)
+                        reaction, user = await self.bot.wait_for('reaction_add', timeout=30, check=_check)
+                        cancel_after += 1
+                        if cancel_after == 5:
+                            return await ctx.send(":no_entry: | too many invalid moves cancelling the game.",
+                                                  delete_after=10)
+
+                place_letter(_letter, reactions.index(reaction.emoji) + 1)
+
+                if check_winner(_letter):
                     place_letter(_letter, reactions.index(reaction.emoji) + 1)
-
-                    if check_winner(_letter):
-                        place_letter(_letter, reactions.index(reaction.emoji) + 1)
-                        await msg.edit(embed=embed())
-                        return await ctx.send(f":information_source: | {member.mention} won")
-
-                    if check_winner(_letter) is False:
-                        place_letter(_letter, reactions.index(reaction.emoji) + 1)
-                        await msg.edit(embed=embed())
-                        return await ctx.send(":information_source: | The game was a draw")
-
                     await msg.edit(embed=embed())
-                    await asyncio.sleep(2)
-                    await turn_msg.delete()
+                    return await ctx.send(f":information_source: | {member.mention} won")
 
-                except asyncio.TimeoutError:
-                    return await ctx.send(f"took to long to give a response.... {member.name} shutting down the game.")
+                if check_winner(_letter) is False:
+                    place_letter(_letter, reactions.index(reaction.emoji) + 1)
+                    await msg.edit(embed=embed())
+                    return await ctx.send(":information_source: | The game was a draw")
+
+                await msg.edit(embed=embed())
+                await asyncio.sleep(2)
+                await turn_msg.delete()
 
         while True:
 
@@ -640,7 +612,7 @@ class Games(commands.Cog):
 
                 first = "Player"
 
-    @commands.command()
+    @commands.command(aliases=["bj", "blackjack"])
     @checking_for_multiple_channel_instances()
     async def black_jack(self, ctx):
         """
