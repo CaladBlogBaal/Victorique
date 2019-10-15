@@ -107,7 +107,7 @@ class AzurLane(commands.Cog, name="Azur Lane"):
 
         p = PaginatorGlobal(ctx)
 
-        params["aiprefix"] = item
+        params["aiprefix"] = item.replace("_", " ")
         js = await ctx.bot.fetch("https://azurlane.koumakan.jp/w/api.php", params=params)
 
         for js in js["query"]["allimages"]:
@@ -630,7 +630,7 @@ class AzurLane(commands.Cog, name="Azur Lane"):
         names = [result["name"] for result in results["query"]["allimages"]
                  if word.lower() in result["name"].lower() and result["height"] >= 800]
 
-        names = "\n".join(f"> **{name}**" for name in names)
+        names = "\n".join(f"> **{name.replace('_', ' ')}**" for name in names)
 
         if not names:
             return await ctx.send(f":no_entry: | no images for the ship {word} were found.")
