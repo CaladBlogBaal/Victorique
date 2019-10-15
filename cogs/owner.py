@@ -13,6 +13,7 @@ import discord
 from discord.ext import commands, tasks
 
 from config.utils.paginator import Paginator, WarpedPaginator
+from config.utils.converters import TriviaCategoryConvertor, TriviaDiffcultyConventor
 
 
 @tasks.loop(hours=24)
@@ -301,6 +302,68 @@ class OwnerCog(commands.Cog, name="Owner Commands"):
         random_images.cancel()
         random_images.change_interval(hours=hours)
         await ctx.send(f"> successfully changed to `{hours}` hours restart the task with `{ctx.prefix}daily_anime`")
+
+    @commands.group(invoke_without_command=True)
+    async def question(self, ctx):
+        """The main command for updaing the trivia tables does nothing by itself"""
+
+    @question.command()
+    async def add(self, ctx, category: TriviaCategoryConvertor, difficulty: TriviaDiffcultyConventor,
+                  type_, *, question):
+        """Adds a question to the question table."""
+        categories = (cat_id["category_id"] for cat_id in await ctx.con.fetch("SELECT category_id from category"))
+        if category not in categories:
+            return await ctx.send(":no_entry: | Invalid category was passed.")
+
+        async with ctx.con.transaction():
+            await ctx.con.execute("""INSERT INTO question (category_id, content, difficulty, type)
+                                     VALUES ($1,$2,$3,$4)""", category, question, difficulty, type_)
+
+        await ctx.send(f"> successfully updated with question `{question}`.")
+
+    @question.command()
+    async def delete(self, ctx, *, question):
+        """Delete a question and it's answers."""
+
+        async with ctx.con.transaction():
+            check = await ctx.con.execute("""DELETE FROM question 
+                                          where LOWER(content) = $1 RETURNING question""", question.lower())
+
+            if check == "DELETE 0":
+                return await ctx.send(f":no_entry: | The question `{question}` does not exist.")
+
+        await ctx.send("> successfully updated.")
+
+    @question.command()
+    async def add_answer(self, ctx, content, is_correct: bool, *, question):
+        """Add an answer to a existing question."""
+        question_id = await ctx.con.fetchval("SELECT question_id from question where LOWER(content) = $1",
+                                             question.lower())
+        if not question_id:
+            return await ctx.send(":no_entry: This question doesn't exist.")
+
+        async with ctx.con.transaction():
+            await ctx.con.execute("""INSERT INTO answer (question_id, content, is_correct) 
+                                     VALUES ($1,$2,$3) ON CONFLICT DO NOTHING""", question_id, content, is_correct)
+
+        await ctx.send("> successfully updated.")
+
+    @question.command()
+    async def delete_answer(self, ctx, question, *, answer):
+        """Delete an answer for a question."""
+        question = await ctx.con.fetchval("SELECT question_id from question where content = $1", question)
+
+        if not question:
+            return await ctx.send(f":no_entry: | a question with id `{question}` does not exist.")
+
+        async with ctx.con.transaction():
+            check = await ctx.con.execute("""DELETE FROM answer where question_id = $1 and LOWER(content) = $2 
+                                             RETURNING answer""", question, answer.lower())
+
+            if check == "DELETE 0":
+                return await ctx.send(f"The answer `{answer}` does not exist.")
+
+        await ctx.send("> successfully updated.")
 
 
 def setup(bot):

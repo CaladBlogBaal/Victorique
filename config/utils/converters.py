@@ -113,3 +113,44 @@ class SeasonConverter(commands.Converter):
         return month
 
 
+class TriviaCategoryConvertor(commands.Converter):
+    async def convert(self, ctx, argument):
+
+        try:
+
+            con = await ctx.con
+
+        except TypeError:
+
+            con = ctx.con
+
+        argument = argument.lower()
+        if argument.isdigit():
+            argument = int(argument)
+            result = await con.fetchval("SELECT category_id from category where category_id = $1", argument)
+
+        else:
+
+            result = await con.fetchval("SELECT category_id from category where LOWER(name) like $1", argument)
+
+        if not result:
+            raise commands.BadArgument("Invalid Category was passed.")
+
+        return result
+
+
+class TriviaDiffcultyConventor(commands.Converter):
+    async def convert(self, ctx, argument):
+        try:
+
+            con = await ctx.con
+
+        except TypeError:
+
+            con = ctx.con
+
+        diffculties = [result["difficulty"] for result in await con.fetch("SELECT DISTINCT difficulty from question")]
+        if argument in diffculties:
+            return argument
+
+        raise commands.BadArgument("Invalid difficulty was entered")
