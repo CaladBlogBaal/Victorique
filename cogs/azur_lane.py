@@ -3,7 +3,6 @@ import copy
 import asyncio
 import csv
 import shutil
-import json
 import typing
 
 from itertools import combinations_with_replacement
@@ -19,6 +18,7 @@ from config.utils.paginator import PaginatorGlobal, Paginator
 
 class AzurLane(commands.Cog, name="Azur Lane"):
     """Azur lane related commands"""
+
     def __init__(self, bot):
 
         # thanks to @cyberFluff#9161
@@ -84,6 +84,44 @@ class AzurLane(commands.Cog, name="Azur Lane"):
                 ship_name = row[0].replace("kai", "Kai")
 
         return ship_name
+
+    async def find_image_names(self, ctx, word, ship=True):
+        p = Paginator(ctx)
+
+        params = {
+            "aisort": "name",
+            "action": "query",
+            "format": "json",
+            "aiprop": "size",
+            "list": "allimages",
+            "aimime": "image/png",
+            "aifrom": word,
+            "ailimit": 60
+        }
+
+        results = await self.bot.fetch("https://azurlane.koumakan.jp/w/api.php", params=params)
+
+        if ship:
+
+            names = [result["name"] for result in results["query"]["allimages"]
+                     if word.lower() in result["name"].lower() and result["height"] >= 800]
+
+        else:
+            names = [result["name"] for result in results["query"]["allimages"]
+                     if word.lower() in result["name"].lower()]
+
+        names = ctx.chunk(names, 10)
+
+        if not names:
+            return await ctx.send(f":no_entry: | no images for the ship {word} were found.")
+
+        await ctx.send(f"> Image File names for `{word}`")
+
+        for chunk in names:
+            name_chunk = "\n".join(f"> **{name.replace('_', ' ')}**" for name in chunk)
+            await p.add_page(name_chunk)
+
+        await p.paginate()
 
     async def azur_lane_wiki_search(self, ctx, item, allow_none_png=False, paginate=True):
 
@@ -198,7 +236,7 @@ class AzurLane(commands.Cog, name="Azur Lane"):
             ship_evasion_rate = ship_dict["EVA Rate"]
 
             accuracy = 0.1 + enemy_hit / (enemy_hit + ship_evasion + 2) + (
-                (0 - ship_luck) * 0.001
+                    (0 - ship_luck) * 0.001
             ) - ship_evasion_rate
 
             if accuracy < 0.1:
@@ -270,6 +308,7 @@ class AzurLane(commands.Cog, name="Azur Lane"):
         """
         The main command for ehp by itself it gets a ships basic ehp value
         """
+
         # it just works.tm function
         # this will probably be rewritten again in the future to be honest
         async def category_choice_set():
@@ -347,15 +386,15 @@ class AzurLane(commands.Cog, name="Azur Lane"):
 
         embed = discord.Embed(title=f"EHP Calculator",
                               description=f"Select an option for aux slot by typing it's number"
-                              "\n1) Repair Tool "
-                              "\n2) Fire Suppressor"
-                              "\n3) Navy Camouflage "
-                              "\n4) Fuel Filter "
-                              "\n5) SG Radar "
-                              "\n6) Beaver Badge "
-                              "\n7) IHR "
-                              "\n8) Nothing "
-                              "\n ( say 0 to exit )",
+                                          "\n1) Repair Tool "
+                                          "\n2) Fire Suppressor"
+                                          "\n3) Navy Camouflage "
+                                          "\n4) Fuel Filter "
+                                          "\n5) SG Radar "
+                                          "\n6) Beaver Badge "
+                                          "\n7) IHR "
+                                          "\n8) Nothing "
+                                          "\n ( say 0 to exit )",
                               color=discord.Color.dark_magenta())
 
         embed.set_footer(text=f'Requested by {ctx.message.author.name}', icon_url=ctx.message.author.avatar_url)
@@ -391,8 +430,8 @@ class AzurLane(commands.Cog, name="Azur Lane"):
 
         ship_name = ship_name.capitalize()
         accuracy = 0.1 + enemy_hit / (enemy_hit + ship_evasion + 2) + (
-            (enemy_luck - ship_luck + level_difference) * 0.001
-            ) - ship_evasion_rate
+                (enemy_luck - ship_luck + level_difference) * 0.001
+        ) - ship_evasion_rate
 
         if accuracy < 0.1:
             accuracy = 0.1
@@ -432,50 +471,88 @@ class AzurLane(commands.Cog, name="Azur Lane"):
         aux_slots = "aux slot one being **{}** and aux slot two **{}**".format(aux_string, aux_string_two)
         await ctx.send(f"> {ship_name}\'s EHP with {aux_slots} and enemy hit {enemy_hit} is **{result[1]}**")
 
-    @commands.command(aliases=["ss"])
-    async def ship_stats(self, ctx, *, ship_name):
-        """Get the stats of a ship"""
-        # this will probably be removed for a wiki web scape of ship details in the future
+    @commands.command(aliases=["sd"])
+    async def ship_details(self, ctx, filtered: typing.Optional[bool] = False, *, ship_name):
+        """Grabs all the details of a ship pass True to filtered to return only stats and skills."""
+        p = Paginator(ctx)
 
-        ship_name = ship_name.lower()
+        ship_name = self.check_ship_name(ship_name)
 
-        with open(r"config/ship_list.json", "r") as f:
-            ship_json_list = json.load(f)
+        params = {'action': 'query',
+                  'titles': ship_name,
+                  'prop': 'revisions|categories',
+                  'rvprop': 'content',
+                  'format': 'json',
+                  'formatversion': '2',
+                  'rvslots': 'main'}
 
-        ship_json = None
+        results = await self.bot.fetch("https://azurlane.koumakan.jp/w/api.php", params=params)
 
-        for json_ in ship_json_list:
-            if json_.get("name").lower() == ship_name:
-                ship_json = json_
+        if all("Category:Ships" not in x["title"] for x in results["query"]["pages"][0]["categories"]):
+            return await ctx.send(f"The ship `{ship_name}` could not be found.")
 
-        if ship_json is None:
-            return await ctx.send(f":no_entry: | could not find {ship_name}.")
+        result = results["query"]["pages"][0]["revisions"][0]["slots"]["main"]["content"]
+        ship_dets = ""
 
-        content = ""
+        replace_dict = {"Skin": f"{ship_name}\'s skin ",
+                        "Initial": " Level 1",
+                        "Max": " Level 100",
+                        "{{": " | ",
+                        "}}": "",
+                        "|": "",
+                        "Consumption": "Oil ",
+                        "=": ":",
+                        "[": "(",
+                        "]": ")",
+                        "Fire": "Fp",
+                        "120": " Level 120",
+                        "Air": "Avi"}
 
-        rep_dict = {"eff": "primary efficiency", "secff": "secondary efficiency", "aaeff": "anti air efficiency",
-                    "trieff": "tertiary efficiency"}
+        regex = re.compile("(%s)" % "|".join(map(re.escape, replace_dict.keys())))
 
-        for key, value in ship_json.items():
+        for line in result.split("\n"):
+            line = line.strip()
 
-            if value != 0:
+            if line.startswith("|"):
 
-                if rep_dict.get(key):
-                    key = rep_dict[key]
+                if re.findall(r"Skill[0-9]Icon", line):
 
-                if isinstance(value, (float, int)):
-                    if key == "oil":
-                        pass
+                    continue
 
-                    elif value < 10 or value < 0:
-                        value *= 100
-                        value = f"{value}%"
+                if line in ("| DLimited = 1", "| DLight = 1"):
+                    break
 
-                name = key.capitalize()
-                result = f"[{name.ljust(22)}: {value.ljust(5)}"
-                content += f"\n{result}"
+                if filtered:
 
-        await ctx.send(f"```ini\n{content}```")
+                    if all(x not in line
+                           for x in ("Skill", "Acc",
+                                     "Luck", "Fire",
+                                     "ASW", "Air",
+                                     "Evade", "Health",
+                                     "Reload", "Armour")):
+                        continue
+
+                ship_dets += f"\n{line}"
+
+        ship_dets = re.sub(r"Kai[^\w-]", " Level 100 Kai", ship_dets)
+        ship_dets = re.sub(r"<.*?>", "", ship_dets)
+        ship_dets = re.sub(r"Skill[1-4]Desc", "Desc", ship_dets)
+        ship_dets = regex.sub(lambda mo: replace_dict[mo.string[mo.start():mo.end()]], ship_dets)
+        ship_dets = ctx.chunk(ship_dets.split("\n"), 11)
+
+        for chunk in ship_dets:
+            chunk = "\n".join(chunk)
+            await p.add_page(f"```fix\n{chunk}```")
+
+        await p.paginate()
+
+    @ship_details.error
+    async def ship_details_error(self, ctx, error):
+        if isinstance(error, commands.CommandInvokeError):
+            error = error.original
+
+        if isinstance(error, KeyError):
+            return await ctx.send(f"> The ship `{ctx.kwargs['ship_name']}` could not be found.")
 
     @commands.command(name="al")
     async def azur_lane_wiki_opensearch(self, ctx, *, search):
@@ -608,37 +685,19 @@ class AzurLane(commands.Cog, name="Azur Lane"):
         await ctx.send("> successfully updated.")
         self.bot.reload_extension("cogs.azur_lane")
 
-    @commands.command(aliases=["fsi", "fai"])
+    @commands.command(aliases=["fsi"])
     async def find_ship_image(self, ctx, *, word):
         """Attempts to find image file names for a ship or any image that starts with the word."""
-        # hacky code
         await ctx.trigger_typing()
         word = self.check_ship_name(word)
-        params = {
-            "aisort": "name",
-            "action": "query",
-            "format": "json",
-            "aiprop": "size",
-            "list": "allimages",
-            "aimime": "image/png",
-            "aifrom": word,
-            "ailimit": 60
-        }
+        await self.find_image_names(ctx, word)
 
-        results = await self.bot.fetch("https://azurlane.koumakan.jp/w/api.php", params=params)
-
-        names = [result["name"] for result in results["query"]["allimages"]
-                 if word.lower() in result["name"].lower() and result["height"] >= 800]
-
-        names = "\n".join(f"> **{name.replace('_', ' ')}**" for name in names)
-
-        if not names:
-            return await ctx.send(f":no_entry: | no images for the ship {word} were found.")
-
-        await ctx.send(f"> Image File names for `{word}`\n{names}")
+    @commands.command(aliases=["fai"])
+    async def find_any_image(self, ctx, *, word):
+        """Attempts to find image file names that starts with the word."""
+        await ctx.trigger_typing()
+        await self.find_image_names(ctx, word, False)
 
 
 def setup(bot):
     bot.add_cog(AzurLane(bot))
-
-

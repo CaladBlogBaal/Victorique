@@ -3,7 +3,6 @@ import sys
 import platform
 import os
 import pathlib
-import json
 import inspect
 
 import psutil
@@ -197,27 +196,6 @@ class OwnerCog(commands.Cog, name="Owner Commands"):
         await ctx.send(f"total lines of **Python** code **{py_line_count}** spread across **{py_file_amount} files**"
                        f" with **{sql_line_count}** lines of **SQL**, and **{json_file_count}** lines of **JSON** "
                        f"spread across **{json_file_amount} files** for this bot.")
-
-    @commands.command(aliases=["usj"])
-    async def update_ship_json(self, ctx, *args):
-        """Update the azur lane ship json"""
-        keys = ['name', 'nation', 'rarity', 'type', 'hp', 'armor_type',
-                'reload', 'fp', 'tp', 'evasion', 'aa', 'airp', 'oil',
-                'asw', 'speed', 'luck', 'hit', 'eff', 'secff', 'trieff',
-                'type1', 'type2', 'type3', 'plane1', 'plane2', 'plane3',
-                'aaeff', 'aaeff2', 'oxy']
-
-        ship_json = dict(zip(keys, args))
-        ship_json["rarity"] = ship_json["rarity"].replace("_", " ")
-
-        with open(r"settings\ship_list.json", "r") as f:
-            ship_json_list = json.load(f)
-            ship_json_list.append(ship_json)
-
-        with open(r"settings\ship_list.json", "w") as f:
-            json.dump(ship_json_list, f, indent=4)
-
-        await ctx.send(f"Update completed new dict\n {ship_json} \n was added")
 
     @commands.command()
     async def query(self, ctx, *, _query):
