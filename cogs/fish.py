@@ -16,6 +16,47 @@ class Fishing(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+    async def cog_command_error(self, ctx, error):
+
+        if isinstance(error, commands.CommandInvokeError):
+            error = error.original
+
+        if isinstance(error, asyncio.TimeoutError):
+            return await ctx.send(f":no_entry: | a response wasn't given in a while aborting command "
+                                  f"`{ctx.command.name}`",
+                                  delete_after=10)
+
+    async def embed_(self, ctx, current_balance, bait, cost):
+        if cost > current_balance or current_balance - cost < 0:
+            await ctx.send(":no_entry: | you do not have enough credits for this transaction.")
+            return False
+
+        transaction_id = random.randint(1000, 90000)
+        transaction_id = str(transaction_id)
+
+        embed = discord.Embed(content=":atm: | bait purchase",
+                              description=f"{ctx.author.name} buying bait"
+                                          f"\nCurrent balance {current_balance}"
+                                          f"\nBalance after pet purchase {current_balance - cost}"
+                                          f"\nConfirmation pin {transaction_id}"
+                                          f"\n(say cancel to cancel the transaction)",
+                              color=discord.Color.dark_magenta()
+                              )
+
+        await ctx.send(embed=embed)
+
+        cancel_message = ":information_source: | {}, bait transaction has been cancelled"
+        confirmation = await ctx.wait_for_input(transaction_id, cancel_message)
+
+        if confirmation:
+            await ctx.send(f":information_source: | "
+                           f"{cost} credits has been deducted from your account, "
+                           f"{ctx.author.name} you bought some {bait} `to use your bait do "
+                           f"{ctx.prefix}fish storage use [insert amount]`")
+
+            return cost
+        return confirmation
+
     @staticmethod
     async def __fish_catches_view(ctx, rarity_id=None, global_paginator=False):
 
@@ -40,8 +81,8 @@ class Fishing(commands.Cog):
 
         if rarity_id:
             data = await ctx.con.fetch("""SELECT DISTINCT * from fish_users_catches INNER JOIN fish on
-                                                    fish_users_catches.fish_id = fish.fish_id
-                                                    where fish_users_catches.user_id = $1 and fish.bait_id = $2""",
+                                          fish_users_catches.fish_id = fish.fish_id
+                                          where fish_users_catches.user_id = $1 and fish.bait_id = $2""",
                                        ctx.author.id, rarity_id)
 
         else:
@@ -158,7 +199,6 @@ class Fishing(commands.Cog):
             await ctx.con.execute("UPDATE fish_user_inventory SET favourites = $1 where user_id = $2",
                                   fish_ids, ctx.author.id)
             if delete is False:
-
                 return await ctx.send(f":information_source: | you added {fish_names} to your favourites "
                                       f"{ctx.author.name}")
 
@@ -226,7 +266,6 @@ class Fishing(commands.Cog):
         async with ctx.con.transaction():
             await ctx.con.executemany(statement, records)
             for fish in fishes:
-
                 await p.add_page(f"> **{ctx.author.name}** you caught a {fish['fish_name']}")
 
         await p.shuffle_pages()
@@ -264,7 +303,7 @@ class Fishing(commands.Cog):
         async with self.bot.db.acquire() as con:
             await con.execute("""INSERT INTO fish_user_inventory (user_id, bait_id, amount, bait_emote)
                                  VALUES ($1, $2, $3, $4) ON CONFLICT (user_id, bait_id) DO UPDATE SET (amount) = 
-                                  ROW(fish_user_inventory.amount + $3)
+                                 ROW(fish_user_inventory.amount + $3)
                               """, user_id, bait_id, amount, emote)
 
     @commands.group(invoke_without_command=True, ignore_extra=False)
@@ -352,65 +391,24 @@ class Fishing(commands.Cog):
         def check(reaction, user):
             return user == ctx.author and reaction.emoji in reactions and reaction.message.id == msg.id
 
-        async def _embed(_bait, cost):
-            if cost > current_balance or current_balance - cost < 0:
-                await ctx.send(":no_entry: | you do not have enough credits for this transaction.")
-                return False
-
-            transaction_id = random.randint(1000, 90000)
-            transaction_id = str(transaction_id)
-
-            embed_ = discord.Embed(content=":atm: | bait purchase",
-                                   description=f"{ctx.author.name} buying bait"
-                                   f"\nCurrent balance {current_balance}"
-                                   f"\nBalance after pet purchase {current_balance - cost}"
-                                   f"\nConfirmation pin {transaction_id}"
-                                   f"\n(say cancel to cancel the transaction)",
-                                   color=discord.Color.dark_magenta()
-                                   )
-
-            await ctx.send(embed=embed_)
-
-            try:
-                cancel_message = ":information_source: | {}, bait transaction has been cancelled"
-                confirmation = await ctx.wait_for_input(transaction_id, cancel_message)
-
-                if confirmation:
-                    await ctx.send(f":information_source: | "
-                                   f"{cost} credits has been deducted from your account, "
-                                   f"{ctx.author.name} you bought some {_bait} `to use your bait do "
-                                   f"{ctx.prefix}fish storage use [insert amount]`")
-
-                    return cost
-                return confirmation
-
-            except asyncio.TimeoutError:
-                await ctx.send(f":information_source: | a response wasn't given in awhile cancelling the transaction")
-
-                return False
-
         while True:
-            try:
-                reaction, user = await self.bot.wait_for('reaction_add', timeout=200, check=check)
 
-                if reaction.emoji in reactions:
-                    bait_id = 1
+            reaction, user = await self.bot.wait_for('reaction_add', timeout=30, check=check)
 
-                    cost = await _embed(reaction.emoji, costs)
-                    if cost is False:
-                        return
+            if reaction.emoji in reactions:
+                bait_id = 1
 
-                    await self.__update_fish_inventory(ctx.author.id, bait_id, amount, str(reaction.emoji))
+                cost = await self.embed_(ctx, current_balance, reaction.emoji, costs)
 
-                    async with ctx.con.transaction():
+                if cost is False:
+                    return
 
-                        await ctx.con.execute("UPDATE users SET credits = credits - $1 WHERE user_id = $2",
-                                              cost, ctx.author.id)
+                await self.__update_fish_inventory(ctx.author.id, bait_id, amount, str(reaction.emoji))
 
-                        break
+                async with ctx.con.transaction():
 
-            except asyncio.TimeoutError:
-                break
+                    return await ctx.con.execute("UPDATE users SET credits = credits - $1 WHERE user_id = $2", cost,
+                                                 ctx.author.id)
 
     @fish.group(aliases=["storage", "items"])
     @commands.cooldown(1, 3, commands.BucketType.user)
@@ -423,7 +421,7 @@ class Fishing(commands.Cog):
             return await ctx.send(m + "\nYou currently have an empty storage.")
 
         for bait in data:
-            m += f"\n{bait['bait_emote']} {' '*20}╬{' '*10}{bait['amount']}\n═══════════════════"
+            m += f"\n{bait['bait_emote']} {' ' * 20}╬{' ' * 10}{bait['amount']}\n═══════════════════"
 
         msg = await ctx.send(m)
 
@@ -451,7 +449,7 @@ class Fishing(commands.Cog):
                 return user == ctx.author and reaction.emoji in reactions and reaction.message.id == msg.id
 
             try:
-                reaction, user = await self.bot.wait_for('reaction_add', timeout=200, check=check)
+                reaction, user = await self.bot.wait_for('reaction_add', timeout=30, check=check)
 
                 if reaction.emoji in reactions:
                     await self.__fish_user_reel(str(reaction.emoji), ctx, amount)
@@ -495,60 +493,55 @@ class Fishing(commands.Cog):
             return await ctx.send(f":no_entry: | {ctx.author.name} currently have no fish caught.")
 
         data = {fish["fish_id"] for fish in data}
-        try:
 
-            message = await self.bot.wait_for('message', check=lambda message: message.author == ctx.author,
-                                              timeout=120)
+        message = await self.bot.wait_for('message', check=lambda message: message.author == ctx.author, timeout=30)
 
-            list_of_ids = message.content.split(" ")
+        list_of_ids = message.content.split(" ")
 
-            fish_ids = [await FishNameConventor().convert(ctx, id_) for id_ in list_of_ids]
-            fish_ids = set(fish_ids)
+        fish_ids = [await FishNameConventor().convert(ctx, id_) for id_ in list_of_ids]
+        fish_ids = set(fish_ids)
 
-            if fish_ids.issubset(data) is False:
-                return await ctx.send(":no_entry: | an invalid fish id was passed.")
+        if fish_ids.issubset(data) is False:
+            return await ctx.send(":no_entry: | an invalid fish id was passed.")
 
-            favourites = await self.__fish_get_favourites(ctx)
+        favourites = await self.__fish_get_favourites(ctx)
 
-            if any(id_ in favourites for id_ in fish_ids):
-                return await ctx.send(":no_entry: | a fish registered as a favourite fish was passed.")
+        if any(id_ in favourites for id_ in fish_ids):
+            return await ctx.send(":no_entry: | a fish registered as a favourite fish was passed.")
 
-            fish_name = await ctx.con.fetch("SELECT fish_name from fish where fish_id = ANY($1::INT[])", fish_ids)
-            fish_name = " ".join(fish["fish_name"] for fish in fish_name)
+        fish_name = await ctx.con.fetch("SELECT fish_name from fish where fish_id = ANY($1::INT[])", fish_ids)
+        fish_name = " ".join(fish["fish_name"] for fish in fish_name)
 
-            await ctx.send(f"Would you like to sell all of {fish_name} options (yes or no)")
-            message = await self.bot.wait_for('message', check=lambda message: message.author == ctx.author,
-                                              timeout=120)
+        await ctx.send(f"Would you like to sell all of {fish_name} options (yes or no)")
+        message = await self.bot.wait_for('message', check=lambda message: message.author == ctx.author,
+                                          timeout=30)
 
-            if message.content.lower() == "yes":
+        if message.content.lower() == "yes":
 
-                if await self.transaction_check(ctx) is True:
-                    data = await ctx.con.fetch(
-                        """SELECT SUM(amount), bait_id from fish_users_catches
-                        INNER JOIN fish ON fish_users_catches.fish_id = fish.fish_id 
-                        WHERE user_id = $1 and fish_users_catches.fish_id = ANY($2::INT[]) GROUP BY bait_id
-                        """, ctx.author.id, fish_ids)
+            if await self.transaction_check(ctx) is True:
+                data = await ctx.con.fetch(
+                    """SELECT SUM(amount), bait_id from fish_users_catches
+                       INNER JOIN fish ON fish_users_catches.fish_id = fish.fish_id 
+                       WHERE user_id = $1 and fish_users_catches.fish_id = ANY($2::INT[]) GROUP BY bait_id
+                    """, ctx.author.id, fish_ids)
 
-                    amount = self.price_sum_setter(data)
+                amount = self.price_sum_setter(data)
 
-                    async with ctx.con.transaction():
-                        await ctx.con.execute("""DELETE from fish_users_catches
-                                                     WHERE fish_id = ANY($1::INT[]) and user_id = $2""",
-                                              fish_ids, ctx.author.id)
+                async with ctx.con.transaction():
+                    await ctx.con.execute("""DELETE from fish_users_catches
+                                             WHERE fish_id = ANY($1::INT[]) and user_id = $2""",
+                                          fish_ids, ctx.author.id)
 
-                        await ctx.con.execute("""UPDATE users SET credits = credits + $1 where user_id = $2 """,
-                                              amount, ctx.author.id)
+                    await ctx.con.execute("""UPDATE users SET credits = credits + $1 where user_id = $2 """,
+                                          amount, ctx.author.id)
 
-                    await ctx.send(f"Successfully sold all of {fish_name} {ctx.author.name}, "
-                                   f"you earned {amount} credits.")
+                await ctx.send(f"Successfully sold all of {fish_name} {ctx.author.name}, "
+                               f"you earned {amount} credits.")
 
-            elif message.content.lower() == "no":
-                await ctx.send(":information_source: | cancelling the fish selling.")
-            else:
-                await ctx.send(":no_entry: | invalid response was received cancelling the fish selling.")
-
-        except asyncio.TimeoutError:
-            await ctx.send(f":information_source: | a response wasn't given in awhile cancelling the transaction")
+        elif message.content.lower() == "no":
+            await ctx.send(":information_source: | cancelling the fish selling.")
+        else:
+            await ctx.send(":no_entry: | invalid response was received cancelling the fish selling.")
 
     @sell.command(aliases=["dupe"])
     async def dupes(self, ctx):
@@ -567,35 +560,31 @@ class Fishing(commands.Cog):
         if data == []:
             return await ctx.send(":no_entry: | you currently have no fish caught.")
 
-        try:
+        if await self.transaction_check(ctx) is True:
 
-            if await self.transaction_check(ctx) is True:
+            amount_list = [d["amount"] - 1 for d in data if d["amount"] - 1 > 0]
+            bait_list = [d["bait_id"] for d in data if d["amount"] - 1 > 0]
+            data = [{"bait_id": x, "sum": amount_list[i]} for i, x in enumerate(bait_list)]
 
-                amount_list = [d["amount"] - 1 for d in data if d["amount"] - 1 > 0]
-                bait_list = [d["bait_id"] for d in data if d["amount"] - 1 > 0]
-                data = [{"bait_id": x, "sum": amount_list[i]} for i, x in enumerate(bait_list)]
+            await ctx.send(":information_source: | selling all dupes.")
 
-                await ctx.send(":information_source: | selling all dupes.")
+            amount = self.price_sum_setter(data)
 
-                amount = self.price_sum_setter(data)
+            if amount == 0:
+                return await ctx.send(":no_entry: | you have no duplicate fish.")
 
-                if amount == 0:
-                    return await ctx.send(":no_entry: | you have no duplicate fish.")
+            async with ctx.con.transaction():
 
-                async with ctx.con.transaction():
-                    await ctx.con.execute("UPDATE fish_users_catches SET amount = 1 from fish where "
-                                          "fish_users_catches.user_id = $1 "
-                                          "and NOT (fish_users_catches.fish_id  = ANY ($2)) ",
-                                          ctx.author.id, excluded_fish_ids)
+                await ctx.con.execute("""UPDATE fish_users_catches SET amount = 1 from fish where 
+                                         fish_users_catches.user_id = $1 
+                                         and NOT (fish_users_catches.fish_id  = ANY ($2))""",
+                                      ctx.author.id, excluded_fish_ids)
 
-                    await ctx.con.execute("""UPDATE users SET credits = credits + $1 where user_id = $2 """,
-                                          amount, ctx.author.id)
+                await ctx.con.execute("""UPDATE users SET credits = credits + $1 where user_id = $2 """,
+                                      amount, ctx.author.id)
 
-                await ctx.send(f":information_source: | successfully sold all dupe fish, {ctx.author.name} you gained"
-                               f" {amount} credits.")
-
-        except asyncio.TimeoutError:
-            pass
+            await ctx.send(f":information_source: | successfully sold all dupe fish, {ctx.author.name} you gained"
+                           f" {amount} credits.")
 
     @sell.command()
     async def all(self, ctx, rarity_id: FishRarityConventor, excluded_fish_ids: commands.Greedy[FishNameConventor]):
@@ -613,55 +602,44 @@ class Fishing(commands.Cog):
         if data is None:
             return await ctx.send(f":no_entry: | {ctx.author.name} currently have no fish caught.")
 
-        if rarity_id == 1:
-            rarity = "common"
-        elif rarity_id == 2:
-            rarity = "elite"
-        elif rarity_id == 3:
-            rarity = "super"
-        else:
-            rarity = "legendary"
+        rarities = {1: "common", 2: "elite", 3: "super"}
+        rarity = rarities.get(rarity_id, "legendary")
 
-        try:
+        names = await ctx.con.fetch("SELECT fish_name from fish where fish_id = ANY ($1) and bait_id = $2",
+                                    excluded_fish_ids, rarity_id)
 
-            names = await ctx.con.fetch("SELECT fish_name from fish where fish_id = ANY ($1) and bait_id = $2",
-                                        excluded_fish_ids, rarity_id)
+        names = " ".join(fish["fish_name"] for fish in names)
 
-            names = " ".join(fish["fish_name"] for fish in names)
+        if names:
+            await ctx.send(f"> currently selling all {rarity} fish with {names} excluded {ctx.author.name}.")
 
-            if names:
-                await ctx.send(f"> currently selling all {rarity} fish with {names} excluded {ctx.author.name}.")
+        if await self.transaction_check(ctx) is True:
+            await ctx.send(f"selling all fish of rarity {rarity}")
 
-            if await self.transaction_check(ctx) is True:
-                await ctx.send(f"selling all fish of rarity {rarity}")
+            amount = await ctx.con.fetchval("""SELECT DISTINCT SUM(fish_users_catches.amount) 
+                                               from fish_users_catches 
+                                               INNER JOIN fish ON fish_users_catches.fish_id = fish.fish_id 
+                                               WHERE user_id = $1 and bait_id = $2 
+                                               and NOT (fish.fish_id  = ANY ($3))""",
+                                            ctx.author.id, rarity_id, excluded_fish_ids)
 
-                amount = await ctx.con.fetchval("""SELECT DISTINCT SUM(fish_users_catches.amount) 
-                                                       from fish_users_catches 
-                                                       INNER JOIN fish ON fish_users_catches.fish_id = fish.fish_id 
-                                                       WHERE user_id = $1 and bait_id = $2 
-                                                       and NOT (fish.fish_id  = ANY ($3))""",
-                                                ctx.author.id, rarity_id, excluded_fish_ids)
+            if amount == 0 or amount is None:
+                return await ctx.send(":no_entry: | you have no fish of this rarity.")
 
-                if amount == 0 or amount is None:
-                    return await ctx.send(":no_entry: | you have no fish of this rarity.")
+            amount = self.price_setter(rarity_id, amount)
 
-                amount = self.price_setter(rarity_id, amount)
+            async with ctx.con.transaction():
+                await ctx.con.execute("""DELETE from fish_users_catches
+                                         USING fish WHERE fish_users_catches.fish_id = fish.fish_id 
+                                         and bait_id = $1 and user_id = $2
+                                         and NOT (fish.fish_id  = ANY ($3))""",
+                                      rarity_id, ctx.author.id, excluded_fish_ids)
 
-                async with ctx.con.transaction():
-                    await ctx.con.execute("""DELETE from fish_users_catches
-                                                 USING fish WHERE fish_users_catches.fish_id = fish.fish_id 
-                                                 and bait_id = $1 and user_id = $2
-                                                 and NOT (fish.fish_id  = ANY ($3))""",
-                                          rarity_id, ctx.author.id, excluded_fish_ids)
+                await ctx.con.execute("""UPDATE users SET credits = credits + $1 where user_id = $2 """,
+                                      amount, ctx.author.id)
 
-                    await ctx.con.execute("""UPDATE users SET credits = credits + $1 where user_id = $2 """,
-                                          amount, ctx.author.id)
-
-                await ctx.send(f"Successfully sold all fish of rarity {rarity} {ctx.author.name} you gained"
-                               f" {amount} credits.")
-
-        except asyncio.TimeoutError:
-            await ctx.send(f":information_source: | a response wasn't given in awhile ancelling the transaction")
+            await ctx.send(f"Successfully sold all fish of rarity {rarity} {ctx.author.name} you gained"
+                           f" {amount} credits.")
 
     @sell.command(name="fish")
     async def fish_sell(self, ctx, amount: int, fish_id: FishNameConventor):
@@ -681,8 +659,8 @@ class Fishing(commands.Cog):
             return await ctx.send(":no_entry: | you currently have this fish registered as a favourite fish")
 
         data = await ctx.con.fetchrow("""SELECT amount, bait_id, fish.fish_name from fish_users_catches
-                                          INNER JOIN fish ON fish_users_catches.fish_id = fish.fish_id 
-                                          WHERE user_id = $1 and fish_users_catches.fish_id = $2""", ctx.author.id,
+                                         INNER JOIN fish ON fish_users_catches.fish_id = fish.fish_id 
+                                         WHERE user_id = $1 and fish_users_catches.fish_id = $2""", ctx.author.id,
                                       fish_id)
 
         if data["amount"] < amount:
@@ -704,12 +682,12 @@ class Fishing(commands.Cog):
 
                 if delete_check is False:
                     await ctx.con.execute("""UPDATE fish_users_catches SET amount = amount - $3
-                                                 WHERE fish_id = $1 and user_id = $2
+                                             WHERE fish_id = $1 and user_id = $2
                                               """, fish_id, ctx.author.id, amount)
 
                 elif delete_check is True:
                     await ctx.con.execute("""DELETE from fish_users_catches
-                                                 WHERE fish_id = $1 and user_id = $2""", fish_id, ctx.author.id)
+                                             WHERE fish_id = $1 and user_id = $2""", fish_id, ctx.author.id)
 
                     return await ctx.send(f"Successfully sold {data['fish_name']} {ctx.author.name}, you "
                                           f"gained {pay_out} credits.")
