@@ -14,6 +14,27 @@ class Moderation(commands.Cog):
         self.bot = bot
         self.session = bot.session
 
+    async def set_perms(self, guild, role=None):
+        muted_role = role
+
+        if not role:
+            muted_role = discord.utils.get(guild.roles, name="Muted")
+
+        if not muted_role:
+            return
+
+        overwrite = discord.PermissionOverwrite()
+        overwrite.update(send_messages=False)
+
+        for channel in guild.channels:
+            await channel.set_permissions(muted_role, overwrite=overwrite)
+
+    @commands.Cog.listener()
+    async def on_guild_channel_create(self, channel):
+
+        guild = channel.guild
+        await self.set_perms(guild)
+
     async def cog_check(self, ctx):
 
         if not ctx.guild:
@@ -68,7 +89,7 @@ class Moderation(commands.Cog):
         """
         member_display = []
         for member in members:
-            if self.hiearchy_check(ctx, member):
+            if await self.hiearchy_check(ctx, member):
                 continue
 
             await member.kick(reason=reason)
@@ -127,14 +148,11 @@ class Moderation(commands.Cog):
             permissions.read_message_history = True
             role = await ctx.guild.create_role(name="Muted", permissions=permissions)
 
-            overwrite = discord.PermissionOverwrite()
-            overwrite.update(send_messages=False)
-            for channel in ctx.guild.channels:
-                await channel.set_permissions(role, overwrite=overwrite)
+            await self.set_perms(ctx.guild, role)
 
         for member in members:
 
-            if self.hiearchy_check(ctx, member):
+            if await self.hiearchy_check(ctx, member):
                 continue
 
             member_display.append(str(member))
@@ -161,7 +179,7 @@ class Moderation(commands.Cog):
 
             else:
 
-                if self.hiearchy_check(ctx, member):
+                if await self.hiearchy_check(ctx, member):
                     continue
 
                 member_display.append(str(member))
