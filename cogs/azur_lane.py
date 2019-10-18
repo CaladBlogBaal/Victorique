@@ -9,6 +9,7 @@ from itertools import combinations_with_replacement
 from operator import itemgetter
 from contextlib import suppress
 from tempfile import NamedTemporaryFile
+from io import BytesIO
 
 import discord
 from discord.ext import commands
@@ -538,6 +539,8 @@ class AzurLane(commands.Cog, name="Azur Lane"):
         ship_dets = re.sub(r"<.*?>", "", ship_dets)
         ship_dets = re.sub(r"Skill[1-4]Desc", "Desc", ship_dets)
         ship_dets = regex.sub(lambda mo: replace_dict[mo.string[mo.start():mo.end()]], ship_dets)
+        bytes_ = BytesIO(ship_dets.encode())
+        await ctx.send(file=discord.File(bytes_, filename=f"{ship_name}_details.txt"))
         ship_dets = ctx.chunk(ship_dets.split("\n"), 11)
 
         for chunk in ship_dets:
