@@ -173,9 +173,14 @@ class Misc(commands.Cog):
             size -= 1
             shape.size = size
             top, bottom = shape.diamond_draw()
+        try:
 
-        await ctx.send(top)
-        await ctx.send(bottom)
+            await ctx.send(top + bottom)
+
+        except discord.errors.HTTPException:
+
+            await ctx.send(top)
+            await ctx.send(bottom)
 
     @commands.dm_only()
     @commands.command()
