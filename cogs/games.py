@@ -3,6 +3,7 @@ import contextlib
 import asyncio
 import random
 import typing
+import re
 
 import numpy as np
 
@@ -256,24 +257,104 @@ class Games(commands.Cog):
         await msg.edit(content=f"{random.choice(possible_responses)} {ctx.author.name}")
 
     @commands.command()
-    async def roll(self, ctx, dice: str):
+    async def roll(self, ctx, *, dice: str):
         """
-        Roll a die in a NdN format
+        Roll a die in a NdN+m format
         """
-        first_word, second_word, word = dice.partition("d")
+        ops = {"+": (lambda a, b: a + b),
+               "-": (lambda a, b: a - b),
+               "*": (lambda a, b: a * b),
+               "/": (lambda a, b: a / b)}
 
-        if not second_word.startswith("d") or not first_word.isdigit():
-            return await ctx.send(f":no_entry: | dice must be in a NdN format.")
+        rolls, d, expression = dice.partition("d")
 
-        rolls, limit = map(int, dice.split("d"))
+        if "d" in expression:
+            return await ctx.send(f":no_entry: | multiple dice isn't supported.", delete_after=10)
 
-        if limit > 100:
-            limit = 100
+        if any(x in expression for x in ("//", "**", "^")):
+            return await ctx.send(f"> An invalid operator was passed.", delete_after=10)
 
-        if rolls == 0:
-            rolls = 1
+        if not d.startswith("d") or not rolls.isdigit():
+            return await ctx.send(":no_entry: | dice must be in a NdN+m format.")
 
-        results = ", ".join(str(random.randint(1, limit)) for _ in range(rolls))
+        if expression.count("(") != expression.count(")") or int(rolls) <= 0:
+            return await ctx.send(":no_entry: | Invalid expression.")
+
+        rolls = int(rolls)
+
+        expression = expression.replace(" ", "")
+        expression = re.findall(r"[/ *\-+()]|\d+", expression)
+        limit = int(expression[0])
+
+        del expression[0]
+
+        if rolls > 100:
+            rolls = 100
+
+        results = [random.randint(1, limit) for _ in range(rolls)]
+
+        def is_digit(num):
+            try:
+                num = int(num)
+            except ValueError:
+                try:
+                    num = float(num)
+                except ValueError:
+                    return False
+
+            return num
+
+        def peek(stack):
+            return stack[-1] if stack else None
+
+        def calculate(operators, values):
+            right = values.pop()
+            left = values.pop()
+            values.append(ops[operators.pop()](left, right))
+
+        def greater_precedence(op1, op2):
+            precedences = {"+": 0, "-": 0, "*": 1, "/": 1}
+            return precedences[op1] > precedences[op2]
+
+        def evaluate():
+            # https://en.wikipedia.org/wiki/Shunting-yard_algorithm
+            # http://www.martinbroadhurst.com/shunting-yard-algorithm-in-python.html
+
+            values = []
+            operators = []
+            for token in expression:
+                if is_digit(token):
+                    values.append(is_digit(token))
+                elif token == "(":
+                    operators.append(token)
+                elif token == ")":
+                    top = peek(operators)
+                    while top not in (None, "("):
+                        calculate(operators, values)
+                        top = peek(operators)
+                    operators.pop()
+
+                else:
+                    top = peek(operators)
+
+                    while top not in (None, "(", ")") and greater_precedence(top, token):
+                        calculate(operators, values)
+                        top = peek(operators)
+                    operators.append(token)
+
+            while peek(operators):
+                calculate(operators, values)
+
+            return values[0]
+
+        if expression:
+            while not is_digit(expression[-1]) and not expression[-1] == ")":
+                del expression[-1]
+
+        for i, res in enumerate(results):
+            expression.insert(0, str(res))
+            results[i] = evaluate()
+            del expression[0]
 
         results = f"```py\nRolled: ({results})\n```"
 
