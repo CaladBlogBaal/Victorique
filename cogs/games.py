@@ -12,7 +12,7 @@ from discord.ext import commands
 
 from config.utils.checks import checking_for_multiple_channel_instances
 from config.utils.paginator import Paginator
-from config.utils.converters import TriviaCategoryConvertor, TriviaDiffcultyConventor
+from config.utils.converters import TriviaCategoryConvertor, TriviaDiffcultyConventor, DieConventor
 
 
 class Card:
@@ -257,39 +257,17 @@ class Games(commands.Cog):
         await msg.edit(content=f"{random.choice(possible_responses)} {ctx.author.name}")
 
     @commands.command()
-    async def roll(self, ctx, *, dice: str):
+    async def roll(self, ctx, *, dice: DieConventor):
         """
         Roll a die in a NdN+m format
         """
+
         ops = {"+": (lambda a, b: a + b),
                "-": (lambda a, b: a - b),
                "*": (lambda a, b: a * b),
                "/": (lambda a, b: a / b)}
 
-        rolls, d, expression = dice.partition("d")
-
-        if "d" in expression:
-            return await ctx.send(f":no_entry: | multiple dice isn't supported.", delete_after=10)
-
-        if any(x in expression for x in ("//", "**", "^")):
-            return await ctx.send(f"> An invalid operator was passed.", delete_after=10)
-
-        if not d.startswith("d") or not rolls.isdigit():
-            return await ctx.send(":no_entry: | dice must be in a NdN+m format.")
-
-        if expression.count("(") != expression.count(")") or int(rolls) <= 0:
-            return await ctx.send(":no_entry: | Invalid expression.")
-
-        rolls = int(rolls)
-
-        expression = expression.replace(" ", "")
-        expression = re.findall(r"[/ *\-+()]|\d+", expression)
-        limit = int(expression[0])
-
-        del expression[0]
-
-        if rolls > 100:
-            rolls = 100
+        rolls, limit, expression = dice
 
         results = [random.randint(1, limit) for _ in range(rolls)]
 
@@ -347,13 +325,11 @@ class Games(commands.Cog):
 
             return values[0]
 
-        if expression:
-            while not is_digit(expression[-1]) and not expression[-1] == ")":
-                del expression[-1]
-
         for i, res in enumerate(results):
             expression.insert(0, str(res))
+
             results[i] = evaluate()
+
             del expression[0]
 
         results = f"```py\nRolled: ({results})\n```"

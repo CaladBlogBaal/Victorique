@@ -111,7 +111,7 @@ class AzurLane(commands.Cog, name="Azur Lane"):
             names = [result["name"] for result in results["query"]["allimages"]
                      if word.lower() in result["name"].lower()]
 
-        names = ctx.chunk(names, 10)
+        names = list(ctx.chunk(names, 10))
 
         if not names:
             return await ctx.send(f":no_entry: | no images for the ship {word} were found.")

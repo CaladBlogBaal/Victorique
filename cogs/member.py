@@ -15,6 +15,7 @@ class Members(commands.Cog):
     async def info(self, ctx,  *, member: discord.Member = None):
         """
         Get info on a guild member
+        only displays the first 40 roles.
         """
 
         member = member or ctx.author
@@ -25,7 +26,7 @@ class Members(commands.Cog):
         shared_servers = len([guild for guild in self.bot.guilds if member in guild.members
                               and ctx.author in guild.members])
         joined_at = member.joined_at.strftime("%d/%m/%Y: %H:%M:%S")
-        roles = ctx.chunk([role.mention for role in member.roles], 4)
+        roles = ctx.chunk([role.mention if "everyone" not in role.name else role.name for role in member.roles[:40]], 4)
         roles_ = ""
         for chunk in roles:
             roles_ += " ".join(chunk)

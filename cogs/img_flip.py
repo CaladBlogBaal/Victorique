@@ -82,7 +82,7 @@ class ImageFlip(commands.Cog):
         i = Imgflip(ctx)
         results = i.memes
 
-        embed = discord.Embed(title=" ", description=" ", color=self.bot.default_colours())
+        embed = discord.Embed(title=" ", description=" ", color=self.bot.default_colors())
         count = 0
         for dict_ in results:
             for meme_name, meme_id in dict_.items():

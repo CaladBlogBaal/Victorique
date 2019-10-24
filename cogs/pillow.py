@@ -214,7 +214,7 @@ class Images(commands.Cog):
         file = discord.File(filename="clyde.png", fp=image.save())
         await ctx.send(file=file)
 
-    @commands.command(aliases=["kicc"])
+    @commands.command(aliases=["fc"])
     @commands.guild_only()
     async def fake_kick(self, ctx, *, member: discord.Member):
         """Get a false kick image of a guild/user member"""
@@ -256,7 +256,7 @@ class Images(commands.Cog):
 
         kick_text = self.string_splice_append(f"Kick {member.name}", 24, 23, "...")
         ban_text = self.string_splice_append(f"Ban {member.name}", 25, 24, "...")
-        avatar_name_text = self.string_splice_append(member.name, 17, 16, "...")
+        avatar_name_text = self.string_splice_append(member.display_name, 17, 16, "...")
         online_text = str(len(guild_members)) if len(guild_members) >= 6 else "6"
 
         image.font_setter(self.whitney, 14, (215, 66, 66))

@@ -538,7 +538,7 @@ class Misc(commands.Cog):
     @commands.command()
     async def funfact(self, ctx):
         """
-        Get a random fun fact you may or may not know
+        Get a random fun fact from the nekos life api
         """
         js = await self.bot.fetch("https://nekos.life/api/v2/fact")
 
@@ -591,11 +591,16 @@ class Misc(commands.Cog):
     @commands.command()
     async def choose(self, ctx, *, choices):
         """
-        Have the bot pick an option choices separated by a space or |
+        Have the bot pick an option choices separated |
         """
 
-        choices = " ".join(choices.split())
-        choices = choices.split(" ") or choices.split("|")
+        choices = [option.strip() for option in choices.split("|")]
+
+        if choices.count("") == len(choices):
+            return await ctx.send(":no_entry: | invalid amount of options were passed.")
+
+        choices = [option for option in choices if option]
+
         await ctx.send(f":information_source: | I choose `{random.choice(choices)}` {ctx.author.name}.")
 
     @commands.command()

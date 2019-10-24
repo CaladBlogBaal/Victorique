@@ -193,33 +193,6 @@ class Moderation(commands.Cog):
         await ctx.send(f"> {ctx.author.name} unmuted {member_display}")
 
     @commands.command()
-    @combined_permissions_check(manage_roles=True)
-    async def addrole(self, ctx, member: typing.Optional[discord.Member] = None, *, role: discord.Role):
-        """Add a role to a guild member"""
-        member = member or ctx.author
-        role_name = await self.role_check(ctx, member, role)
-
-        if role_name is False:
-            return
-
-        await member.add_roles(role, reason=None, atomic=True)
-        await ctx.send(f"> added the role {role.name} to {member.display_name} :white_check_mark:")
-
-    @commands.command()
-    @combined_permissions_check(manage_roles=True)
-    async def removerole(self, ctx, member: typing.Optional[discord.Member] = None, *, role: discord.Role):
-        """Remove a role to a guild member"""
-
-        member = member or ctx.author
-        role_name = await self.role_check(ctx, member, role)
-
-        if role_name is False:
-            return
-
-        await member.remove_roles(role)
-        await ctx.send(f"> removed the role {role_name} from {member.display_name} :white_check_mark:")
-
-    @commands.command()
     @combined_permissions_check(manage_emojis=True)
     async def emote(self, ctx, *, url=None):
         """Create an emoji accepts file attachments"""
