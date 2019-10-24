@@ -1,3 +1,7 @@
+import re
+
+from contextlib import suppress
+
 from discord.ext import commands
 
 
@@ -154,3 +158,35 @@ class TriviaDiffcultyConventor(commands.Converter):
             return argument
 
         raise commands.BadArgument("Invalid difficulty was entered")
+
+
+class DieConventor(commands.Converter):
+    async def convert(self, ctx, argument):
+        rolls, d, expression = argument.partition("d")
+
+        if any(x in expression for x in ("//", "**", "^")):
+            raise commands.BadArgument("An invalid operator was passed.")
+
+        if not d.startswith("d") or not rolls.isdigit():
+            raise commands.BadArgument("dice must be in a NdN+m format.")
+
+        if expression.count("(") != expression.count(")") or int(rolls) <= 0 or re.search(r"[a-zA-Z]", expression):
+            raise commands.BadArgument("Invalid expression.")
+
+        rolls = int(rolls)
+
+        expression = expression.replace(" ", "")
+        expression = re.findall(r"[/ *\-+()]|\d+\.?\d*", expression)
+
+        limit = int(expression[0])
+
+        if limit == 0:
+            limit = 1
+
+        del expression[0]
+
+        with suppress(IndexError):
+            while expression[-1] in ("+", "*", "/"):
+                del expression[-1]
+
+        return rolls, limit, expression
