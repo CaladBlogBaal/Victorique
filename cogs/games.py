@@ -471,7 +471,7 @@ class Games(commands.Cog):
         await p.paginate()
 
     @commands.command(aliases=["ttt"])
-    async def tictactoe(self, ctx, mention: discord.Member):
+    async def tictactoe(self, ctx, member: discord.Member):
         """
         Play a game of TicTacToe
         """
@@ -480,25 +480,25 @@ class Games(commands.Cog):
 
         board_np = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
 
-        if mention == ctx.author:
+        if member == ctx.author:
             return await ctx.send("You can't play against yourself silly rascal")
 
-        if mention.bot:
+        if member.bot:
             return await ctx.send("Bots are too much for mere humans.")
 
-        await ctx.send(f"awaiting a response from {mention.display_name} (options yes or no)")
+        await ctx.send(f"awaiting a response from {member.display_name} (options yes or no)")
 
-        message = await self.bot.wait_for('message', check=lambda message: message.author == mention,
+        message = await self.bot.wait_for('message', check=lambda message: message.author == member,
                                           timeout=60)
 
         while message.content.lower() != "yes" and message.content.lower() != "no":
-            message = await self.bot.wait_for('message', check=lambda message: message.author == mention, timeout=60)
+            message = await self.bot.wait_for('message', check=lambda message: message.author == member, timeout=60)
 
         if message.content.lower() == "yes":
             pass
 
         elif message.content.lower() == "no":
-            return await ctx.send(f":information_source: | seems like {mention.display_name} doesn't want a game "
+            return await ctx.send(f":information_source: | seems like {member.display_name} doesn't want a game "
                                   f"shutting down the game...")
 
         def display_board():
@@ -599,7 +599,7 @@ class Games(commands.Cog):
             return user == ctx.author and reaction.emoji in reactions and reaction.message.id == msg.id
 
         def check_mention(reaction, user):
-            return user == mention and reaction.emoji in reactions and reaction.message.id == msg.id
+            return user == member and reaction.emoji in reactions and reaction.message.id == msg.id
 
         embed_ = discord.Embed(title="Tic Tac Toe Guide :information_source:",
                                description="this command is reaction based just react with"
@@ -615,8 +615,7 @@ class Games(commands.Cog):
         first = first_turn()
 
         async def player_turn(_check, _letter, member):
-
-            turn_msg = await ctx.send(f"It's {member.name} turn")
+            await msg.edit(embed=embed(), content=f"It's {member.name} turn")
 
             with contextlib.suppress(discord.HTTPException):
                 cancel_after = 0
@@ -651,8 +650,6 @@ class Games(commands.Cog):
                     return await ctx.send(":information_source: | The game was a draw")
 
                 await msg.edit(embed=embed())
-                await asyncio.sleep(2)
-                await turn_msg.delete()
 
         while True:
 
@@ -664,7 +661,7 @@ class Games(commands.Cog):
 
             else:
 
-                if await player_turn(check_mention, letter2, mention):
+                if await player_turn(check_mention, letter2, member):
                     break
 
                 first = "Player"
