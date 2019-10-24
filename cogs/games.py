@@ -533,11 +533,6 @@ class Games(commands.Cog):
 
         def check_winner(last_played_move):
 
-            check_ = return_open_spaces()
-
-            if check_ == []:
-                return False
-
             for i in range(3):
                 rows = np.all(default_board_np[i, :] == last_played_move)
                 cols = np.all(default_board_np[:, i] == last_played_move)
@@ -550,6 +545,11 @@ class Games(commands.Cog):
 
             if diags1 or diags2:
                 return True
+
+            check_ = return_open_spaces()
+
+            if check_ == []:
+                return False
 
         def place_letter(player_number, player_choice):
             index = np.where(board_np == player_choice)
@@ -617,39 +617,44 @@ class Games(commands.Cog):
         async def player_turn(_check, _letter, member):
             await msg.edit(embed=embed(), content=f"It's {member.name} turn")
 
-            with contextlib.suppress(discord.HTTPException):
-                cancel_after = 0
+            cancel_after = 0
 
-                reaction, user = await self.bot.wait_for('reaction_add', timeout=30, check=_check)
+            reaction, user = await self.bot.wait_for('reaction_add', timeout=60, check=_check)
+
+            with contextlib.suppress(discord.HTTPException):
                 await msg.remove_reaction(reaction, user)
 
-                while True:
+            while True:
 
-                    if reactions.index(reaction.emoji) + 1 in return_open_spaces():
-                        place_letter(_letter, reactions.index(reaction.emoji) + 1)
-                        break
+                if reactions.index(reaction.emoji) + 1 in return_open_spaces():
+                    place_letter(_letter, reactions.index(reaction.emoji) + 1)
+                    break
 
-                    else:
-                        await ctx.send(":no_entry: | " + member.name + " invalid move react again", delete_after=3)
-                        reaction, user = await self.bot.wait_for('reaction_add', timeout=30, check=_check)
-                        cancel_after += 1
-                        if cancel_after == 5:
-                            return await ctx.send(":no_entry: | too many invalid moves cancelling the game.",
-                                                  delete_after=10)
+                else:
+                    await msg.edit(embed=embed(),
+                                   content=f":no_entry: | {member.display_name} invalid move react again")
 
+                    reaction, user = await self.bot.wait_for('reaction_add', timeout=30, check=_check)
+                    cancel_after += 1
+
+                    if cancel_after == 5:
+                        await msg.edit(embed=embed(),
+                                       content=":no_entry: | too many invalid moves cancelling the game.")
+                        return True
+
+            place_letter(_letter, reactions.index(reaction.emoji) + 1)
+
+            if check_winner(_letter):
                 place_letter(_letter, reactions.index(reaction.emoji) + 1)
+                await msg.edit(embed=embed(), content=f":information_source: | {member.display_name} won")
+                return True
 
-                if check_winner(_letter):
-                    place_letter(_letter, reactions.index(reaction.emoji) + 1)
-                    await msg.edit(embed=embed())
-                    return await ctx.send(f":information_source: | {member.mention} won")
+            if check_winner(_letter) is False:
+                place_letter(_letter, reactions.index(reaction.emoji) + 1)
+                await msg.edit(embed=embed(), content=":information_source: | The game was a draw")
+                return True
 
-                if check_winner(_letter) is False:
-                    place_letter(_letter, reactions.index(reaction.emoji) + 1)
-                    await msg.edit(embed=embed())
-                    return await ctx.send(":information_source: | The game was a draw")
-
-                await msg.edit(embed=embed())
+            await msg.edit(embed=embed())
 
         while True:
 
