@@ -12,7 +12,7 @@ import discord
 from discord.ext import commands, tasks
 
 from config.utils.paginator import Paginator, WarpedPaginator
-from config.utils.converters import TriviaCategoryConvertor, TriviaDiffcultyConventor
+from config.utils.converters import TriviaCategoryConverter, TriviaDiffcultyConventer
 
 
 @tasks.loop(hours=24)
@@ -200,6 +200,7 @@ class OwnerCog(commands.Cog, name="Owner Commands"):
     @commands.command()
     async def query(self, ctx, *, _query):
         """Return rows from the postgres database"""
+
         wp = WarpedPaginator(ctx)
         _query = _query
         rows = await ctx.con.fetch(_query)
@@ -286,7 +287,7 @@ class OwnerCog(commands.Cog, name="Owner Commands"):
         """The main command for updaing the trivia tables does nothing by itself"""
 
     @question.command()
-    async def add(self, ctx, category: TriviaCategoryConvertor, difficulty: TriviaDiffcultyConventor,
+    async def add(self, ctx, category: TriviaCategoryConverter, difficulty: TriviaDiffcultyConventer,
                   type_, *, question):
         """Adds a question to the question table."""
         categories = (cat_id["category_id"] for cat_id in await ctx.con.fetch("SELECT category_id from category"))

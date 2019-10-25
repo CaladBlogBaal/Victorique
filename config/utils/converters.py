@@ -5,7 +5,7 @@ from contextlib import suppress
 from discord.ext import commands
 
 
-class TagNameConvertor(commands.Converter):
+class TagNameConverter(commands.Converter):
     async def convert(self, ctx, argument):
 
         new_name = await commands.clean_content().convert(ctx, argument.lower())
@@ -26,7 +26,7 @@ class TagNameConvertor(commands.Converter):
         return new_name
 
 
-class FishRarityConventor(commands.Converter):
+class FishRarityConventer(commands.Converter):
     async def convert(self, ctx, argument):
         rarity = argument.lower().strip()
 
@@ -39,7 +39,7 @@ class FishRarityConventor(commands.Converter):
         return int(rarity)
 
 
-class FishNameConventor(commands.Converter):
+class FishNameConventer(commands.Converter):
     async def convert(self, ctx, argument):
         argument = argument.lower().strip()
         fish = ""
@@ -117,7 +117,7 @@ class SeasonConverter(commands.Converter):
         return month
 
 
-class TriviaCategoryConvertor(commands.Converter):
+class TriviaCategoryConverter(commands.Converter):
     async def convert(self, ctx, argument):
 
         try:
@@ -143,7 +143,7 @@ class TriviaCategoryConvertor(commands.Converter):
         return result
 
 
-class TriviaDiffcultyConventor(commands.Converter):
+class TriviaDiffcultyConventer(commands.Converter):
     async def convert(self, ctx, argument):
         try:
 
@@ -160,7 +160,7 @@ class TriviaDiffcultyConventor(commands.Converter):
         raise commands.BadArgument("Invalid difficulty was entered")
 
 
-class DieConventor(commands.Converter):
+class DieConventer(commands.Converter):
     async def convert(self, ctx, argument):
         rolls, d, expression = argument.partition("d")
 

@@ -7,7 +7,7 @@ import discord
 from discord.ext import commands
 
 from config.utils.paginator import Paginator, PaginatorGlobal
-from config.utils.converters import FishNameConventor, FishRarityConventor
+from config.utils.converters import FishNameConventer, FishRarityConventer
 
 
 class Fishing(commands.Cog):
@@ -61,7 +61,7 @@ class Fishing(commands.Cog):
     async def __fish_catches_view(ctx, rarity_id=None, global_paginator=False):
 
         if rarity_id:
-            rarity_id = await FishRarityConventor().convert(ctx, rarity_id)
+            rarity_id = await FishRarityConventer().convert(ctx, rarity_id)
 
         if not global_paginator:
             p = Paginator(ctx)
@@ -358,14 +358,14 @@ class Fishing(commands.Cog):
         await ctx.send(f"> Your current favourite fish, {ctx.author.name}\n > {fish_names}")
 
     @favourites.command()
-    async def add(self, ctx, fish_ids: commands.Greedy[FishNameConventor]):
+    async def add(self, ctx, fish_ids: commands.Greedy[FishNameConventer]):
         """Add a fish/fishes to your favorites
         separate multiple fish ids with a space"""
 
         await self.__fish_update_favourites(ctx, fish_ids)
 
     @favourites.command()
-    async def remove(self, ctx, fish_ids: commands.Greedy[FishNameConventor]):
+    async def remove(self, ctx, fish_ids: commands.Greedy[FishNameConventer]):
         """Remove a fish/fishes from your favorites
         separate multiple fish ids with a space"""
 
@@ -498,7 +498,7 @@ class Fishing(commands.Cog):
 
         list_of_ids = message.content.split(" ")
 
-        fish_ids = [await FishNameConventor().convert(ctx, id_) for id_ in list_of_ids]
+        fish_ids = [await FishNameConventer().convert(ctx, id_) for id_ in list_of_ids]
         fish_ids = set(fish_ids)
 
         if fish_ids.issubset(data) is False:
@@ -587,7 +587,7 @@ class Fishing(commands.Cog):
                            f" {amount} credits.")
 
     @sell.command()
-    async def all(self, ctx, rarity_id: FishRarityConventor, excluded_fish_ids: commands.Greedy[FishNameConventor]):
+    async def all(self, ctx, rarity_id: FishRarityConventer, excluded_fish_ids: commands.Greedy[FishNameConventer]):
         """Sell all of a fish with a specified rarity id
         pass a rarity name or 1 for common, 2 for elite, 3 for super and -1 for legendary into the rarity_id
         pass into the excluded fish parameter a list of fish ids or names
@@ -642,7 +642,7 @@ class Fishing(commands.Cog):
                            f" {amount} credits.")
 
     @sell.command(name="fish")
-    async def fish_sell(self, ctx, amount: int, fish_id: FishNameConventor):
+    async def fish_sell(self, ctx, amount: int, fish_id: FishNameConventer):
         """Sell an amount of a specific fish"""
 
         if amount < 0:

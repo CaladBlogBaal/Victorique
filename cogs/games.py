@@ -3,7 +3,6 @@ import contextlib
 import asyncio
 import random
 import typing
-import re
 
 import numpy as np
 
@@ -12,7 +11,7 @@ from discord.ext import commands
 
 from config.utils.checks import checking_for_multiple_channel_instances
 from config.utils.paginator import Paginator
-from config.utils.converters import TriviaCategoryConvertor, TriviaDiffcultyConventor, DieConventor
+from config.utils.converters import TriviaCategoryConverter, TriviaDiffcultyConventer, DieConventer
 
 
 class Card:
@@ -257,7 +256,7 @@ class Games(commands.Cog):
         await msg.edit(content=f"{random.choice(possible_responses)} {ctx.author.name}")
 
     @commands.command()
-    async def roll(self, ctx, *, dice: DieConventor):
+    async def roll(self, ctx, *, dice: DieConventer):
         """
         Roll a die in a NdN+m format
         """
@@ -337,8 +336,8 @@ class Games(commands.Cog):
         await ctx.send(results)
 
     @commands.group(aliases=["tri"], invoke_without_command=True)
-    async def trivia(self, ctx, difficulty: typing.Optional[TriviaDiffcultyConventor] = None,
-                     amount_of_questions: typing.Optional[int] = 5, *, category: TriviaCategoryConvertor = None):
+    async def trivia(self, ctx, difficulty: typing.Optional[TriviaDiffcultyConventer] = None,
+                     amount_of_questions: typing.Optional[int] = 5, *, category: TriviaCategoryConverter = None):
         """
         Answer some trivia questions category accepts either an id or name
         possible difficulties are easy, medium hard
@@ -456,7 +455,7 @@ class Games(commands.Cog):
         await ctx.send(description)
 
     @categorises.command()
-    async def search(self, ctx, *, category: TriviaCategoryConvertor):
+    async def search(self, ctx, *, category: TriviaCategoryConverter):
         """Search returns all questions based on their category, category accepts either an id or name"""
         p = Paginator(ctx)
         results = await ctx.con.fetch("SELECT content, question_id from question where category_id = $1", category)

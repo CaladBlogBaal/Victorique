@@ -15,7 +15,7 @@ from discord.ext import commands
 
 import loadconfig
 from config.utils.paginator import Paginator
-from config.utils.converters import TagNameConvertor
+from config.utils.converters import TagNameConverter
 
 
 class Tags(commands.Cog):
@@ -156,7 +156,7 @@ class Tags(commands.Cog):
         await p.paginate()
 
     @tag.command()
-    async def create(self, ctx, *, name: TagNameConvertor):
+    async def create(self, ctx, *, name: TagNameConverter):
         """Create a customisable tag for this guild"""
 
         await self.create_tag(ctx, name, ".")
