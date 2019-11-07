@@ -30,21 +30,18 @@ class Animals(commands.Cog):
 
         await p.paginate()
 
-    @commands.group(aliases=["a_fact"])
+    @commands.group(aliases=["afact"], ignore_extra=False)
     async def animal_fact(self, ctx):
         """The main command for animal facts, called by itself will produce a random animal fact."""
 
         if ctx.invoked_subcommand:
             name = ctx.invoked_subcommand.name
             js = await self.bot.fetch(f"https://some-random-api.ml/facts/"f"{name}")
-            return await ctx.send(js["fact"])
-
-        if ctx.message.content != f"{ctx.prefix}animal_fact":
-            return
+            return await ctx.send(f'> {js["fact"]}')
 
         random_animal = random.choice(self.animals)
         js = await self.bot.fetch(f"https://some-random-api.ml/facts/{random_animal}")
-        await ctx.send(js["fact"])
+        await ctx.send(f'> {js["fact"]}')
 
     @animal_fact.command(name="cat")
     async def cat_fact(self):
