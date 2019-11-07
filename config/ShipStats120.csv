@@ -78,14 +78,14 @@
 94,Glowworm,DD,1412,210,36,Light,0,0,0.18
 96,Hardy,DD,1518,210,40,Light,0,0,0
 100,Hunter,DD,1370,210,24,Light,0,0,0
-101,Javelin,DD,1581,210,65,Light,0,0,0
+101.0,Javelin,DD,1581.0,210.0,65.0,Light,0.0,0.0,0.0
 102,Juno,DD,1536,210,40,Light,0,0,0
 103,Vampire,DD,1314,195,42,Light,0,0,0
 104,Leander,CL,3246,102,44,Light,0,0,0
 105,Achilles,CL,2974,97,54,Light,0,0,0
 106,Ajax,CL,2974,97,74,Light,0,0,0
 110,Southampton,CL,3688,100,32,Light,0,0,0
-111,Sheffield,CL,3796,100,78,Light,0,0,0
+111.0,Sheffield,CL,3796.0,100.0,78.0,Light,0.0,0.0,0.0
 114,Edinburgh,CL,4486,100,37,Light,0,0,0
 115,Belfast,CL,3970,96,88,Light,0,0,0
 116,Arethusa,CL,2830,100,69,Light,0,0,0
@@ -176,8 +176,8 @@
 229,Zuikaku,CV,7193,57,73,Medium,0,0,0
 230,Taihou,CV,7310,54,36,Heavy,0,0,0
 232,Akashi,AR,4125,45,58,Light,0,0,0
-233,Z1,DD,2053,148,40,Light,0,0.4,0
-236,Z23,DD,2125,157,65,Light,0,0,0
+233.0,Z1,DD,2053.0,148.0,40.0,Light,0.0,0.4,0.0
+236.0,Z23,DD,2125.0,157.0,65.0,Light,0.0,0.0,0.0
 237,Z25,DD,2116,156,72,Light,0,0,0
 238,Konigsberg,CL,3372,100,42,Light,0,0,0
 239,Karlsruhe,CL,3372,100,39,Light,0,0,0
@@ -201,10 +201,10 @@
 259,Ping Hai,CL,1950,72,47,Light,0,0,0
 262,Avrora,CL,3372,79,55,Medium,0,0,0
 263,Bailey,DD,1826,162,70,Light,0,0,0
-264,Z19,DD,2033,148,39,Light,0,0,0
+264.0,Z19,DD,2033.0,148.0,39.0,Light,0.0,0.0,0.0
 265,Z20,DD,1993,148,71,Light,0,0,0
 266,Z21,DD,1993,148,42,Light,0,0,0
-267,Z46,DD,2595,151,63,Light,0,0,0
+267.0,Z46,DD,2595.0,151.0,63.0,Light,0.0,0.0,0.0
 269,Kamikaze,DD,1561,193,86,Light,0,0,0
 270,Matsukaze,DD,1561,190,45,Light,0,0,0
 271,Mutsuki,DD,1487,193,35,Light,0,0,0
@@ -233,7 +233,7 @@
 317,Isokaze,DD,2083,191,18,Light,0,0,0
 318,Hamakaze,DD,2083,191,58,Light,0,0,0
 319,Tanikaze,DD,2083,191,52,Light,0,0,0
-320,Mikasa,BB,5372,25,95,Heavy,0,0,0
+320.0,Mikasa,BB,5372.0,25.0,95.0,Heavy,0.0,0.0,0.0
 321,Agano,CL,3159,104,21,Light,0,0,0
 325,Matchless,DD,1683,210,76,Light,0,0,0
 326,Musketeer,DD,1683,210,67,Light,0,0,0
@@ -245,7 +245,7 @@
 332,Ooshio,DD,1937,191,40,Light,0,0,0
 333,Michishio,DD,1964,191,48,Light,0,0,0
 334,Arashio,DD,1937,191,32,Light,0,0,0
-335,Little Bel,CL,3231,96,89,Light,0,0,0
+335.0,Little Bel,CL,3231.0,96.0,89.0,Light,0.0,0.0,0.0
 336,Abercrombie,BM,3777,61,38,Light,0,0,0
 337,Sussex,CA,3461,71,68,Light,0,0,0
 338,I-19,SS,2165,45,19,Light,0,0,0
@@ -332,7 +332,7 @@
 3090,Cygnet Kai,DD,1524,255,72,Light,0,0,0
 3091,Foxhound Kai,DD,1538,249,68,Light,0,0,0
 3092,Fortune Kai,DD,1567,249,68,Light,0,0,0
-3101,Javelin Kai,DD,1746,250,65,Light,0,0,0
+3101.0,Javelin Kai,DD,1746.0,250.0,65.0,Light,0.0,0.0,0.0
 3104,Leander Kai,CL,3486,102,44,Light,0,0,0
 3105,Achilles Kai,CL,3214,97,54,Light,0,0,0
 3106,Ajax Kai,CL,3214,97,74,Light,0,0,0
@@ -410,3 +410,7 @@ P009,Kitakaze,DD,2641,197,0,Light,0,0,0
 P010,Azuma,CB,7541,50,0,Medium,0,0,0
 P011,Friedrich der Grosse,BB,9886,27,0,Heavy,0,0,0
 P012,Gascogne,BB,7863,36,0,Heavy,0,0,0
+120,Gascogne (Muse),BB,7851,37,0,Heavy,0,0,0.15
+120.0,Sheffield (Muse),CL,3559.0,100.0,78.0,Light,0.0,0.0,0.0
+120.0,Akagi (Muse),CV,6541.0,54.0,42.0,Medium,0.0,0.0,0.0
+120,Admiral Hipper (Muse),CA,4844,61,66,Medium,0,0,0
