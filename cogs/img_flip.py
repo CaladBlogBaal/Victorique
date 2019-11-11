@@ -76,13 +76,18 @@ class ImageFlip(commands.Cog):
             return " ".join([comment[0:index]])
         return comment
 
-    @commands.command(aliases=["memes", "memes_list"])
+    @commands.group(name="memes", aliases=["meme"])
     async def img_flip_memes(self, ctx):
+        """The main command for creating imgflip memes does nothing by itself"""
+        
+    @img_flip_memes.command(name="list", aliases=["l"])
+    async def img_flip_meme_list(self, ctx):
+        """Get a list of valid meme templates"""
         p = Paginator(ctx)
         i = Imgflip(ctx)
         results = i.memes
 
-        embed = discord.Embed(title=" ", description=" ", color=self.bot.default_colors())
+        embed = discord.Embed(color=self.bot.default_colors())
         count = 0
         for dict_ in results:
             for meme_name, meme_id in dict_.items():
@@ -90,16 +95,16 @@ class ImageFlip(commands.Cog):
                 count += 1
                 if count == 5:
                     await p.add_page(embed)
-                    embed = discord.Embed(title=" ", description=" ", color=self.bot.default_colors())
+                    embed = discord.Embed(color=self.bot.default_colors())
                     count = 0
         await p.paginate()
 
-    @commands.command(aliases=["meme_generate", "meme_g"])
+    @img_flip_memes.command(name="generate", aliases=["g"])
     async def img_flip_generate(self, ctx, *, args):
         """Generate a meme as you'd if you were using imgflip make sure it exists in the list of memes
         In the format (meme name or id separator top text separator bottom text)
-        do ?img_flip_memes for a list of possible memes to be generated
-        example usage, vic meme_g What Do We Want | shitty memes | now"""
+        do (vic meme list) for a list of possible memes to be generated
+        example usage, vic meme g What Do We Want | shitty memes | now"""
         i = Imgflip(ctx)
 
         args = args.replace("||", "\u200B").replace("|", "\u200B").replace("&&", "\u200B")
@@ -120,11 +125,11 @@ class ImageFlip(commands.Cog):
             bottom_text = ""
         await ctx.send(await i.caption_image(meme, top_text, bottom_text))
 
-    @commands.command(aliases=["meme_format", "meme_f"])
+    @img_flip_memes.command(name="format", aliases=["f"])
     async def img_flip_format(self, ctx, *, name):
         """Get the format of a meme make sure it exists in the list of memes"""
         msg = copy.copy(ctx.message)
-        msg.content = ctx.prefix + f"meme_g {name} | | |"
+        msg.content = ctx.prefix + f"meme g {name} | | |"
         new_ctx = await self.bot.get_context(msg)
         await new_ctx.reinvoke()
 
@@ -199,7 +204,7 @@ class ImageFlip(commands.Cog):
         await ctx.send(embed=await n.get_image(**kwargs))
 
     @commands.command()
-    async def whw(self, ctx, *, member: typing.Union[discord.Member, discord.User]):
+    async def www(self, ctx, *, member: typing.Union[discord.Member, discord.User]):
         """Generate a who would win image using the nekobot api."""
 
         n = NekoBot(ctx)

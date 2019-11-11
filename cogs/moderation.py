@@ -1,6 +1,5 @@
 import asyncio
 import re
-import typing
 
 import discord
 from discord.ext import commands
@@ -14,7 +13,18 @@ class Moderation(commands.Cog):
         self.bot = bot
         self.session = bot.session
 
-    async def set_perms(self, guild, role=None):
+    @staticmethod
+    async def hiearchy_check(ctx, member):
+
+        if ctx.me.top_role <= member.top_role:
+            await ctx.send(f"> I can't manage {member.name} due to hierarchy.", delete_after=8)
+            await asyncio.sleep(1)
+            return True
+
+        return False
+
+    @staticmethod
+    async def set_perms(guild, role=None):
         muted_role = role
 
         if not role:
@@ -54,16 +64,6 @@ class Moderation(commands.Cog):
             return False
 
         return role_name
-
-    @staticmethod
-    async def hiearchy_check(ctx, member):
-
-        if ctx.me.top_role <= member.top_role:
-            await ctx.send(f"> I can't manage {member.name} due to hierarchy.", delete_after=8)
-            await asyncio.sleep(1)
-            return True
-
-        return False
 
     @commands.command()
     @combined_permissions_check(manage_messages=True)
@@ -194,41 +194,28 @@ class Moderation(commands.Cog):
 
     @commands.command()
     @combined_permissions_check(manage_emojis=True)
-    async def emote(self, ctx, *, url=None):
+    async def emote(self, ctx, *, urls=None):
         """Create an emoji accepts file attachments"""
-        if url is None:
-            url = ""
+        if urls is None:
+            urls = ""
 
         if ctx.message.attachments:
             for attachment in ctx.message.attachments:
-                url += attachment.url + " "
+                urls += attachment.url + " "
 
-        # checking if the message contains emote objects
-        custom_emojis = re.findall(r"<a?:\w*:\d*>", url)
-        custom_emojis_names = []
-        custom_emojis_ids = []
-        # extracting emote object details
+        custom_emojis = re.findall(r"<a?:(\w+):(\d+)>", urls)
+
         try:
-            custom_emojis_names = [(await commands.PartialEmojiConverter().convert(ctx, emote)).name
-                                   for emote in custom_emojis]
-            custom_emojis_ids = [(await commands.PartialEmojiConverter().convert(ctx, emote)).id
-                                 for emote in custom_emojis]
-
-        except commands.BadArgument:
-            pass
-
-        # adding the emote to the guild
-        try:
-            if re.findall('https?://(?:[-\\w.]|(?:%[\\da-fA-F]{2}))+', url):
+            if re.findall('https?://(?:[-\\w.]|(?:%[\\da-fA-F]{2}))+', urls):
                 # removing duplicate spaces
-                url = " ".join(url.split())
-                url_list = url.split(" ")
+                urls = " ".join(urls.split())
+                url_list = urls.split(" ")
                 names = [link.split("/")[-1] for link in url_list]
                 names = [name[:name.find(".") + 1].replace(".", "") for name in names]
                 responses = []
 
-                for url_ in url_list:
-                    async with self.session.get(url_) as response:
+                for url in url_list:
+                    async with self.session.get(url) as response:
                         responses.append(await response.read())
 
                 images = list(response for response in responses)
@@ -238,10 +225,10 @@ class Moderation(commands.Cog):
                     emoji = await ctx.guild.create_custom_emoji(name=name, image=image, reason=None)
                     await ctx.send(f"{emoji.url} \nemoji {emoji.name} was created")
 
-            if custom_emojis_ids:
-                for i, _id in enumerate(custom_emojis_ids):
-                    url = f"https://cdn.discordapp.com/emojis/{_id}.png?v=1"
-                    name = custom_emojis_names[i]
+            if custom_emojis:
+                for emote in custom_emojis:
+                    url = f"https://cdn.discordapp.com/emojis/{emote[1]}.png?v=1"
+                    name = emote[0]
 
                     async with self.session.get(url) as response:
                         image = await response.read()

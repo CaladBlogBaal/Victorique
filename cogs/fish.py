@@ -452,6 +452,7 @@ class Fishing(commands.Cog):
                 reaction, user = await self.bot.wait_for('reaction_add', timeout=30, check=check)
 
                 if reaction.emoji in reactions:
+                    await msg.delete()
                     await self.__fish_user_reel(str(reaction.emoji), ctx, amount)
 
             except asyncio.TimeoutError:
