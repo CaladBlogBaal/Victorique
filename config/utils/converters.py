@@ -190,3 +190,19 @@ class DieConventer(commands.Converter):
                 del expression[-1]
 
         return rolls, limit, expression
+
+
+class MangaIDConverter(commands.Converter):
+    async def convert(self, ctx, argument):
+        if not isinstance(argument, int):
+            return await ctx.bot.cogs["MyAnimeList"].search_mal(ctx, "manga", argument, True)
+
+        return argument
+
+
+class AnimeIDConverter(commands.Converter):
+    async def convert(self, ctx, argument):
+        if not isinstance(argument, int):
+            return await ctx.bot.cogs["MyAnimeList"].search_mal(ctx, "anime", argument, True)
+
+        return argument
