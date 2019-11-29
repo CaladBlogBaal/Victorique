@@ -1,4 +1,5 @@
 from discord.ext import commands
+from loadconfig import PRIVATE_GUILDS
 
 
 def combined_permissions_check(**perms):
@@ -44,7 +45,7 @@ def checking_for_multiple_channel_instances():
 def private_guilds_check():
     async def predicate(ctx):
         if ctx.guild:
-            return ctx.guild.id in (520242432386793473, 432569553353048075)
+            return ctx.guild.id in PRIVATE_GUILDS
 
         return True
 
