@@ -249,7 +249,7 @@ class MyAnimeList(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
         await self.seasonal_search(ctx, year, season)
 
     @commands.command()
-    async def schedule(self, ctx, day=None):
+    async def schedule(self, ctx, day=""):
 
         """Get a list anime based on their schedule"""
 
