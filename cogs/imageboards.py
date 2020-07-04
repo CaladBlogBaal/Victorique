@@ -2,6 +2,7 @@ import random
 import asyncio
 import typing
 import html
+import re
 
 import aiohttp.client_exceptions
 
@@ -11,6 +12,16 @@ import discord
 from discord.ext import commands
 
 from config.utils.paginator import PaginatorGlobal
+
+
+def range_check(amount):
+    if amount > 20:
+        return 20
+
+    elif amount < 0:
+        raise commands.BadArgument("Invalid number was passed.")
+
+    return amount
 
 
 class MoeBooruApi:
@@ -65,22 +76,6 @@ class MoeBooruApi:
         return params
 
     @staticmethod
-    def get_danbooru_params(limit, tags, safe):
-        params = {"limit": limit, "random": "true"}
-        if safe:
-            params["tags"] = "rating:safe "
-
-        if tags:
-            try:
-                params["tags"] += tags
-            except KeyError:
-                params["tags"] = tags
-
-        params["tags"] = params["tags"].rstrip()
-
-        return params
-
-    @staticmethod
     def get_ye_kc_params(limit, tags, safe):
 
         params = {
@@ -103,6 +98,7 @@ class MoeBooruApi:
 
     async def get_image(self, limit=1, tags=None, safe=True):
         # this is hacky but meh
+
         tags = self.process_tags(tags, safe)
 
         if "gelbooru" in self.post_url:
@@ -110,10 +106,6 @@ class MoeBooruApi:
 
             if params is False:
                 return set()
-
-        elif "danbooru" in self.post_url:
-            params = self.get_danbooru_params(limit, tags, safe)
-
         else:
             params = self.get_ye_kc_params(limit, tags, safe)
 
@@ -131,7 +123,6 @@ class MoeBooruApi:
             picture_data_set = set()
 
             for js in pictures:
-
                 picture_data_set.add((js.get("file_url"),
                                       js.get("source", " "),
                                       js.get("sample_url") or js.get("file_url"),
@@ -169,7 +160,6 @@ class AnimePicturesNet:
         amount_of_pages = int(text[0].split(" ")[2]) // 80
 
         if amount_of_pages >= 1 and tags:
-
             random_page = random.randint(0, amount_of_pages)
             self.post_url = self.post_url.replace("0", str(random_page))
             content = await self.fetch(self.post_url, params=params)
@@ -189,7 +179,7 @@ class AnimePicturesNet:
         else:
             list_of_urls = await self.post_response()
 
-        if list_of_urls == []:
+        if not list_of_urls:
             return []
 
         async def request():
@@ -270,12 +260,15 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
        divide tags with | or || or && **no mixing separators**
 
     """
+
     def __init__(self, bot):
         self.bot = bot
 
     @staticmethod
     async def get_nsfw_channel(ctx):
-        return await ctx.con.fetchval("SELECT nsfw_channel from guilds where guild_id = $1", ctx.guild.id)
+        if ctx.guild:
+            return await ctx.con.fetchval("SELECT nsfw_channel from guilds where guild_id = $1", ctx.guild.id)
+        return True
 
     async def random_image(self, ctx, post_url):
         m = MoeBooruApi(ctx)
@@ -283,8 +276,23 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
         results, = await m.get_image()
         await ctx.send(embed=self.embed_(*results))
 
+    def embed_(self, image_url, source, og_url="", tags=" "):
+
+        source = self.clean_sources(source)
+        tags = self.clean_tags(tags)
+
+        embed = discord.Embed(colour=discord.Colour.dark_magenta(),
+                              description=f"{source}{tags}\n[Full size img url]({og_url})")
+
+        embed.set_image(url=image_url)
+
+        if og_url:
+            embed.set_footer(text="preview image for discord.")
+
+        return embed
+
     @staticmethod
-    def embed_(image_url, source, og_url="", tags=" "):
+    def clean_tags(tags):
         # to not exceed the 2048 embed text limit.
         tags = html.unescape(tags)
         if len(tags) > 1200:
@@ -296,66 +304,29 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
                 i += 1
             tags = tags_cut
 
-        tags = f"```{tags}```"
-        count = 1
+        return f"```{tags}```"
 
-        sources_hyper_links = f"[Image source]({source})\n"
-        sources = source.split(" ")
+    @staticmethod
+    def clean_sources(sources):
+        cleaned_sources = sources
+        urls = re.findall(r"http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*(),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+", sources)
 
-        if len(sources) > 1:
-            sources_hyper_links = ""
-            for link in sources:
+        if urls:
+            cleaned_sources = "\n".join("[Image source(%s)](%s)" % (urls.index(url) + 1, url) for url in urls[:4])
 
-                if link != "":
-                    sources_hyper_links += f"[Image source({count})]({link})\n"
-                    count += 1
-
-                if count == 4:
-                    break
-
-        embed = discord.Embed(colour=discord.Colour.dark_magenta(),
-                              description=f"{sources_hyper_links}{tags}\n[Full size img url]({og_url})")
-
-        embed.set_image(url=image_url)
-
-        if og_url != "":
-            embed.set_footer(text="preview image for discord.")
-
-        return embed
+        return cleaned_sources
 
     async def post_request(self, ctx, amount, tags, post_url):
-
-        if amount > 20:
-            amount = 20
-
-        if amount < 1:
-            return
+        amount = range_check(amount)
 
         await ctx.trigger_typing()
-
         m = MoeBooruApi(ctx)
         m.set_post_url(post_url)
 
-        if ctx.guild:
-            nsfw_ch_id = await self.get_nsfw_channel(ctx)
-
-            if ctx.channel.id == nsfw_ch_id:
-                results = await m.get_image(amount, tags, False)
-
-            else:
-                results = await m.get_image(amount, tags)
-
-        else:
-            results = await m.get_image(amount, tags)
+        nsfw_ch_id = await self.get_nsfw_channel(ctx)
+        results = await m.get_image(amount, tags, ctx.channel.id != nsfw_ch_id and nsfw_ch_id is not True)
 
         if results in (set(), dict()):
-            tags = MoeBooruApi.process_tags(tags, True)
-
-            if isinstance(results, dict) and "danbooru" in post_url:
-
-                if len(tags) > 2:
-                    return await ctx.send(":no_entry: | can only search a maximum of one tag for none NSFW channels.")
-
             return await ctx.send(":no_entry: | search failed")
 
         missed = amount - len(results)
@@ -433,17 +404,15 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
     @sb.command(name="search")
     async def search_sb(self, ctx, amount: typing.Optional[int] = 1, *, tags):
         """Search for a picture on safebooru from a random page"""
+
+        amount = range_check(amount)
         await ctx.trigger_typing()
 
         tags = tags.replace("||", "\u200B").replace("|", "\u200B").replace("&&", "\u200B")
         tags = " ".join(list(tag.rstrip().lstrip().replace(" ", "_") for tag in tags.split("\u200B")))
 
-        if amount < 1:
-            return await ctx.send(":no_entry: | invalid number was passed.")
-
         sb = SafebooruAPI(ctx)
         p = PaginatorGlobal(ctx)
-
         results = await sb.post_request(tags)
 
         if not results:
@@ -453,7 +422,6 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
             results = random.sample(results, amount)
 
         for result in results:
-
             await p.add_page(self.embed_(*(await self.check_invalid_url(result))))
 
         await p.paginate()
@@ -474,11 +442,8 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
     async def search_apn(self, ctx, amount: typing.Optional[int] = 1, *, tags):
         """Search for a picture on anime pictures net
            20 is the maximum"""
-        if amount > 20:
-            amount = 20
 
-        if amount < 1:
-            return
+        amount = range_check(amount)
 
         a = AnimePicturesNet(ctx)
         p = PaginatorGlobal(ctx)
@@ -493,7 +458,6 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
             await ctx.trigger_typing()
 
         for result in results:
-
             await p.add_page(self.embed_(*result))
 
         await p.paginate()
@@ -501,7 +465,7 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
     @commands.group(invoke_without_command=True, ignore_extra=False)
     async def ye(self, ctx):
         """
-        Gets a random image from yande.re eg
+        Gets a random image from yande.re
         """
 
         await self.random_image(ctx, "https://yande.re/post.json")
@@ -546,21 +510,6 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
         20 is the maximum"""
 
         await self.post_request(ctx, amount, tags, "https://gelbooru.com/index.php?page=dapi&s=post&q=index&json=1")
-
-    @commands.group(invoke_without_command=True, ignore_extra=False)
-    async def db(self, ctx):
-        """
-        Gets a random image from danbooru
-        """
-
-        await self.random_image(ctx, "https://danbooru.donmai.us/posts.json")
-
-    @db.command(aliases=["danbooru_search", "search"])
-    async def db_search(self, ctx, amount: typing.Optional[int] = 1, *, tags):
-        """Search for a picture on danbooru
-        20 is the maximum"""
-
-        await self.post_request(ctx, amount, tags, "https://danbooru.donmai.us/posts.json")
 
     @commands.group(invoke_without_command=True, ignore_extra=False)
     async def kc(self, ctx):
