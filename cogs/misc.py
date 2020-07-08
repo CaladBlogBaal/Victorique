@@ -4,6 +4,7 @@ import math
 import re
 import asyncio
 import dateutil.parser
+import json
 
 import discord
 from discord.ext import commands
@@ -116,6 +117,19 @@ class Misc(commands.Cog):
         if ctx.bot.user.mentioned_in(ctx.message):
             return await ctx.send(embed=discord.Embed(color=self.bot.default_colors()).set_image(url=url))
 
+    @staticmethod
+    async def get_youtube_urls(contents, top=False):
+        urls = []
+        for dict_ in contents:
+            if "videoRenderer" in dict_:
+                web_cmd = dict_["videoRenderer"]["navigationEndpoint"]["commandMetadata"]["webCommandMetadata"]
+                url = web_cmd.get("url")
+                if top:
+                    return url
+                urls.append("https://www.youtube.com" + url)
+
+        return urls
+
     @cache()
     async def search_youtube(self, query, top=False):
         urls = list()
@@ -125,16 +139,16 @@ class Misc(commands.Cog):
         result = await self.bot.fetch(search_url, params=params)
         soup = BeautifulSoup(result, "html.parser")
 
-        for tag in soup.find_all("a", href=re.compile("^(?!https://www.youtube.com).*/watch\\?v=")):
+        pattern = re.compile('window\\["ytInitialData"\\] = (.*);')
+        scripts = soup.find_all("script")
 
-            url = f"https://www.youtube.com{tag.get('href')}"
-
-            if top:
-                return url
-
-            if url not in urls:
-
-                urls.append(url)
+        for script in scripts:
+            if pattern.search(str(script.string)):
+                data = pattern.search(script.string)
+                data = json.loads(data.groups()[0])
+                contents = data["contents"]["twoColumnSearchResultsRenderer"]["primaryContents"]["sectionListRenderer"]["contents"]
+                item_sec_contents = contents[0]["itemSectionRenderer"]["contents"]
+                urls.extend(await self.get_youtube_urls(item_sec_contents, top))
 
         return urls
 
