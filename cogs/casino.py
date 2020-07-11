@@ -13,6 +13,9 @@ class SlotMachine:
         self.bet = bet
         self.wheel = np.random.random_integers(8, size=(3, 3))
 
+        self.fruits = {1: ":cherries:", 2: ":lemon:", 3: ":tangerine:", 4: ":watermelon:",
+                       5: ":apple:", 6: ":seven:", 7: ":100:", 8: ":flag_at:"}
+
     async def spin_wheel(self):
         for i in range(3):
             self.wheel[i] = np.random.random_integers(8, size=3)
@@ -27,22 +30,7 @@ class SlotMachine:
         board_flat = self.wheel.flatten()
 
         for i in range(0, 9):
-            if board_flat[i] == 1:
-                board_display[i] = ":cherries:"
-            elif board_flat[i] == 2:
-                board_display[i] = ":lemon:"
-            elif board_flat[i] == 3:
-                board_display[i] = ":tangerine:"
-            elif board_flat[i] == 4:
-                board_display[i] = ":watermelon:"
-            elif board_flat[i] == 5:
-                board_display[i] = ":apple:"
-            elif board_flat[i] == 6:
-                board_display[i] = ":seven:"
-            elif board_flat[i] == 7:
-                board_display[i] = ":100:"
-            elif board_flat[i] == 8:
-                board_display[i] = ":flag_at:"
+            board_display[i] = self.fruits[board_flat[i]]
 
         display = ["[ :slot_machine: | SLOTS ]"
                    "\n{} {} {} "
@@ -57,29 +45,15 @@ class PayOuts(SlotMachine):
     def __init__(self, bet):
         super().__init__(bet)
         self.payout = 0
+        self.multiplier = {1: 20, 2: 30, 3: 40, 4: 40, 5: 80, 6: 100, 7: 120, 8: 600}
 
     def pay_out_reel(self, bet, wheel):
 
         rows = np.all(wheel[1, :] == wheel[1][0])
+
         if rows:
             value = wheel[1][0]
-
-            if value == 1:
-                self.payout += bet * 20
-            elif value == 2:
-                self.payout += bet * 30
-            elif value == 3:
-                self.payout += bet * 40
-            elif value == 4:
-                self.payout += bet * 40
-            elif value == 5:
-                self.payout += bet * 80
-            elif value == 6:
-                self.payout += bet * 100
-            elif value == 7:
-                self.payout += bet * 120
-            elif value == 8:
-                self.payout += bet * 600
+            self.payout += bet * self.multiplier[value]
 
         rows = np.all(wheel[1, :] == [7, 6, 5])
         if rows:
