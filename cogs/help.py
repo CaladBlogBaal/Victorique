@@ -21,14 +21,13 @@ class MyHelpCommand(commands.MinimalHelpCommand):
         return f"{first_line}{second_line}{third_line}{last_line}".format(self.clean_prefix, command_name)
 
     def add_subcommand_formatting(self, command):
-        fmt = "**{0} {1}** \N{EN DASH} `{2}`" if command.short_doc else '**{0} {1}** \N{EN DASH} `no description`'
+        fmt = "→ **{0} {1}** \N{EN DASH} `{2}`" if command.short_doc else '→ **{0} {1}** \N{EN DASH} `no description`'
         self.paginator.add_line(fmt.format(command.full_parent_name, command.name, command.short_doc, ""))
 
     def add_bot_commands_formatting(self, commands, heading):
 
         if commands and commands[0].cog_name:
-
-            self.paginator.add_line(f"`{heading}`")
+            self.paginator.add_line(f"➤ **{heading}**")
 
     def add_command_formatting(self, command):
 
