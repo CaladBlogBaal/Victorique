@@ -80,7 +80,7 @@ async def send_tag_content(tag, message, bot):
         except (aiohttp.ClientConnectionError, aiohttp.InvalidURL):
             await message.channel.send(content)
 
-    await message.channel.send(tag)
+    await message.channel.send(content)
 
 
 class Tags(commands.Cog):
