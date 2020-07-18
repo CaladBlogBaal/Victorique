@@ -12,6 +12,7 @@ import discord
 
 import loadconfig
 from config.utils import cache, requests, checks
+from config.utils import context
 
 
 class Victorique(commands.Bot):
@@ -24,9 +25,10 @@ class Victorique(commands.Bot):
         self.session = aiohttp.ClientSession()
         self.request = requests.Request(self, self.session)
         db = await asyncpg.create_pool(loadconfig.credentials)
-        self.db = db
+        self.pool = db
         with open("schema.sql") as f:
-            await self.db.execute(f.read())
+
+            await self.pool.execute(f.read())
 
     @staticmethod
     def default_colors():
@@ -42,7 +44,7 @@ class Victorique(commands.Bot):
 
     async def update_databases(self, guild=None):
         if guild:
-            async with self.db.acquire() as con:
+            async with self.pool.acquire() as con:
                 await con.execute("""INSERT INTO guilds (guild_id, allow_default) VALUES ($1,$2)
                                   ON CONFLICT DO NOTHING;""", guild.id, True)
             data = [(m.id, m.name, 3000) for m in guild.members if not m.bot]
@@ -50,7 +52,7 @@ class Victorique(commands.Bot):
             data = [(m.id, m.name, 3000) for m in self.get_all_members() if not m.bot]
         member_ids = list((data[0],) for data in data)
         user_update = list(data for data in data)
-        async with self.db.acquire() as con:
+        async with self.pool.acquire() as con:
             async with con.transaction():
                 await con.executemany("""INSERT INTO users (user_id, name, credits) 
                                          VALUES ($1,$2,$3) ON CONFLICT DO NOTHING;""", user_update)
@@ -65,7 +67,7 @@ class Victorique(commands.Bot):
 
     async def close(self):
         await self.session.close()
-        await self.db.close()
+        await self.pool.close()
         await super().close()
 
     async def fetch(self, url, **kwargs):
@@ -75,12 +77,12 @@ class Victorique(commands.Bot):
         return await self.request.post(url, data, **kwargs)
 
     async def get_context(self, message, *, cls=None):
-        return await super().get_context(message, cls=MyContext)
+        return await super().get_context(message, cls=context.Context)
 
     @cache.cache()
     async def get_guild_prefix(self, guild_id):
 
-        async with self.db.acquire() as con:
+        async with self.pool.acquire() as con:
             data = await con.fetchrow("""
 
                 SELECT * FROM guilds WHERE guild_id = $1
@@ -120,7 +122,7 @@ class Victorique(commands.Bot):
 
     @cache.cache()
     async def get_tags(self, guild_id):
-        async with bot.db.acquire() as con:
+        async with bot.pool.acquire() as con:
             tags = await con.fetch("select tag_name from tags where guild_id =  $1",
                                    guild_id)
 
@@ -151,55 +153,13 @@ async def get_prefix(bot_, msg):
     prefix.sort(reverse=True)
     return commands.when_mentioned_or(*prefix)(bot_, msg)
 
-
-class MyContext(commands.Context):
-    __slots__ = ("con", "emote_unescape", "safe_everyone", "chunk")
-
-    @staticmethod
-    def chunks(l, n):
-        """Yield successive n-sized chunks from l."""
-        for i in range(0, len(l), n):
-            yield l[i:i + n]
-
-    async def wait_for_input(self, transaction_id, cancel_message):
-
-        message = await self.bot.wait_for('message', check=lambda message: message.author == self.author,
-                                          timeout=120)
-
-        while transaction_id not in message.content and "cancel" not in message.content.lower():
-            message = await self.bot.wait_for('message', check=lambda message: message.author == self.author,
-                                              timeout=120)
-
-        if message.content.lower() == "cancel":
-            await self.send(cancel_message.format(self.author.name))
-            return False
-
-        return True
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.con = self.bot.db.acquire()
-        self.emote_unescape = self.bot.emote_unescape
-        self.safe_everyone = self.bot.safe_everyone
-        self.chunk = self.chunks
-
-
 bot = Victorique(command_prefix=get_prefix, case_insensitive=True)
-
-
-@bot.before_invoke
-async def before_invoke(ctx):
-    try:
-
-        ctx.con = await ctx.con
-
-    except TypeError:
-        pass
 
 
 @bot.after_invoke
 async def after_invoke(ctx):
-    await ctx.bot.db.release(ctx.con)
+    # release any lingering connections
+    await ctx.release()
 
 
 @bot.command()
@@ -244,15 +204,11 @@ async def on_message(message):
     if message.author.id == bot.user.id:
         return
 
-    if message.guild and message.guild.id in (520242432386793473, 432569553353048075):
+    if msg.lower() == "floof":
+        await message.channel.send(f"gloof {user.mention}")
 
-        print(f"{user} said {msg} in guild {message.guild.name}")
-
-        if msg.lower() == "floof":
-            await message.channel.send(f"gloof {user.mention}")
-
-        if msg.lower() == "point and laugh":
-            await message.channel.send("https://i.imgur.com/uPHnUjQ.png")
+    if msg.lower() == "point and laugh":
+        await message.channel.send("https://i.imgur.com/uPHnUjQ.png")
 
     await bot.process_commands(message)
 
@@ -274,7 +230,7 @@ presence_change.start()
 async def on_user_update(before, after):
     new_name = after.name
     user_id = after.id
-    async with bot.db.acquire() as con:
+    async with bot.pool.acquire() as con:
         await con.execute("UPDATE users SET name = $1 where user_id = $2", new_name, user_id)
 
 
@@ -288,11 +244,11 @@ async def on_member_join(member):
     if member.bot:
         return
 
-    async with bot.db.acquire() as con:
-        async with con.transaction():
-            await con.execute("INSERT INTO users (user_id, name, credits) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING;",
-                              member.id, member.name, 3000)
-            await con.execute("INSERT INTO fish_users (user_id) VALUES ($1) ON CONFLICT DO NOTHING;", member.id)
+    async with bot.pool.acquire() as con:
+
+        await con.execute("INSERT INTO users (user_id, name, credits) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING;",
+                          member.id, member.name, 3000)
+        await con.execute("INSERT INTO fish_users (user_id) VALUES ($1) ON CONFLICT DO NOTHING;", member.id)
 
 
 @bot.event

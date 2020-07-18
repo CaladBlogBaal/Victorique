@@ -6,8 +6,6 @@ import typing
 import discord
 from discord.ext import commands
 
-from config.utils.paginator import Paginator
-
 
 class Animals(commands.Cog):
     """Animal Related Commands"""
@@ -16,7 +14,6 @@ class Animals(commands.Cog):
         self.animals = ["bird", "cat", "dog", "fox", "koala", "panda"]
 
     async def api_get_image_repeated(self, content, url, key, ctx, amount=1):
-        p = Paginator(ctx)
 
         if amount < 1:
             return
@@ -26,9 +23,9 @@ class Animals(commands.Cog):
 
         for _ in range(amount):
             embed = await self.bot.api_get_image(content, url, key)
-            await p.add_page(embed)
+            await ctx.paginator.add_page(embed)
 
-        await p.paginate()
+        await ctx.paginator.paginate()
 
     @commands.group(aliases=["afact"], ignore_extra=False)
     async def animal_fact(self, ctx):
@@ -103,7 +100,6 @@ class Animals(commands.Cog):
         Get a random picture of a bird
         20 is the maximum
         """
-        p = Paginator(ctx)
         colours = [discord.Color.dark_magenta(), discord.Color.dark_teal(), discord.Color.dark_orange()]
 
         for _ in range(amount):
@@ -112,9 +108,9 @@ class Animals(commands.Cog):
             col = int(random.random() * len(colours))
             embed = discord.Embed(color=colours[col])
             embed.set_image(url="https://random.birb.pw/img/" + js["file"])
-            await p.add_page(embed)
+            await ctx.paginator.add_page(embed)
 
-        await p.paginate()
+        await ctx.paginator.paginate()
 
     @commands.command(aliases=["doggo", "trooper"])
     async def dog(self, ctx, amount: typing.Optional[int]=1, breed=None):

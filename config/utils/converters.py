@@ -43,29 +43,22 @@ class FishNameConventer(commands.Converter):
     async def convert(self, ctx, argument):
         argument = argument.lower().strip()
         fish = ""
+        async with ctx.acquire():
 
-        try:
+            if not argument.isdigit():
+                fish = await ctx.db.fetchval("SELECT fish_id from fish where (LOWER(fish_name) like '%' || $1 || '%')", argument)
 
-            con = await ctx.con
+            if fish:
+                return fish
 
-        except TypeError:
+            if argument.isdigit():
 
-            con = ctx.con
+                check = await ctx.db.fetchval("SELECT * from fish where fish_id = $1", int(argument))
 
-        if not argument.isdigit():
-            fish = await con.fetchval("SELECT fish_id from fish where (LOWER(fish_name) like '%' || $1 || '%')", argument)
+                if check:
+                    return int(argument)
 
-        if fish:
-            return fish
-
-        if argument.isdigit():
-
-            check = await con.fetchval("SELECT * from fish where fish_id = $1", int(argument))
-
-            if check:
-                return int(argument)
-
-        raise commands.BadArgument("an invalid fish was passed.")
+            raise commands.BadArgument("an invalid fish was passed.")
 
 
 class SeasonConverter(commands.Converter):
@@ -119,45 +112,31 @@ class SeasonConverter(commands.Converter):
 
 class TriviaCategoryConverter(commands.Converter):
     async def convert(self, ctx, argument):
+        async with ctx.acquire():
 
-        try:
+            argument = argument.lower()
+            if argument.isdigit():
+                argument = int(argument)
+                result = await ctx.db.fetchval("SELECT category_id from category where category_id = $1", argument)
 
-            con = await ctx.con
+            else:
 
-        except TypeError:
+                result = await ctx.db.fetchval("SELECT category_id from category where LOWER(name) like $1", argument)
 
-            con = ctx.con
+            if not result:
+                raise commands.BadArgument("Invalid Category was passed.")
 
-        argument = argument.lower()
-        if argument.isdigit():
-            argument = int(argument)
-            result = await con.fetchval("SELECT category_id from category where category_id = $1", argument)
-
-        else:
-
-            result = await con.fetchval("SELECT category_id from category where LOWER(name) like $1", argument)
-
-        if not result:
-            raise commands.BadArgument("Invalid Category was passed.")
-
-        return result
+            return result
 
 
 class TriviaDiffcultyConventer(commands.Converter):
     async def convert(self, ctx, argument):
-        try:
+        async with ctx.acquire():
+            diffculties = [result["difficulty"] for result in await ctx.db.fetch("SELECT DISTINCT difficulty from question")]
+            if argument in diffculties:
+                return argument
 
-            con = await ctx.con
-
-        except TypeError:
-
-            con = ctx.con
-
-        diffculties = [result["difficulty"] for result in await con.fetch("SELECT DISTINCT difficulty from question")]
-        if argument in diffculties:
-            return argument
-
-        raise commands.BadArgument("Invalid difficulty was entered")
+            raise commands.BadArgument("Invalid difficulty was entered")
 
 
 class DieConventer(commands.Converter):

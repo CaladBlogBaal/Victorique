@@ -10,7 +10,6 @@ import discord
 from discord.ext import commands
 
 from config.utils.checks import checking_for_multiple_channel_instances
-from config.utils.paginator import Paginator
 from config.utils.converters import TriviaCategoryConverter, TriviaDiffcultyConventer, DieConventer
 
 
@@ -191,19 +190,19 @@ class Games(commands.Cog):
         query = "SELECT question_id from question"
 
         if not category and not difficulty:
-            results = await ctx.con.fetch(query)
+            results = await ctx.db.fetch(query)
 
         elif category and not difficulty:
             query += " WHERE category_id = $1"
-            results = await ctx.con.fetch(query, category)
+            results = await ctx.db.fetch(query, category)
 
         elif difficulty and not category:
             query += " WHERE difficulty = $1"
-            results = await ctx.con.fetch(query, difficulty)
+            results = await ctx.db.fetch(query, difficulty)
 
         else:
             query += " WHERE category_id = $1 and difficulty = $2"
-            results = await ctx.con.fetch(query, category, difficulty)
+            results = await ctx.db.fetch(query, category, difficulty)
 
         results = random.sample(results, amount_of_questions)
         return results
@@ -215,17 +214,17 @@ class Games(commands.Cog):
 
     async def build_question(self, ctx, question_id):
         question_id = question_id["question_id"]
-        data = await ctx.con.fetchrow("""SELECT content, difficulty, type 
+        data = await ctx.db.fetchrow("""SELECT content, difficulty, type 
                                           from question where question_id = $1""", question_id)
 
         question, difficulty, type_ = data["content"], data["difficulty"], data["type"]
 
-        answers = await ctx.con.fetch("SELECT content, is_correct from answer where question_id = $1", question_id)
+        answers = await ctx.db.fetch("SELECT content, is_correct from answer where question_id = $1", question_id)
         answers = self.build_answers(answers)
 
-        category = await ctx.con.fetchval("""
+        category = await ctx.db.fetchval("""
         SELECT name from category where category_id = (SELECT category_id from question where question_id = $1)""",
-                                          question_id)
+                                         question_id)
 
         return category, type_, difficulty, question, answers
 
@@ -343,6 +342,8 @@ class Games(commands.Cog):
         possible difficulties are easy, medium hard
         """
 
+        await ctx.acquire()
+
         msg = await ctx.send("Starting the trivia game....")
 
         score_count = 0
@@ -438,15 +439,18 @@ class Games(commands.Cog):
                         reaction, user = await self.bot.wait_for('reaction_add', timeout=10, check=check)
 
         score.score = score_count
+        await ctx.release()
         await msg.edit(content=f"quiz finished :white_check_mark: {score.score}")
 
     @trivia.group(aliases=["cat"], invoke_without_command=True)
     async def categorises(self, ctx):
         """The main command for finding questions based on category by itself returns all the categories available"""
-        results = await ctx.con.fetch("""
-                                      SELECT c.category_id, c.name, COUNT(q.question_id) 
-                                      from category as c INNER JOIN question as q on c.category_id = q.category_id
-                                      GROUP BY c.category_id""")
+
+        async with ctx.acquire():
+            results = await ctx.db.fetch("""
+                                          SELECT c.category_id, c.name, COUNT(q.question_id) 
+                                          from category as c INNER JOIN question as q on c.category_id = q.category_id
+                                          GROUP BY c.category_id""")
 
         results = sorted(results, key=lambda res: res["category_id"])
 
@@ -457,17 +461,18 @@ class Games(commands.Cog):
     @categorises.command()
     async def search(self, ctx, *, category: TriviaCategoryConverter):
         """Search returns all questions based on their category, category accepts either an id or name"""
-        p = Paginator(ctx)
-        results = await ctx.con.fetch("SELECT content, question_id from question where category_id = $1", category)
-        results = ctx.chunk(results, 10)
 
-        for chunk in results:
-            amt = await ctx.con.fetchval("SELECT COUNT(question_id) from question where category_id = $1", category)
-            name = await ctx.con.fetchval("SELECT name from category where category_id = $1", category)
-            chunk = "\n".join(f"> ID: `{result['question_id']}`: **{result['content']}**" for result in chunk)
-            await p.add_page(f"Category Name: ```{name}```\nAmount of questions ({amt})\n{chunk}")
+        async with ctx.acquire():
+            results = await ctx.db.fetch("SELECT content, question_id from question where category_id = $1", category)
+            results = ctx.chunk(results, 10)
 
-        await p.paginate()
+            for chunk in results:
+                amt = await ctx.db.fetchval("SELECT COUNT(question_id) from question where category_id = $1", category)
+                name = await ctx.db.fetchval("SELECT name from category where category_id = $1", category)
+                chunk = "\n".join(f"> ID: `{result['question_id']}`: **{result['content']}**" for result in chunk)
+                await ctx.paginator.add_page(f"Category Name: ```{name}```\nAmount of questions ({amt})\n{chunk}")
+
+            await ctx.paginator.paginate()
 
     @commands.command(aliases=["ttt"])
     async def tictactoe(self, ctx, member: discord.Member):
@@ -692,7 +697,7 @@ class Games(commands.Cog):
         **Bust** – a hand over 21 (losing)
         ------------------------------------------------------------------------------------------------------------
         """
-        # black jack game is written as if it's multilayer as it was converted from multilayer to a single player game
+        # ill refractor this later I guess
         self.multiple_user_instance_set(ctx)
         dealer_bj = False
 

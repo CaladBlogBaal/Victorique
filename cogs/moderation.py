@@ -273,8 +273,8 @@ class Moderation(commands.Cog):
         if re.findall(r'https?://(?:[-\\w.]|(?:%[\\da-fA-F]{2}))+', prefix):
             return await ctx.send(":no_entry: | urls are not allowed as a guild's prefix")
 
-        async with ctx.con.transaction():
-            await ctx.con.execute("""
+        async with ctx.acquire():
+            await ctx.db.execute("""
                             INSERT INTO guilds (guild_id, prefix, allow_default) VALUES ($1, $2, $3)
                             ON CONFLICT (guild_id) DO UPDATE SET (prefix, allow_default) = ($2, $3)
                     

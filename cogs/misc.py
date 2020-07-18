@@ -11,7 +11,6 @@ from discord.ext import commands
 from bs4 import BeautifulSoup
 
 from config.utils.emojis import TRANSPARENT, EXPLOSION, FIRE_ZERO, NUKE, GUN
-from config.utils.paginator import Paginator, WarpedPaginator
 from config.utils.checks import private_guilds_check
 from config.utils.cache import cache
 
@@ -112,10 +111,32 @@ class Misc(commands.Cog):
             "http://38.media.tumblr.com/a6ff26b3fb8914a8aef9e3ee12b95f96/tumblr_nbjrmc3tiI1std21fo1_500.gif",
             "http://33.media.tumblr.com/cb86adbde8dd8feaa586eda4ad29d4be/tumblr_njx8yblrf51tiz9nro1_500.gif"
         ]
+        # Feel like this is cleaner
+        # rip Misc Help
+        action_cmd_names = ["slap", "pat", "cuddle", "hug", "poke", "tickle", "kiss"]
+        for name in action_cmd_names:
 
-    async def bot_gif(self, ctx, url):
-        if ctx.bot.user.mentioned_in(ctx.message):
-            return await ctx.send(embed=discord.Embed(color=self.bot.default_colors()).set_image(url=url))
+            async def callback(ctx, member: typing.Union[discord.Member, discord.User]):
+
+                bot_urls = {"slap": "https://giffiles.alphacoders.com/197/197854.gif",
+                            "pat": "https://thumbs.gfycat.com/ClearFalseFulmar-small.gif",
+                            "kiss": "https://media2.giphy.com/media/24PHsMnvGUVdS/source.gif",
+                            "poke": "https://66.media.tumblr.com/b061114bf8251a4f037c651bd2a86a1c"
+                                   "/tumblr_mr1bfrQ9Jb1qeysf2o3_500.gif",
+                            "hug": "https://media1.tenor.com/images/ebba558cbe12af15a4422f583ef2bb86/tenor.gif"}
+
+                if ctx.bot.user.mentioned_in(ctx.message):
+                    url = bot_urls.get(ctx.command.name)
+                    return await ctx.send(embed=discord.Embed(color=self.bot.default_colors()).set_image(url=url))
+
+                action = ctx.command.name.replace("e", "")
+                content = [f"**{ctx.author.mention} is {action}ing {member.mention}!**"]
+                await ctx.send(
+                    embed=await self.bot.api_get_image(content,
+                                                       f"https://nekos.life/api/v2/img/{ctx.command.name}", "url"))
+
+            cmd_help = name.capitalize() + " a guild member or user"
+            self.bot.add_command(commands.Command(callback, name=name, help=cmd_help))
 
     @staticmethod
     async def get_youtube_urls(contents, top=False):
@@ -271,7 +292,6 @@ class Misc(commands.Cog):
         """
 
         async def paginate(list_of_chunks):
-            p = Paginator(ctx)
 
             count = 1
 
@@ -286,9 +306,9 @@ class Misc(commands.Cog):
                                     value=value, inline=False)
                     count += 1
 
-                await p.add_page(embed)
+                await ctx.paginator.add_page(embed)
 
-            await p.paginate()
+            await ctx.paginator.paginate()
 
         emote_chunks = ctx.chunk(ctx.guild.emojis, 7)
 
@@ -326,42 +346,6 @@ class Misc(commands.Cog):
         await ctx.send(embed=await self.bot.api_get_image([""], "https://nekos.life/api/v2/img/gecg", "url"))
 
     @commands.command()
-    async def cuddle(self, ctx, member: typing.Union[discord.Member, discord.User]):
-        """
-        Cuddle a guild member
-        """
-        author = ctx.author.mention
-
-        mention = member.mention
-
-        content = [f"**{author} is cuddling {mention}!**",
-                   f"**{author} are cuddling each other so cute {mention}.**",
-                   f"**woah {author} will hit next base with {mention}( ͡° ͜ʖ ͡°)**"]
-
-        if author == mention:
-            content = [f"**{author} is cuddling themselves {mention} hmmmmm.**"]
-
-        await ctx.send(embed=await self.bot.api_get_image(content, "https://nekos.life/api/v2/img/cuddle", "url"))
-
-    @commands.command()
-    async def tickle(self, ctx, member: typing.Union[discord.Member, discord.User]):
-        """
-        Tickle a guild member
-        """
-        author = ctx.author.mention
-
-        mention = member.mention
-
-        content = [f"**{author} gave {mention} a little tickle**",
-                   f"**{author} is tickling {mention}!!.**",
-                   f"**woah {author} is tickling {mention} in suggestive places ( ͡° ͜ʖ ͡°)**"]
-
-        if author == mention:
-            content = [f"**{author} is tickling themselves??! {mention} peculiar kink but alas**"]
-
-        await ctx.send(embed=await self.bot.api_get_image(content, "https://nekos.life/api/v2/img/tickle", "url"))
-
-    @commands.command()
     async def wink(self, ctx):
         """Get a random wink"""
         await ctx.send(embed=await self.bot.api_get_image([f"{ctx.author.mention} is winking"],
@@ -380,92 +364,6 @@ class Misc(commands.Cog):
                    f"**{author} has become one with the smug.**"]
 
         await ctx.send(embed=await self.bot.api_get_image(content, "https://nekos.life/api/v2/img/smug", "url"))
-
-    @commands.command()
-    async def slap(self, ctx, member: typing.Union[discord.Member, discord.User]):
-        """
-        Slap a guild member or user
-        """
-
-        if await self.bot_gif(ctx, "https://giffiles.alphacoders.com/197/197854.gif"):
-            return
-
-        author = ctx.author.mention
-
-        mention = member.mention
-
-        content = [f"**{author} gave {mention} a mean slap!**",
-                   f"**{author} slapped {mention} they must have been a real baka.**",
-                   f"**{author} slapped {mention} harder daddy ( ͡° ͜ʖ ͡°)**"]
-
-        if author == mention:
-            content = [f"**{author} is slapping themselves??! {mention}**",
-                       f"**{author} is slapping themselves??! {mention}**"]
-
-        await ctx.send(embed=await self.bot.api_get_image(content, "https://nekos.life/api/v2/img/slap", "url"))
-
-    @commands.command()
-    async def pat(self, ctx, member: typing.Union[discord.Member, discord.User]):
-        """
-        Pat a guild member or user
-        """
-        if await self.bot_gif(ctx, "https://thumbs.gfycat.com/ClearFalseFulmar-small.gif"):
-            return
-
-        author = ctx.message.author.mention
-
-        mention = member.mention
-
-        content = [f"**{author} gave {mention} a pat on the head!**",
-                   f"**{author} fluffed {mention}'s hair!**",
-                   f"**woah {author} is petting {mention} ( ͡° ͜ʖ ͡°)**"]
-
-        if author == mention:
-            content = [f"**{author} is fluffing themselves! {mention}**"]
-
-        await ctx.send(embed=await self.bot.api_get_image(content, "https://nekos.life/api/v2/img/pat", "url"))
-
-    @commands.command()
-    async def kiss(self, ctx, member: typing.Union[discord.Member, discord.User]):
-        """
-        Kiss a guild member or user
-        """
-        if await self.bot_gif(ctx, "https://media2.giphy.com/media/24PHsMnvGUVdS/source.gif"):
-            return
-
-        author = ctx.message.author.mention
-
-        mention = member.mention
-
-        content = [f"**{author} gave {mention} a kiss!**",
-                   f"**{author} gave {mention} a smooch!**",
-                   f"**{author} gave {mention} a little extra on the lips!**",
-                   f"**{author} woah is kissing {mention} ( ͡° ͜ʖ ͡°)**"]
-
-        if author == mention:
-            return await ctx.send("https://m.imgur.com/gallery/Br00TCn")
-
-        await ctx.send(embed=await self.bot.api_get_image(content, "https://nekos.life/api/v2/img/kiss", "url"))
-
-    @commands.command()
-    async def poke(self, ctx, member: typing.Union[discord.Member, discord.User]):
-        """
-        Poke a guild member or user
-        """
-        if await self.bot_gif(ctx, "https://66.media.tumblr.com/b061114bf8251a4f037c651bd2a86a1c"
-                                   "/tumblr_mr1bfrQ9Jb1qeysf2o3_500.gif"):
-            return
-        author = ctx.message.author.mention
-
-        mention = member.mention
-
-        content = [f"**{author} is poking {mention}.**",
-                   f"**{mention} got poked by {author} kinky.**"]
-
-        if author == mention:
-            return await ctx.send("https://m.imgur.com/gallery/Br00TCn")
-
-        await ctx.send(embed=await self.bot.api_get_image(content, "https://nekos.life/api/v2/img/poke", "url"))
 
     @commands.command()
     async def lick(self, ctx, member: typing.Union[discord.Member, discord.User]):
@@ -508,46 +406,22 @@ class Misc(commands.Cog):
 
         await ctx.send(embed=self.hardcoded_image_list_embed(content, rub_list))
 
-    @commands.command()
-    async def hug(self, ctx, *, member: typing.Union[discord.Member, discord.User]):
-        """
-        Hug a guild member or user
-        """
-
-        if await self.bot_gif(ctx, "https://media1.tenor.com/images/ebba558cbe12af15a4422f583ef2bb86/tenor.gif"):
-            return
-
-        author = ctx.message.author.mention
-
-        mention = member.mention
-
-        content = [f"**{author} gave {mention} a hug!**",
-                   f"**{author} has {mention} in a tight embrace!**",
-                   f"**{author} clutches {mention} tightly!**",
-                   f"**{author} woah gave {mention} a surprise hug( ͡° ͜ʖ ͡°)**"]
-
-        if author == mention:
-            content = [f"**{author} is hugging themselves {mention} interesting.**"]
-
-        await ctx.send(embed=await self.bot.api_get_image(content, "https://nekos.life/api/v2/img/hug", "url"))
-
     @commands.command(name="kemo")
     async def kemonomimi(self, ctx, amount=1):
         """
         Get a random picture/pictues kemonomimis
         20 is the maximum
         """
-        p = Paginator(ctx)
         if amount < 1:
             return
         if amount > 20:
             amount = 20
 
         for _ in range(amount):
-            await p.add_page(
+            await ctx.paginator.add_page(
                 await self.bot.api_get_image([" ", " "], "https://nekos.life/api/v2/img/kemonomimi", "url"))
 
-        await p.paginate()
+        await ctx.paginator.paginate()
 
     @commands.command()
     async def funfact(self, ctx):
@@ -623,7 +497,8 @@ class Misc(commands.Cog):
         Get the urban dictionary value of a term
         """
         params = {"term": term}
-        wp = WarpedPaginator(ctx, 1024)
+        wp = ctx.paginator_warped
+        wp.max_size = 1024
 
         js = await self.bot.fetch("https://api.urbandictionary.com/v0/define", params=params)
 
@@ -724,16 +599,15 @@ class Misc(commands.Cog):
 
         await ctx.trigger_typing()
 
-        p = Paginator(ctx)
         results = await self.search_youtube(query)
 
         if not results:
             return await ctx.send(f":no_entry: | search failed for `{query}.`")
 
         for url in results:
-            await p.add_page(url)
+            await ctx.paginator.add_page(url)
 
-        await p.paginate()
+        await ctx.paginator.paginate()
 
     @youtube.command()
     async def one(self, ctx, *, query):
@@ -743,7 +617,7 @@ class Misc(commands.Cog):
         if not result:
             return await ctx.send(f":no_entry: | search failed for `{query}.`")
 
-        await ctx.send(result)
+        await ctx.send(*result)
 
 
 def setup(bot):

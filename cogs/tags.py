@@ -1,5 +1,3 @@
-import functools
-import operator
 import re
 import datetime
 import typing
@@ -14,12 +12,80 @@ import discord
 from discord.ext import commands
 
 import loadconfig
-from config.utils.paginator import Paginator
 from config.utils.converters import TagNameConverter
+
+
+def tag_names_list(tags, prefix, allow_default):
+
+    if allow_default:
+        results = set()
+        for tag in tags:
+            # add both prefixes followed by tag name since allow default is True
+            results.add(f"{prefix}{tag['tag_name']}")
+            results.add(f"{loadconfig.__prefix__}{tag['tag_name']}")
+
+        return results
+
+    tags = {f"{prefix}{tag['tag_name']}" for tag in tags}
+
+    return tags
+
+
+async def send_tag_content(tag, message, bot):
+    # will try and refractor this later
+
+    name = tag["tag_name"]
+    if tag["nsfw"] and not message.channel.nsfw:
+        return await message.channel.send(f"> This tag can only be used in NSFW channels.", delete_after=4)
+
+    content = tag["content"]
+
+    if content.count("||") >= 2:
+        return await message.channel.send(content)
+
+    reg = re.compile(r"""(?:http|https)?://(?:www.)?[-a-zA-Z0-9@:%.+~#=]{2,256}.[a-z]{2,6}\b
+                         (?:[-a-zA-Z0-9@:%_+.~#?&//=]*).
+                         (?:<format>|jpe?g|png|gif?)""", flags=re.VERBOSE | re.IGNORECASE)
+
+    urls = reg.findall(content)
+
+    if urls:
+        url = urls[0]
+        # if there's multiple urls send the tag content as is or if there's an url followed by text
+        if len(urls) > 2 or content.replace(url, "") != "":
+            return await message.channel.send(content)
+
+        if "SPOILER" in url:
+            return await message.channel.send(f"|| {url} ||")
+        try:
+            async with bot.session.get(url) as response:
+                header = response.headers.get("content-type", "null")
+                # if the url is dead don't load it into a file
+                if "image/" not in header or response.status in (404, 403, 400, 401):
+                    return await message.channel.send(content)
+
+                extension = header.split("/")[1]
+                size = response.headers.get("content-length")
+                size = int(size)
+
+                if size > 5242880:
+                    embed = discord.Embed(color=0x36393f)
+                    return await message.channel.send(embed=embed.set_image(url=url))
+
+                file_ = discord.File(filename=f"{name}_image.{extension}",
+                                     fp=BytesIO(await bot.fetch(url)))
+
+                return await message.channel.send(file=file_)
+
+        except (aiohttp.ClientConnectionError, aiohttp.InvalidURL):
+            await message.channel.send(content)
+
+    await message.channel.send(tag)
 
 
 class Tags(commands.Cog):
     """tag related commands to call a created tag do [guild prefix][tag name}"""
+
     def __init__(self, bot):
         self.bot = bot
         self.cd = commands.CooldownMapping.from_cooldown(1, 4, commands.BucketType.member)
@@ -27,120 +93,65 @@ class Tags(commands.Cog):
     async def cog_check(self, ctx):
         return ctx.guild is not None
 
+    async def cog_before_invoke(self, ctx):
+        # acquire a connection to the pool before every command
+        await ctx.acquire()
+
     @staticmethod
     async def create_tag(ctx, name, content):
-        async with ctx.con.transaction():
-            try:
-                await ctx.con.execute("""INSERT INTO tags (tag_name, guild_id, user_id, content, created_at) 
-                                         VALUES ($1, $2, $3, $4, $5)""",
-                                      name, ctx.guild.id, ctx.author.id, content, ctx.message.created_at)
 
-            except asyncpg.UniqueViolationError:
-                return await ctx.send(f":information_source: | tag name already exists")
+        try:
+            await ctx.pool.execute("""INSERT INTO tags (tag_name, guild_id, user_id, content, created_at) 
+                                    VALUES ($1, $2, $3, $4, $5)""",
+                                   name, ctx.guild.id, ctx.author.id, content, ctx.message.created_at)
+        except asyncpg.UniqueViolationError:
+            return await ctx.send(f":information_source: | tag name already exists")
 
-            if len(name.split(" ")) >= 2:
-                name = f"\"{name}\""
+        if len(name.split(" ")) >= 2:
+            name = f"\"{name}\""
 
-            await ctx.send(f":information_source: | created new tag `{name}` to add content to this tag do "
-                           f"`{ctx.prefix}tag update {name} <content here>`.")
+        await ctx.send(f":information_source: | created new tag `{name}` to add content to this tag do "
+                       f"`{ctx.prefix}tag update {name} <content here>`.")
 
     @commands.Cog.listener()
     async def on_message(self, message):
-        # this is crude as hell
+        # still crude as hell
+        if not message.guild or message.author.bot:
+            return
 
-        if message.guild and not message.author.bot:
+        data = await self.bot.get_guild_prefix(message.guild.id)
 
-            data = await self.bot.get_guild_prefix(message.guild.id)
+        prefix = loadconfig.__prefix__
+        allow_default = False
 
-            tag_prefix = loadconfig.__prefix__
-            allow_default = False
+        if data["prefix"]:
+            prefix = data["prefix"]
+            allow_default = data["allow_default"]
 
-            if data["prefix"]:
-                tag_prefix = data["prefix"]
-                allow_default = data["allow_default"]
+        tags = await self.bot.get_tags(message.guild.id)
+        tags = tag_names_list(tags, prefix, allow_default)
+        content = message.content.lower()
 
-            tags = await self.bot.get_tags(message.guild.id)
+        if content in tags:
+            bucket = self.cd.get_bucket(message)
+            retry_after = bucket.update_rate_limit()
+            if retry_after:
+                return await message.channel.send(":no_entry: | woah slow down there you're being rated limited.",
+                                                  delete_after=3)
 
-            if allow_default is False:
-                tags = {f"{tag_prefix if tag_prefix else loadconfig.__prefix__}{tag['tag_name']}" for tag in tags}
+            statement = "SELECT content, nsfw, tag_name from tags where LOWER(tag_name) = $1 and guild_id = $2"
+            name = content.replace(loadconfig.__prefix__, "", 1).replace(prefix, "", 1)
 
-            else:
-                tags = {f"{tag_prefix}{tag['tag_name']}\u200b{loadconfig.__prefix__}{tag['tag_name']}" for tag in tags}
-                tags = [t.split("\u200b") for t in tags]
-                tags = functools.reduce(operator.iconcat, tags, [])
-
-            content = message.content.lower()
-
-            if content in tags:
-                bucket = self.cd.get_bucket(message)
-                retry_after = bucket.update_rate_limit()
-                if retry_after:
-                    return await message.channel.send(":no_entry: | woah slow down there you're being rated limited.",
-                                                      delete_after=3)
-                query = "SELECT content, nsfw from tags where LOWER(tag_name) = $1 and guild_id = $2"
-                if message.content.startswith(loadconfig.__prefix__):
-                    name = content.replace(loadconfig.__prefix__, "", 1)
-
-                else:
-                    name = content.replace(tag_prefix, "", 1)
-
-                tag = await self.bot.db.fetchrow(query, name, message.guild.id)
-
-                if tag["nsfw"] and not message.channel.nsfw:
-                    return await message.channel.send(f"> This tag can only be used in NSFW channels.", delete_after=4)
-
-                tag = tag["content"]
-
-                if tag.count("||") >= 2:
-                    return await message.channel.send(tag)
-
-                reg = re.compile(r"""(?:http|https)?://(?:www.)?[-a-zA-Z0-9@:%.+~#=]{2,256}.[a-z]{2,6}\b
-                                     (?:[-a-zA-Z0-9@:%_+.~#?&//=]*).
-                                     (?:<format>|jpe?g|png|gif?)""", flags=re.VERBOSE | re.IGNORECASE)
-
-                urls = reg.findall(tag)
-
-                if urls:
-                    url = urls[0]
-
-                    if len(urls) > 2 or tag.replace(url, "") != "":
-                        return await message.channel.send(tag)
-
-                    if "SPOILER" in url:
-                        return await message.channel.send(f"|| {url} ||")
-                    try:
-                        async with self.bot.session.get(url) as response:
-                            header = response.headers.get("content-type", "null")
-                            # if the url is dead don't load it into a file
-                            if "image/" not in header or response.status in (404, 403, 400, 401):
-                                return await message.channel.send(tag)
-
-                            extension = header.split("/")[1]
-                            size = response.headers.get("content-length")
-                            size = int(size)
-
-                            if size > 5242880:
-                                embed = discord.Embed(color=0x36393f)
-                                return await message.channel.send(embed=embed.set_image(url=url))
-
-                            file_ = discord.File(filename=f"{name}_image.{extension}",
-                                                 fp=BytesIO(await self.bot.fetch(url)))
-
-                            return await message.channel.send(file=file_)
-
-                    except (aiohttp.ClientConnectionError, aiohttp.InvalidURL):
-                        return await message.channel.send(tag)
-
-                await message.channel.send(tag)
+            tag = await self.bot.pool.fetchrow(statement, name, message.guild.id)
+            await send_tag_content(tag, message, self.bot)
 
     @commands.group(invoke_without_command=True, aliases=["tags"])
     async def tag(self, ctx, member: discord.Member = None):
         """The main command for tags returns your current tags by itself or another member's."""
 
-        p = Paginator(ctx)
         member = member or ctx.author
-        data = await ctx.con.fetch("SELECT tag_name from tags where user_id = $1 and guild_id = $2", member.id,
-                                   ctx.guild.id)
+        data = await ctx.db.fetch("SELECT tag_name from tags where user_id = $1 and guild_id = $2", member.id,
+                                  ctx.guild.id)
 
         if data == []:
             return await ctx.send(f"> {member.name} currently has no tags created for this guild.")
@@ -151,9 +162,9 @@ class Tags(commands.Cog):
 
         for name_chunk in name_chunks:
             names = "".join(name for name in name_chunk)
-            await p.add_page(f"> {member.name} current tags for **{str(ctx.guild)}**...\n> {names}")
+            await ctx.paginator.add_page(f"> {member.name} current tags for **{str(ctx.guild)}**...\n> {names}")
 
-        await p.paginate()
+        await ctx.paginator.paginate()
 
     @tag.command()
     async def create(self, ctx, *, name: TagNameConverter):
@@ -165,8 +176,9 @@ class Tags(commands.Cog):
     async def claim(self, ctx, *, name):
         """Claim a tag if the tag owner has left the server"""
 
-        data = await ctx.con.fetchrow("SELECT tag_id, user_id FROM tags WHERE guild_id = $1 AND LOWER(tag_name) = $2",
-                                      ctx.guild.id, name.lower())
+        data = await ctx.db.fetchrow(
+            "SELECT tag_id, user_id FROM tags WHERE guild_id = $1 AND LOWER(tag_name) = $2",
+            ctx.guild.id, name.lower())
         if data is None:
             return await ctx.send(f'A tag with the name of "{name}" does not exist.')
 
@@ -178,9 +190,8 @@ class Tags(commands.Cog):
         if member is not None:
             return await ctx.send(":no_entry: | tag owner is still in the server.")
 
-        async with ctx.con.transaction():
-            await ctx.con.execute("UPDATE tags set user_id = $1 WHERE guild_id = $2 and LOWER(tag_name) = $3",
-                                  ctx.author.id, ctx.guild.id, name.lower())
+        await ctx.pool.execute("UPDATE tags set user_id = $1 WHERE guild_id = $2 and LOWER(tag_name) = $3",
+                               ctx.author.id, ctx.guild.id, name.lower())
 
         await ctx.send(f"> successfully transferred ownership of `{name}` to you.")
 
@@ -188,8 +199,8 @@ class Tags(commands.Cog):
     async def raw(self, ctx, *, name):
         """Display a tag without markdown eg spoilers."""
 
-        content = await ctx.con.fetchrow("SELECT content, nsfw from tags where LOWER(tag_name) = $1 and guild_id = $2",
-                                         name.lower(), ctx.guild.id)
+        content = await ctx.db.fetchrow("SELECT content, nsfw from tags where LOWER(tag_name) = $1 and guild_id = $2",
+                                        name.lower(), ctx.guild.id)
 
         if not content:
             return await ctx.send(f":no_entry: | could not find the tag {name}.")
@@ -204,8 +215,8 @@ class Tags(commands.Cog):
         """Get info on a tag"""
         name = name.lower()
 
-        data = await ctx.con.fetchrow("SELECT * from tags where LOWER(tag_name) = $1 and guild_id = $2",
-                                      name, ctx.guild.id)
+        data = await ctx.db.fetchrow("SELECT * from tags where LOWER(tag_name) = $1 and guild_id = $2", name,
+                                     ctx.guild.id)
         if not data:
             return await ctx.send(f"> A tag with name `{name}` does not exist.")
 
@@ -228,22 +239,21 @@ class Tags(commands.Cog):
         """Update a tag's content encase the tag's name in quotes if it has spaces"""
         name = name.lower()
 
-        check = await ctx.con.fetchval("SELECT tag_name FROM tags WHERE user_id = $1 and guild_id = $2",
-                                       ctx.author.id, ctx.guild.id)
+        check = await ctx.db.fetchval("SELECT tag_name FROM tags WHERE user_id = $1 and guild_id = $2",
+                                      ctx.author.id, ctx.guild.id)
 
         if check is None:
             return await ctx.send(f":information_source: you do not have a tag for this guild create one with "
                                   f"{ctx.prefix}tag create name")
 
-        async with ctx.con.transaction():
-            check = await ctx.con.execute("""UPDATE tags SET content = $1 WHERE guild_id = $2 and user_id = $3 
-                                             and LOWER(tag_name) = $4""",
-                                          content, ctx.guild.id, ctx.author.id, name)
+        check = await ctx.db.execute("""UPDATE tags SET content = $1 WHERE guild_id = $2 and user_id = $3 
+                                        and LOWER(tag_name) = $4""",
+                                     content, ctx.guild.id, ctx.author.id, name)
 
-            if check[-1] == "0":
-                return await ctx.send(f":no_entry: | could not edit the tag in question `{name}` do you own it "
-                                      f"and it exists? `note you must encase a tag's name in quotes if it contains "
-                                      f"spaces eg  {ctx.prefix}tag update \"hello world\" hi`")
+        if check[-1] == "0":
+            return await ctx.send(f":no_entry: | could not edit the tag in question `{name}` do you own it "
+                                  f"and it exists? `note you must encase a tag's name in quotes if it contains "
+                                  f"spaces eg  {ctx.prefix}tag update \"hello world\" hi`")
         try:
 
             await ctx.send(f":information_source: | successfully updated tag with content `{content}`.")
@@ -255,15 +265,12 @@ class Tags(commands.Cog):
     async def list(self, ctx):
         """Get a list of tags for the current guild"""
 
-        tags = await ctx.con.fetch("select tag_name, user_id from tags where guild_id =  $1",
-                                   ctx.guild.id)
+        tags = await ctx.db.fetch("select tag_name, user_id from tags where guild_id =  $1", ctx.guild.id)
 
         tags = [f"Tag name: **{tag['tag_name']}** created by "
                 f"**{str(ctx.guild.get_member(tag['user_id']))}**" for tag in tags if tag['tag_name']]
 
         tags_chunks = ctx.chunk(tags, 10)
-
-        p = Paginator(ctx)
 
         if not tags_chunks:
             return await ctx.send("> Currently no tags for this guild exist.")
@@ -272,9 +279,9 @@ class Tags(commands.Cog):
             tags = "\n".join(tags)
             embed = discord.Embed(title="Tags for:", description=ctx.guild.name, colour=discord.Color.dark_magenta())
             embed.add_field(name='\uFEFF', value=tags)
-            await p.add_page(embed)
+            await ctx.paginator.add_page(embed)
 
-        await p.paginate()
+        await ctx.paginator.paginate()
 
     @tag.group(invoke_without_command=True, aliases=["remove", "prune"])
     async def delete(self, ctx, *, name):
@@ -285,14 +292,14 @@ class Tags(commands.Cog):
         check = await self.bot.is_owner(ctx.author) or ctx.author.guild_permissions.manage_messages
 
         if check:
-            deleted = await ctx.con.fetchrow("DELETE from tags where guild_id = $1 and LOWER(tag_name)"
-                                             " = $2 RETURNING tag_id",
-                                             ctx.guild.id, name)
+            deleted = await ctx.db.fetchrow("""DELETE from tags where guild_id = $1 and LOWER(tag_name)
+                                            = $2 RETURNING tag_id""",
+                                            ctx.guild.id, name)
         else:
 
-            deleted = await ctx.con.fetchrow("DELETE from tags where guild_id = $1 "
-                                             "and LOWER(tag_name) = $2 and user_id = $3 RETURNING tag_id",
-                                             ctx.guild.id, name, ctx.author.id)
+            deleted = await ctx.db.fetchrow("""DELETE from tags where guild_id = $1 
+                                             and LOWER(tag_name) = $2 and user_id = $3 RETURNING tag_id""",
+                                            ctx.guild.id, name, ctx.author.id)
 
         if deleted is None:
             return await ctx.send(":no_entry: | tag deletion failed, either the tag doesn't exist or you lack "
@@ -308,8 +315,8 @@ class Tags(commands.Cog):
 
         if check:
 
-            deleted = await ctx.con.fetch("DELETE from tags where guild_id = $1 and user_id = $2 RETURNING tag_id",
-                                          ctx.guild.id, member.id)
+            deleted = await ctx.db.fetch("DELETE from tags where guild_id = $1 and user_id = $2 RETURNING tag_id",
+                                         ctx.guild.id, member.id)
             if deleted == []:
                 return await ctx.send(f"> {member.name} has no tags to delete.")
 
@@ -324,8 +331,8 @@ class Tags(commands.Cog):
         pass True for nsfw False to not make it NSFW **this command requires manage messages perms*"""
         name = name.lower()
 
-        check = await ctx.con.fetchval("SELECT tag_name FROM tags WHERE LOWER(tag_name) = $1 and guild_id = $2",
-                                       name, ctx.guild.id)
+        check = await ctx.db.fetchval("SELECT tag_name FROM tags WHERE LOWER(tag_name) = $1 and guild_id = $2",
+                                      name, ctx.guild.id)
 
         if check is None:
             return await ctx.send(f"> The tag `{name}` does not exist.")
@@ -334,14 +341,13 @@ class Tags(commands.Cog):
 
         if check:
 
-            async with ctx.con.transaction():
-                await ctx.con.execute("UPDATE tags SET nsfw = $1 where LOWER(tag_name) = $2 and guild_id = $3",
-                                      nsfw, name.lower(), ctx.guild.id)
+            await ctx.db.execute("UPDATE tags SET nsfw = $1 where LOWER(tag_name) = $2 and guild_id = $3",
+                                 nsfw, name.lower(), ctx.guild.id)
 
-                if nsfw:
-                    return await ctx.send(f"> The tag {name} has been set to NSFW")
+            if nsfw:
+                return await ctx.send(f"> The tag {name} has been set to NSFW")
 
-                await ctx.send(f"> The tag {name} has been set to not NSFW")
+            await ctx.send(f"> The tag {name} has been set to not NSFW")
 
         else:
 
@@ -354,18 +360,18 @@ class Tags(commands.Cog):
         check = await self.bot.is_owner(ctx.author) or ctx.author.guild_permissions.manage_messages
 
         if check:
-            async with ctx.con.transaction():
-                result = await ctx.con.execute("""
-                UPDATE tags SET nsfw = $1 where user_id = $2 and guild_id = $3 RETURNING user_id""",
-                                               nsfw, member.id, ctx.guild.id)
 
-                if not result:
-                    return await ctx.send(f":no_entry: | {member.name} has no tags.")
+            result = await ctx.db.execute("""UPDATE tags SET nsfw = $1 where user_id = $2 
+                                             and guild_id = $3 RETURNING user_id""",
+                                          nsfw, member.id, ctx.guild.id)
 
-                if nsfw:
-                    return await ctx.send(f"> set all of {member.name} tags to NSFW")
+            if not result:
+                return await ctx.send(f":no_entry: | {member.name} has no tags.")
 
-                await ctx.send(f"> set all of {member.name} tags to not NSFW")
+            if nsfw:
+                return await ctx.send(f"> set all of {member.name} tags to NSFW")
+
+            await ctx.send(f"> set all of {member.name} tags to not NSFW")
         else:
             await ctx.send(":no_entry: | you need manage message permissions for this command.")
 
@@ -377,16 +383,15 @@ class Tags(commands.Cog):
         if member.bot:
             return await ctx.send(":no_entry: | can't give bots tags.")
 
-        check = await ctx.con.fetchval("""SELECT tag_name FROM tags 
+        check = await ctx.db.fetchval("""SELECT tag_name FROM tags 
                                           where guild_id = $1 and user_id = $2 and LOWER(tag_name) = $3
                                           """, ctx.guild.id, ctx.author.id, name)
 
         if check is None:
             return await ctx.send(f":no_entry: | does the tag {name} exist and do you own it?")
 
-        async with ctx.con.transaction():
-            await ctx.con.execute("UPDATE tags SET user_id = $1 where guild_id = $2 and LOWER(tag_name) = $3",
-                                  member.id, ctx.guild.id, name)
+        await ctx.db.execute("UPDATE tags SET user_id = $1 where guild_id = $2 and LOWER(tag_name) = $3",
+                             member.id, ctx.guild.id, name)
 
         await ctx.send(f"> Successfully transferred ownership of the tag `{name}` to {member.name}.")
 
@@ -394,10 +399,9 @@ class Tags(commands.Cog):
     async def search(self, ctx, *, name):
         """Search for tags that start with a name"""
         name = name.lower()
-        p = Paginator(ctx)
 
-        result = await ctx.con.fetch("SELECT tag_name from tags where guild_id = $1 and LOWER(tag_name) like $2 || '%'",
-                                     ctx.guild.id, name)
+        result = await ctx.db.fetch("SELECT tag_name from tags where guild_id = $1 and LOWER(tag_name) like $2 || '%'",
+                                    ctx.guild.id, name)
 
         if not result:
             return await ctx.send(f":no_entry: | could not find the tag {name}.")
@@ -407,9 +411,9 @@ class Tags(commands.Cog):
         new_line = "\n"
 
         for result in results:
-            await p.add_page(f"> Tags found that contained `{name}`:\n{new_line.join(result)}")
+            await ctx.paginator.add_page(f"> Tags found that contained `{name}`:\n{new_line.join(result)}")
 
-        await p.paginate()
+        await ctx.paginator.paginate()
 
     @create.after_invoke
     @update_content.after_invoke

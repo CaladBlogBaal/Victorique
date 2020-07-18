@@ -161,10 +161,10 @@ class OwnerCog(commands.Cog, name="Owner Commands"):
                         # this feels hacky
                         if check_sql:
 
-                            if "ctx.con" in line:
+                            if "ctx.db" in line:
                                 line_total += 1
 
-                        elif "ctx.con" not in line:
+                        elif "ctx.db" not in line:
                             line_total += 1
 
             return line_total
@@ -203,24 +203,24 @@ class OwnerCog(commands.Cog, name="Owner Commands"):
 
         wp = WarpedPaginator(ctx)
         _query = _query
-        rows = await ctx.con.fetch(_query)
+        rows = await ctx.db.fetch(_query)
 
         await wp.add_page(str(rows))
         await wp.paginate()
 
     @commands.command()
     async def update(self, ctx, *, _query):
-        """Update rows in the postgres database with a transaction"""
-        async with ctx.con.transaction():
-            await ctx.con.execute(_query)
+        """Update rows in the postgres database"""
+        async with ctx.acquire():
+            await ctx.db.execute(_query)
 
         await ctx.send("successfully updated.")
 
     @commands.command()
     async def add_fish(self, ctx, fish_emote, rarity_id):
         """Add a fish to the fish table"""
-        async with ctx.con.transaction():
-            await ctx.con.execute("""INSERT INTO fish (fish_name, bait_id) VALUES
+        async with ctx.db.acquire():
+            await ctx.db.execute("""INSERT INTO fish (fish_name, bait_id) VALUES
                                 ($1, $2) ON CONFLICT DO NOTHING""", fish_emote, rarity_id)
 
         await ctx.send("successfully updated.")
@@ -228,8 +228,8 @@ class OwnerCog(commands.Cog, name="Owner Commands"):
     @commands.command()
     async def add_default_fish(self, ctx):
         """Add the default fish"""
-        async with ctx.con.transaction():
-            await ctx.con.execute("""
+        async with ctx.db.acquire():
+            await ctx.db.execute("""
     INSERT INTO fish (fish_name, bait_id) VALUES ('<:MutsukiIcon:603142310686883860>', 1) ON CONFLICT DO NOTHING;
     INSERT INTO fish (fish_name, bait_id) VALUES ('<:BeagleIcon:603139176417722368>', 1) ON CONFLICT DO NOTHING;
     INSERT INTO fish (fish_name, bait_id) VALUES ('<:SaratogaIcon:603137225663709204>', 2) ON CONFLICT DO NOTHING;
@@ -290,12 +290,12 @@ class OwnerCog(commands.Cog, name="Owner Commands"):
     async def add(self, ctx, category: TriviaCategoryConverter, difficulty: TriviaDiffcultyConventer,
                   type_, *, question):
         """Adds a question to the question table."""
-        categories = (cat_id["category_id"] for cat_id in await ctx.con.fetch("SELECT category_id from category"))
+        categories = (cat_id["category_id"] for cat_id in await ctx.db.fetch("SELECT category_id from category"))
         if category not in categories:
             return await ctx.send(":no_entry: | Invalid category was passed.")
 
-        async with ctx.con.transaction():
-            await ctx.con.execute("""INSERT INTO question (category_id, content, difficulty, type)
+        async with ctx.db.acquire():
+            await ctx.db.execute("""INSERT INTO question (category_id, content, difficulty, type)
                                      VALUES ($1,$2,$3,$4)""", category, question, difficulty, type_)
 
         await ctx.send(f"> successfully updated with question `{question}`.")
@@ -304,8 +304,8 @@ class OwnerCog(commands.Cog, name="Owner Commands"):
     async def delete(self, ctx, *, question):
         """Delete a question and it's answers."""
 
-        async with ctx.con.transaction():
-            check = await ctx.con.execute("""DELETE FROM question 
+        async with ctx.db.acquire():
+            check = await ctx.db.execute("""DELETE FROM question 
                                           where LOWER(content) = $1 RETURNING question""", question.lower())
 
             if check == "DELETE 0":
@@ -316,13 +316,13 @@ class OwnerCog(commands.Cog, name="Owner Commands"):
     @question.command()
     async def add_answer(self, ctx, content, is_correct: bool, *, question):
         """Add an answer to a existing question."""
-        question_id = await ctx.con.fetchval("SELECT question_id from question where LOWER(content) = $1",
-                                             question.lower())
+        question_id = await ctx.db.fetchval("SELECT question_id from question where LOWER(content) = $1",
+                                            question.lower())
         if not question_id:
             return await ctx.send(":no_entry: This question doesn't exist.")
 
-        async with ctx.con.transaction():
-            await ctx.con.execute("""INSERT INTO answer (question_id, content, is_correct) 
+        async with ctx.db.acquire():
+            await ctx.db.execute("""INSERT INTO answer (question_id, content, is_correct) 
                                      VALUES ($1,$2,$3) ON CONFLICT DO NOTHING""", question_id, content, is_correct)
 
         await ctx.send("> successfully updated.")
@@ -330,13 +330,13 @@ class OwnerCog(commands.Cog, name="Owner Commands"):
     @question.command()
     async def delete_answer(self, ctx, question, *, answer):
         """Delete an answer for a question."""
-        question = await ctx.con.fetchval("SELECT question_id from question where content = $1", question)
+        question = await ctx.db.fetchval("SELECT question_id from question where content = $1", question)
 
         if not question:
             return await ctx.send(f":no_entry: | a question with id `{question}` does not exist.")
 
-        async with ctx.con.transaction():
-            check = await ctx.con.execute("""DELETE FROM answer where question_id = $1 and LOWER(content) = $2 
+        async with ctx.db.acquire():
+            check = await ctx.db.execute("""DELETE FROM answer where question_id = $1 and LOWER(content) = $2 
                                              RETURNING answer""", question, answer.lower())
 
             if check == "DELETE 0":

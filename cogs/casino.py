@@ -92,13 +92,14 @@ class Casino(commands.Cog):
                       )
     async def slots(self, ctx, bet, spins: int = 6):
         """spin some slots"""
+        await ctx.acquire()
         spins = int(spins)
         bet = int(bet)
 
         if bet > 5000:
             bet = 5000
 
-        current_balance = await ctx.con.fetchval("select credits from users where user_id = $1", ctx.author.id)
+        current_balance = await ctx.db.fetchval("select credits from users where user_id = $1", ctx.author.id)
 
         if bet <= 0:
             return await ctx.send(f":no_entry: | {ctx.author.name} please enter in a valid "
@@ -131,21 +132,17 @@ class Casino(commands.Cog):
         pay_out = po.pay_out_reel(bet, sm.wheel)
         if pay_out == 0:
 
-            async with ctx.con.transaction():
-
-                await ctx.con.execute("UPDATE users SET credits = credits - $1 WHERE user_id = $2",
-                                      bet, ctx.author.id)
+            await ctx.db.execute("UPDATE users SET credits = credits - $1 WHERE user_id = $2", bet, ctx.author.id)
 
             await ctx.send(f":atm: | {ctx.author.name} you lost {bet} credits.")
 
         else:
 
-            async with ctx.con.transaction():
-
-                await ctx.con.execute("UPDATE users SET credits = credits + $1 WHERE user_id = $2",
-                                      pay_out, ctx.author.id)
+            await ctx.db.execute("UPDATE users SET credits = credits + $1 WHERE user_id = $2", pay_out, ctx.author.id)
 
             await ctx.send(f":atm: | the amount of credits you gained is {pay_out} {ctx.author.name}")
+
+        await ctx.release()
 
     @commands.group(invoke_without_command=True)
     async def coinflip(self, ctx, times: int = 1):
@@ -188,7 +185,7 @@ class Casino(commands.Cog):
         if bet <= 0:
             return await ctx.send(":no_entry: | please enter a valid amount of credits to bet.", delete_after=3)
 
-        current_balance = await ctx.con.fetchval("SELECT credits from users where user_id = $1", ctx.author.id)
+        current_balance = await ctx.db.fetchval("SELECT credits from users where user_id = $1", ctx.author.id)
 
         if current_balance < bet:
             return await ctx.send(":no_entry: | you do not have enough credits for this bet.")
@@ -201,18 +198,15 @@ class Casino(commands.Cog):
         await ctx.send(f"The result was {result}.")
         await asyncio.sleep(1)
 
-        if result == choice.lower():
-            async with ctx.con.transaction():
-                await ctx.con.execute("UPDATE users set credits = credits + $1 where user_id = $2",
-                                      bet, ctx.author.id)
+        async with ctx.acquire():
+            if result == choice.lower():
 
-            await ctx.send(f":information_source: | {ctx.author.name} you've won {bet} credits")
+                await ctx.db.execute("UPDATE users set credits = credits + $1 where user_id = $2", bet, ctx.author.id)
+                await ctx.send(f":information_source: | {ctx.author.name} you've won {bet} credits")
 
-        else:
-            async with ctx.con.transaction():
-                await ctx.con.execute("UPDATE users set credits = credits - $1 where user_id = $2",
-                                      bet, ctx.author.id)
+            else:
 
+                await ctx.db.execute("UPDATE users set credits = credits - $1 where user_id = $2", bet, ctx.author.id)
                 await ctx.send(f":information_source: | {ctx.author.name} you've lost {bet} credits")
 
 

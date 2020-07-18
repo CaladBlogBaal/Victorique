@@ -11,8 +11,6 @@ from bs4 import BeautifulSoup
 import discord
 from discord.ext import commands
 
-from config.utils.paginator import PaginatorGlobal
-
 
 def range_check(amount):
     if amount > 20:
@@ -266,9 +264,10 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
 
     @staticmethod
     async def get_nsfw_channel(ctx):
-        if ctx.guild:
-            return await ctx.con.fetchval("SELECT nsfw_channel from guilds where guild_id = $1", ctx.guild.id)
-        return True
+        async with ctx.acquire():
+            if ctx.guild:
+                return await ctx.db.fetchval("SELECT nsfw_channel from guilds where guild_id = $1", ctx.guild.id)
+            return True
 
     async def random_image(self, ctx, post_url):
         m = MoeBooruApi(ctx)
@@ -335,19 +334,17 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
             await ctx.send(f":information_source: | {missed} results were not found.")
             await ctx.trigger_typing()
 
-        p = PaginatorGlobal(ctx)
-
         for result in results:
             og_url, sources, url, tags = result
             if url.endswith(("jpg", "png", "gif", "jpeg")):
-                await p.add_page(self.embed_(url, sources, og_url, tags))
+                await ctx.pagintor_global.add_page(self.embed_(url, sources, og_url, tags))
 
             else:
                 if sources == "":
                     sources = " "
-                await p.add_page(f":information_source: | **Image source** `{sources}`\n {url}")
+                await ctx.pagintor_global.add_page(f":information_source: | **Image source** `{sources}`\n {url}")
 
-        await p.paginate()
+        await ctx.pagintor_global.paginate()
 
     async def check_invalid_url(self, result):
         url, url2, preview, tags = result
@@ -370,8 +367,8 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
 
         channel = channel or ctx.channel
 
-        async with ctx.con.transaction():
-            await ctx.con.execute("UPDATE guilds SET nsfw_channel = $1 where guild_id = $2", channel.id, ctx.guild.id)
+        async with ctx.db.acquire():
+            await ctx.db.execute("UPDATE guilds SET nsfw_channel = $1 where guild_id = $2", channel.id, ctx.guild.id)
 
         await ctx.send(f":information_source: | {channel.mention} has been set as the NSFW channel.")
 
@@ -384,8 +381,8 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
         if channel is None:
             return await ctx.send(":no_entry: | no NSFW channel has been set.", delete_after=4)
 
-        async with ctx.con.transaction():
-            await ctx.con.fetchval("UPDATE guilds SET nsfw_channel = NULL where guild_id = $1 ", ctx.guild.id)
+        async with ctx.db.acquire():
+            await ctx.db.fetchval("UPDATE guilds SET nsfw_channel = NULL where guild_id = $1 ", ctx.guild.id)
         channel = self.bot.get_channel(channel)
         await ctx.send(f"{channel.mention} has been removed as the NSFW channel.")
 
@@ -412,7 +409,7 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
         tags = " ".join(list(tag.rstrip().lstrip().replace(" ", "_") for tag in tags.split("\u200B")))
 
         sb = SafebooruAPI(ctx)
-        p = PaginatorGlobal(ctx)
+
         results = await sb.post_request(tags)
 
         if not results:
@@ -422,9 +419,9 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
             results = random.sample(results, amount)
 
         for result in results:
-            await p.add_page(self.embed_(*(await self.check_invalid_url(result))))
+            await ctx.pagintor_global.add_page(self.embed_(*(await self.check_invalid_url(result))))
 
-        await p.paginate()
+        await ctx.pagintor_global.paginate()
 
     @commands.group(invoke_without_command=True, ignore_extra=False)
     async def apn(self, ctx):
@@ -445,9 +442,9 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
 
         amount = range_check(amount)
 
-        a = AnimePicturesNet(ctx)
-        p = PaginatorGlobal(ctx)
-        results = await a.post_request(amount, tags.replace("|", "||").replace("&&", "|"))
+        apn = AnimePicturesNet(ctx)
+
+        results = await apn.post_request(amount, tags.replace("|", "||").replace("&&", "|"))
         if results == list():
             return await ctx.send(":no_entry: | search failed")
 
@@ -458,9 +455,9 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
             await ctx.trigger_typing()
 
         for result in results:
-            await p.add_page(self.embed_(*result))
+            await ctx.pagintor_global.add_page(self.embed_(*result))
 
-        await p.paginate()
+        await ctx.pagintor_global.paginate()
 
     @commands.group(invoke_without_command=True, ignore_extra=False)
     async def ye(self, ctx):

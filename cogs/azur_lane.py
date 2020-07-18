@@ -14,8 +14,6 @@ from io import BytesIO
 import discord
 from discord.ext import commands
 
-from config.utils.paginator import PaginatorGlobal, Paginator
-
 
 class AzurLane(commands.Cog, name="Azur Lane"):
     """Azur lane related commands"""
@@ -52,6 +50,7 @@ class AzurLane(commands.Cog, name="Azur Lane"):
                                ["Beaver Badge", 75, 35],
                                ["Improved Hydraulic Rudder", 60, 40]]
 
+
     @staticmethod
     def __return_based_on_length(aux_slot):
         if len(aux_slot) == 3:
@@ -87,7 +86,6 @@ class AzurLane(commands.Cog, name="Azur Lane"):
         return ship_name
 
     async def find_image_names(self, ctx, word, ship=True):
-        p = Paginator(ctx)
 
         params = {
             "aisort": "name",
@@ -102,27 +100,22 @@ class AzurLane(commands.Cog, name="Azur Lane"):
 
         results = await self.bot.fetch("https://azurlane.koumakan.jp/w/api.php", params=params)
 
-        if ship:
-
-            names = [result["name"] for result in results["query"]["allimages"]
-                     if word.lower() in result["name"].lower() and result["height"] >= 800]
-
-        else:
-            names = [result["name"] for result in results["query"]["allimages"]
-                     if word.lower() in result["name"].lower()]
+        names = [result["name"] for result in results["query"]["allimages"]
+                 if word.lower() in result["name"].lower() or
+                 (result["height"] >= 800 and ship)]
 
         names = list(ctx.chunk(names, 10))
 
-        if not names:
+        if not names and ship:
             return await ctx.send(f":no_entry: | no images for the ship {word} were found.")
 
         await ctx.send(f"> Image File names for `{word}`")
 
         for chunk in names:
             name_chunk = "\n".join(f"> **{name.replace('_', ' ')}**" for name in chunk)
-            await p.add_page(name_chunk)
+            await ctx.paginator.add_page(name_chunk)
 
-        await p.paginate()
+        await ctx.paginator.paginate()
 
     async def azur_lane_wiki_search(self, ctx, item, allow_none_png=False, paginate=True):
 
@@ -144,8 +137,6 @@ class AzurLane(commands.Cog, name="Azur Lane"):
             if not item.endswith(".png"):
                 item = f"{item}.png"
 
-        p = PaginatorGlobal(ctx)
-
         params["aiprefix"] = item.replace("_", " ")
         js = await ctx.bot.fetch("https://azurlane.koumakan.jp/w/api.php", params=params)
 
@@ -159,14 +150,14 @@ class AzurLane(commands.Cog, name="Azur Lane"):
                     if allow_none_png is False:
                         embed.set_image(url=js["url"])
 
-                    await p.add_page(embed)
+                    await ctx.paginator_global.add_page(embed)
 
             else:
                 return js["url"]
 
         try:
 
-            await p.paginate()
+            await ctx.paginator_global.paginate()
 
         except IndexError:
             if not paginate:
@@ -287,7 +278,7 @@ class AzurLane(commands.Cog, name="Azur Lane"):
         return embed
 
     async def get_hull_or_rarity(self, ctx, index, item):
-        p = Paginator(ctx)
+
         col_name = self.ship_gear_hub[0][index]
 
         for row in self.ship_gear_hub:
@@ -295,11 +286,11 @@ class AzurLane(commands.Cog, name="Azur Lane"):
                 ship_name = row[0]
                 url = row[3]
                 embed = await self.make_gear_guide_embed(ctx, ship_name, url)
-                await p.add_page(embed)
+                await ctx.paginator.add_page(embed)
 
         try:
 
-            await p.paginate()
+            await ctx.paginator.paginate()
 
         except IndexError:
             await ctx.send(f"> invalid {col_name} was entered.")
@@ -475,7 +466,6 @@ class AzurLane(commands.Cog, name="Azur Lane"):
     @commands.command(aliases=["sd"])
     async def ship_details(self, ctx, filtered: typing.Optional[bool] = False, *, ship_name):
         """Grabs all the details of a ship pass True to filtered to return only stats and skills."""
-        p = Paginator(ctx)
 
         ship_name = self.check_ship_name(ship_name)
 
@@ -545,9 +535,9 @@ class AzurLane(commands.Cog, name="Azur Lane"):
 
         for chunk in ship_dets:
             chunk = "\n".join(chunk)
-            await p.add_page(f"```fix\n{chunk}```")
+            await ctx.paginator.add_page(f"```fix\n{chunk}```")
 
-        await p.paginate()
+        await ctx.paginator.paginate()
 
     @ship_details.error
     async def ship_details_error(self, ctx, error):
@@ -562,7 +552,6 @@ class AzurLane(commands.Cog, name="Azur Lane"):
         """
         Search for something on the AL wiki
         """
-        p = PaginatorGlobal(ctx)
         count = 1
 
         params = {"search": search}
@@ -576,10 +565,10 @@ class AzurLane(commands.Cog, name="Azur Lane"):
                     embed = discord.Embed(title=f"Search results for {search}", color=self.bot.default_colors())
                     embed.add_field(name=f"Search result: {count}", value=url, inline=False)
                     count += 1
-                    await p.add_page(embed)
+                    await ctx.paginator.add_page(embed)
         try:
 
-            await p.paginate()
+            await ctx.paginator.paginate()
 
         except IndexError:
             return await ctx.send(f":no_entry: | search failed for {search}")
