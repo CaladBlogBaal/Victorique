@@ -337,14 +337,14 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
         for result in results:
             og_url, sources, url, tags = result
             if url.endswith(("jpg", "png", "gif", "jpeg")):
-                await ctx.pagintor_global.add_page(self.embed_(url, sources, og_url, tags))
+                await ctx.paginator_global.add_page(self.embed_(url, sources, og_url, tags))
 
             else:
                 if sources == "":
                     sources = " "
-                await ctx.pagintor_global.add_page(f":information_source: | **Image source** `{sources}`\n {url}")
+                await ctx.paginator_global.add_page(f":information_source: | **Image source** `{sources}`\n {url}")
 
-        await ctx.pagintor_global.paginate()
+        await ctx.paginator_global.paginate()
 
     async def check_invalid_url(self, result):
         url, url2, preview, tags = result
@@ -419,9 +419,9 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
             results = random.sample(results, amount)
 
         for result in results:
-            await ctx.pagintor_global.add_page(self.embed_(*(await self.check_invalid_url(result))))
+            await ctx.paginator_global.add_page(self.embed_(*(await self.check_invalid_url(result))))
 
-        await ctx.pagintor_global.paginate()
+        await ctx.paginator_global.paginate()
 
     @commands.group(invoke_without_command=True, ignore_extra=False)
     async def apn(self, ctx):
@@ -455,9 +455,9 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
             await ctx.trigger_typing()
 
         for result in results:
-            await ctx.pagintor_global.add_page(self.embed_(*result))
+            await ctx.paginator_global.add_page(self.embed_(*result))
 
-        await ctx.pagintor_global.paginate()
+        await ctx.paginator_global.paginate()
 
     @commands.group(invoke_without_command=True, ignore_extra=False)
     async def ye(self, ctx):
