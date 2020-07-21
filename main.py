@@ -34,8 +34,8 @@ class Victorique(commands.Bot):
     def default_colors():
         colours = [discord.Color.dark_magenta(), discord.Colour(15156347), discord.Color.dark_orange(),
                    discord.Color.red(), discord.Color.dark_red(), discord.Color(15121501)]
-        col = int(random.random() * len(colours))
-        return colours[col]
+
+        return random.choice(colours)
 
     @staticmethod
     def safe_everyone(msg):
@@ -43,23 +43,20 @@ class Victorique(commands.Bot):
         return re.sub(r"@(everyone|here)", "@\u200b\\1", msg)
 
     async def update_databases(self, guild=None):
-        if guild:
-            async with self.pool.acquire() as con:
-                await con.execute("""INSERT INTO guilds (guild_id, allow_default) VALUES ($1,$2)
-                                  ON CONFLICT DO NOTHING;""", guild.id, True)
-            data = [(m.id, m.name, 3000) for m in guild.members if not m.bot]
-        else:
-            data = [(m.id, m.name, 3000) for m in self.get_all_members() if not m.bot]
-        member_ids = list((data[0],) for data in data)
-        user_update = list(data for data in data)
         async with self.pool.acquire() as con:
-            async with con.transaction():
-                await con.executemany("""INSERT INTO users (user_id, name, credits) 
-                                         VALUES ($1,$2,$3) ON CONFLICT DO NOTHING;""", user_update)
+            if guild:
+                await con.execute("""INSERT INTO guilds (guild_id, allow_default) VALUES ($1,$2)
+                                     ON CONFLICT DO NOTHING;""", guild.id, True)
+                user_tups = [(m.id, m.name, 3000) for m in guild.members if not m.bot]
+            else:
+                user_tups = [(m.id, m.name, 3000) for m in self.get_all_members() if not m.bot]
+            member_ids = list((data[0],) for data in user_tups)
 
-            async with con.transaction():
-                await con.executemany("INSERT INTO fish_users (user_id) VALUES ($1) ON CONFLICT DO NOTHING;",
-                                      member_ids)
+            await con.executemany("""INSERT INTO users (user_id, name, credits) 
+                                     VALUES ($1,$2,$3) ON CONFLICT DO NOTHING;""", user_tups)
+
+            await con.executemany("""INSERT INTO fish_users (user_id) 
+                                     VALUES ($1) ON CONFLICT DO NOTHING;""", member_ids)
 
     async def is_owner(self, user):
 
@@ -162,22 +159,16 @@ async def after_invoke(ctx):
     await ctx.release()
 
 
-@bot.command()
+@bot.command(aliases=["se"])
 @checks.private_guilds_check()
 async def send_emote(ctx, name: str):
-    emotes = [e for e in bot.emojis]
-    emote = list()
+
     try:
-
-        emote.append(random.sample([str(e) for e in emotes if name == e.name], 1))
-
+        emote = (random.sample([str(e) for e in bot.emojis if name.lower() == e.name.lower()], 1))
     except ValueError:
         return
 
-    if emote:
-        await ctx.send(emote[0][0])
-    else:
-        pass
+    await ctx.send(emote)
 
 
 @bot.command(hidden=True)

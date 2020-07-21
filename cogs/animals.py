@@ -105,8 +105,7 @@ class Animals(commands.Cog):
         for _ in range(amount):
             js = await self.bot.fetch("http://random.birb.pw/tweet.json/")
             js = json.loads(js)
-            col = int(random.random() * len(colours))
-            embed = discord.Embed(color=colours[col])
+            embed = discord.Embed(color=random.choice(colours))
             embed.set_image(url="https://random.birb.pw/img/" + js["file"])
             await ctx.paginator.add_page(embed)
 

@@ -50,7 +50,6 @@ class AzurLane(commands.Cog, name="Azur Lane"):
                                ["Beaver Badge", 75, 35],
                                ["Improved Hydraulic Rudder", 60, 40]]
 
-
     @staticmethod
     def __return_based_on_length(aux_slot):
         if len(aux_slot) == 3:
@@ -183,14 +182,9 @@ class AzurLane(commands.Cog, name="Azur Lane"):
                 ship_dict = row
 
                 for key, value in ship_dict.items():
-                    with suppress(AttributeError):
-                        if value.isdigit():
-                            ship_dict[key] = int(value)
+                    with suppress(AttributeError, ValueError):
+                        ship_dict[key] = float(value)
 
-                        try:
-                            ship_dict[key] = float(value)
-                        except ValueError:
-                            pass
                 return ship_dict
 
         return None
@@ -305,43 +299,42 @@ class AzurLane(commands.Cog, name="Azur Lane"):
         # this will probably be rewritten again in the future to be honest
         async def category_choice_set():
 
-            index_ = await self.bot.wait_for('message', check=lambda message: message.author == ctx.author, timeout=60)
+            message = await self.bot.wait_for('message', check=lambda message: message.author == ctx.author, timeout=60)
 
-            index_ = index_.content
+            content = message.content
 
             try:
-                index_ = int(index_)
+                content = int(content)
             except ValueError:
                 pass
 
-            if index_ not in (1, 2, 3, 4, 5, 6, 7, 8, 0):
+            if content not in (1, 2, 3, 4, 5, 6, 7, 8, 0):
 
                 await ctx.send(":no_entry: | invalid category choice was received will default to the best"
                                " average auxiliary slot for this hull ")
 
                 if hull in ("DD", "CL"):
                     display_aux_ = self.auxiliary_list[0][0]
-                    index_ = 0
+                    content = 0
 
                 else:
                     display_aux_ = self.auxiliary_list[6][0]
-                    index_ = 7
+                    content = 7
 
             else:
 
-                if index_ == 0:
+                if content == 0:
                     await ctx.send("exiting the calc... 0 was entered")
                     return False
                 try:
-                    display_aux_ = self.auxiliary_list[index_ - 1][0]
+                    display_aux_ = self.auxiliary_list[content - 1][0]
 
                 except IndexError:
                     display_aux_ = "Nothing"
 
             msg_ = await ctx.send(f"auxiliary slot has been set to {display_aux_}")
             messages_to_delete.append(msg_.id)
-            await asyncio.sleep(0.25)
-            return index_, display_aux_
+            return content, display_aux_
 
         messages_to_delete = []
         ship_name = ship_name.lower()
@@ -507,7 +500,6 @@ class AzurLane(commands.Cog, name="Azur Lane"):
             if line.startswith("|"):
 
                 if re.findall(r"Skill[0-9]Icon", line):
-
                     continue
 
                 if line in ("| DLimited = 1", "| DLight = 1"):

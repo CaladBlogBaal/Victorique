@@ -7,6 +7,7 @@ import discord
 from discord.ext import commands
 
 from config.utils.converters import FishNameConventer, FishRarityConventer
+from config.utils.emojis import FISHFOOD
 
 
 class Fishing(commands.Cog):
@@ -231,6 +232,10 @@ class Fishing(commands.Cog):
 
         return extra_fishes
 
+    @staticmethod
+    def reaction_set():
+        return [FISHFOOD]
+
     async def __fish_get_favourites_rarity(self, ctx, bait_id):
 
         favourites = await self.__fish_get_favourites(ctx)
@@ -238,10 +243,6 @@ class Fishing(commands.Cog):
                                         favourites, bait_id)
 
         return favourites
-
-    def reaction_set(self):
-        food1 = self.bot.get_emoji(603902930541608960)
-        return [food1]
 
     async def __fish_catch(self, ctx, bait_id, amount):
 
@@ -262,10 +263,9 @@ class Fishing(commands.Cog):
 
         records = [(ctx.author.id, fish['fish_id'], 1, fish['fish_name']) for fish in fishes]
 
-        async with ctx.db.transaction():
-            await ctx.db.executemany(statement, records)
-            for fish in fishes:
-                await ctx.paginator.add_page(f"> **{ctx.author.name}** you caught a {fish['fish_name']}")
+        await ctx.db.executemany(statement, records)
+        for fish in fishes:
+            await ctx.paginator.add_page(f"> **{ctx.author.name}** you caught a {fish['fish_name']}")
 
         await ctx.paginator.shuffle_pages()
         await ctx.paginator.paginate()
@@ -279,10 +279,7 @@ class Fishing(commands.Cog):
         if data is None:
             return await ctx.send(f":no_entry: | you do not have enough {reaction_emoji} for this action.")
 
-        if data["amount"] == 0:
-            return await ctx.send(f":no_entry: | you do not have enough {reaction_emoji} for this action.")
-
-        if data["amount"] < amount:
+        if data["amount"] < amount or data["amount"] == 0:
             return await ctx.send(f":no_entry: | you do not have enough {reaction_emoji} for this action.")
 
         if amount > 10000:
@@ -308,33 +305,21 @@ class Fishing(commands.Cog):
         """The main command for fishing by itself fishes a single random fish
            rates are as follow for fish 10% for elite 1% for super 0.05% for legendary"""
 
-        async def update_data(cb):
-            if cb < 10:
-                await ctx.send(":no_entry: | you do not have enough credits for casting..")
-                return False
-
-            await ctx.send(f"You have 0 <:Food1:603902930541608960> and thus paid 10 credits for casting.")
-
-            await ctx.db.execute("UPDATE users SET credits = credits - $1 WHERE user_id = $2", 10, ctx.author.id)
-
         current_balance = await ctx.db.fetchval("select credits from users where user_id = $1", ctx.author.id)
+        if current_balance < 10:
+            return await ctx.send(":no_entry: | you do not have enough credits for casting..")
+
         data = await ctx.db.fetchrow(
             "SELECT amount, bait_id from fish_user_inventory where user_id = $1 and bait_id = $2",
             ctx.author.id, 1)
 
-        if data is None:
-            if await update_data(current_balance) is False:
-                return
+        if data is None or data["amount"] == 0:
+            await ctx.send(f"You have 0 <:Food1:603902930541608960> and thus paid 10 credits for casting.")
+            await ctx.db.execute("UPDATE users SET credits = credits - $1 WHERE user_id = $2", 10, ctx.author.id)
 
-        elif data["amount"] == 0:
-            if await update_data(current_balance) is False:
-                return
-
-        else:
-
-            await ctx.db.execute(
-                "UPDATE fish_user_inventory SET amount = amount - $1 WHERE user_id = $2 and bait_id = $3",
-                1, ctx.author.id, 1)
+        await ctx.db.execute(
+            "UPDATE fish_user_inventory SET amount = amount - $1 WHERE user_id = $2 and bait_id = $3",
+            1, ctx.author.id, 1)
 
         await self.__fish_catch(ctx, 1, 1)
 
@@ -492,8 +477,7 @@ class Fishing(commands.Cog):
 
         list_of_ids = message.content.split(" ")
 
-        fish_ids = [await FishNameConventer().convert(ctx, id_) for id_ in list_of_ids]
-        fish_ids = set(fish_ids)
+        fish_ids = {await FishNameConventer().convert(ctx, id_) for id_ in list_of_ids}
 
         if fish_ids.issubset(data) is False:
             return await ctx.send(":no_entry: | an invalid fish id was passed.")
@@ -554,7 +538,8 @@ class Fishing(commands.Cog):
             return await ctx.send(":no_entry: | you currently have no fish caught.")
 
         if await self.transaction_check(ctx) is True:
-
+            # too lazy to rewrite this
+            # to not set a fish to zero
             amount_list = [d["amount"] - 1 for d in data if d["amount"] - 1 > 0]
             bait_list = [d["bait_id"] for d in data if d["amount"] - 1 > 0]
             data = [{"bait_id": x, "sum": amount_list[i]} for i, x in enumerate(bait_list)]
@@ -643,8 +628,6 @@ class Fishing(commands.Cog):
         if data is None:
             return await ctx.send(":no_entry: | you currently have no fish caught.")
 
-        delete_check = False
-
         if fish_id in await self.__fish_get_favourites(ctx):
             return await ctx.send(":no_entry: | you currently have this fish registered as a favourite fish")
 
@@ -656,8 +639,7 @@ class Fishing(commands.Cog):
         if data["amount"] < amount:
             return await ctx.send(f":no_entry: | you do not have enough {data['fish_name']} for this action")
 
-        if data["amount"] == amount:
-            delete_check = True
+        delete_check = data["amount"] == amount
 
         await ctx.send(f"> currently selling {data['fish_name']} {ctx.author.name}")
 

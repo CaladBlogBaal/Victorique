@@ -17,3 +17,5 @@ LEFT_POINT = PartialEmoji(animated=False, name="leftpoint", id=62420075656380416
 DRIGHT_POINT = PartialEmoji(animated=False, name="doubleleftpoint", id=624200763102461962)
 DLEFT_POINT = PartialEmoji(animated=False, name="doublerightpoint", id=624200775479984128)
 STOP = PartialEmoji(animated=False, name="stop", id=623238530771976234)
+
+FISHFOOD = PartialEmoji(animated=False, name="Food1", id=603902930541608960)

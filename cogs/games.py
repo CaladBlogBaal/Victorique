@@ -1,145 +1,16 @@
-import copy
 import contextlib
 import asyncio
-import random
 import typing
-
-import numpy as np
 
 import discord
 from discord.ext import commands
 
+from games.blackjack import BlackJackPlayer
+from games.tittactoe import TicTacToe
+from games.trivia import Triva
+from cogs.utils.games import *
 from config.utils.checks import checking_for_multiple_channel_instances
 from config.utils.converters import TriviaCategoryConverter, TriviaDiffcultyConventer, DieConventer
-
-
-class Card:
-    SUITS = ["Clubs", "Diamonds", "Hearts", "Spades"]
-    RANK = [None, "Ace", "2", "3", "4", "5", "6", "7", "8", "9", "10", "Jack", "Queen", "King"]
-
-    def __init__(self, suit: 0, rank: 2):
-        self.suit = suit
-        self.rank = self.RANK[rank]
-        self.rank_index = rank
-        self.running_player_queue = None
-
-    def print_card(self):
-        return "\n{} of {} ".format(Card.RANK[self.rank_index], Card.SUITS[self.suit])
-
-    def __it__(self, other):
-        if self.suit < other.suit:
-            return True
-
-        if self.suit > other.suit:
-            return False
-
-        return self.rank < other.rank
-
-
-class Deck:
-    def __init__(self):
-        self.cards = []
-        self.removed_cards = []
-        for suit in range(4):
-            for rank in range(1, 14):
-                card = Card(suit, rank)
-                self.cards.append(card)
-
-    def shuffle(self):
-        random.shuffle(self.cards)
-
-    def pop_card(self, i=0):
-        self.removed_cards.append(self.cards[i])
-        return self.cards.pop(i)
-
-    def add_card(self, card):
-        self.cards.append(card)
-
-    def is_empty(self):
-        return len(self.cards) == 0
-
-    def add_back_removed_cards(self):
-        for card in self.removed_cards:
-            self.add_card(card)
-
-
-class Player:
-
-    def __init__(self):
-        self.hand = []
-
-    def add_card_to_hand(self, card):
-        self.hand.append(card)
-
-    def remove_card_to_hand(self, i):
-        del self.hand[i]
-
-    def display_hand(self, dealer=False):
-        if dealer:
-            return self.hand[0].print_card() + "\n**Second card is face down**"
-
-        display = ""
-
-        for card in self.hand:
-            display += card.print_card()
-
-        return display
-
-    def clear_hand(self):
-        self.hand = []
-
-
-class BlackJackPlayer(Player):
-    NAMED_CARDS = ["Jack", "King", "Queen"]
-
-    def __init__(self):
-        self.hand = []
-        super().__init__()
-
-    def calculate_winner(self):
-
-        player_total = self.calculate_hand()
-
-        if player_total == 21:
-            return True
-
-        if player_total > 21:
-            return False
-
-    def calculate_hand(self):
-
-        player_total = 0
-
-        for card in self.hand:
-
-            if card.rank in BlackJackPlayer.NAMED_CARDS:
-                player_total += 10
-
-            if card.rank == "Ace":
-                player_total += 11
-
-            try:
-                player_total += int(card.rank)
-
-            except ValueError:
-                pass
-
-        return player_total
-
-
-class QuizPoints:
-    def __init__(self, name):
-        self.name = name
-        self.points = 0
-
-    @property
-    def score(self):
-        result = f"{self.name} scored {str(self.points)} points."
-        return result
-
-    @score.setter
-    def score(self, value):
-        self.points += value
 
 
 class Games(commands.Cog):
@@ -181,53 +52,6 @@ class Games(commands.Cog):
             await ctx.send(f":no_entry: | only one instance of this {ctx.command.name} command per channel",
                            delete_after=3)
 
-    @staticmethod
-    async def set_questions(ctx, category, difficulty, amount_of_questions):
-
-        if amount_of_questions > 10:
-            amount_of_questions = 10
-
-        query = "SELECT question_id from question"
-
-        if not category and not difficulty:
-            results = await ctx.db.fetch(query)
-
-        elif category and not difficulty:
-            query += " WHERE category_id = $1"
-            results = await ctx.db.fetch(query, category)
-
-        elif difficulty and not category:
-            query += " WHERE difficulty = $1"
-            results = await ctx.db.fetch(query, difficulty)
-
-        else:
-            query += " WHERE category_id = $1 and difficulty = $2"
-            results = await ctx.db.fetch(query, category, difficulty)
-
-        results = random.sample(results, amount_of_questions)
-        return results
-
-    @staticmethod
-    def build_answers(answers):
-        answers = sorted(answers, key=lambda ans: ans["is_correct"], reverse=True)
-        return [ans["content"] for ans in answers]
-
-    async def build_question(self, ctx, question_id):
-        question_id = question_id["question_id"]
-        data = await ctx.db.fetchrow("""SELECT content, difficulty, type 
-                                          from question where question_id = $1""", question_id)
-
-        question, difficulty, type_ = data["content"], data["difficulty"], data["type"]
-
-        answers = await ctx.db.fetch("SELECT content, is_correct from answer where question_id = $1", question_id)
-        answers = self.build_answers(answers)
-
-        category = await ctx.db.fetchval("""
-        SELECT name from category where category_id = (SELECT category_id from question where question_id = $1)""",
-                                         question_id)
-
-        return category, type_, difficulty, question, answers
-
     @commands.command(aliases=["8ball", "8-ball", "magic_eight_ball"])
     async def eight_ball(self, ctx, *, message):
         """
@@ -260,73 +84,14 @@ class Games(commands.Cog):
         Roll a die in a NdN+m format
         """
 
-        ops = {"+": (lambda a, b: a + b),
-               "-": (lambda a, b: a - b),
-               "*": (lambda a, b: a * b),
-               "/": (lambda a, b: a / b)}
-
         rolls, limit, expression = dice
 
         results = [random.randint(1, limit) for _ in range(rolls)]
 
-        def is_digit(num):
-            try:
-                num = int(num)
-            except ValueError:
-                try:
-                    num = float(num)
-                except ValueError:
-                    return False
-
-            return num
-
-        def peek(stack):
-            return stack[-1] if stack else None
-
-        def calculate(operators, values):
-            right = values.pop()
-            left = values.pop()
-            values.append(ops[operators.pop()](left, right))
-
-        def greater_precedence(op1, op2):
-            precedences = {"+": 0, "-": 0, "*": 1, "/": 1}
-            return precedences[op1] > precedences[op2]
-
-        def evaluate():
-            # https://en.wikipedia.org/wiki/Shunting-yard_algorithm
-            # http://www.martinbroadhurst.com/shunting-yard-algorithm-in-python.html
-
-            values = []
-            operators = []
-            for token in expression:
-                if is_digit(token):
-                    values.append(is_digit(token))
-                elif token == "(":
-                    operators.append(token)
-                elif token == ")":
-                    top = peek(operators)
-                    while top not in (None, "("):
-                        calculate(operators, values)
-                        top = peek(operators)
-                    operators.pop()
-
-                else:
-                    top = peek(operators)
-
-                    while top not in (None, "(", ")") and greater_precedence(top, token):
-                        calculate(operators, values)
-                        top = peek(operators)
-                    operators.append(token)
-
-            while peek(operators):
-                calculate(operators, values)
-
-            return values[0]
-
         for i, res in enumerate(results):
             expression.insert(0, str(res))
 
-            results[i] = evaluate()
+            results[i] = ShuntingYard(expression).evaluate()
 
             del expression[0]
 
@@ -336,111 +101,17 @@ class Games(commands.Cog):
 
     @commands.group(aliases=["tri"], invoke_without_command=True)
     async def trivia(self, ctx, difficulty: typing.Optional[TriviaDiffcultyConventer] = None,
-                     amount_of_questions: typing.Optional[int] = 5, *, category: TriviaCategoryConverter = None):
+                     amount: typing.Optional[int] = 5, *, category: TriviaCategoryConverter = None):
         """
         Answer some trivia questions category accepts either an id or name
         possible difficulties are easy, medium hard
         """
 
-        await ctx.acquire()
-
-        msg = await ctx.send("Starting the trivia game....")
-
-        score_count = 0
-
-        if amount_of_questions <= 0:
+        if amount <= 0:
             return await ctx.send(":no_entry: | please type in a valid amount of questions.")
 
-        time_out_count = 0
-
-        score = QuizPoints(ctx.author.name)
-
-        question_list = await self.set_questions(ctx, category, difficulty, amount_of_questions)
-
-        reactions = ["🇦", "🇧", "🇨", "🇩", "⏩"]
-
-        for reaction in reactions:
-            await msg.add_reaction(reaction)
-
-        for questiton_id in question_list:
-            data = await self.build_question(ctx, questiton_id)
-
-            correct_answer = data[4][0]
-            text = f"**Category:** {data[0]}\n**Type:** {data[1]}\n**Difficulty:** {data[2]}\n**Question:** {data[3]}"
-            embed = discord.Embed(title=f"Trivia Question! :white_check_mark: {amount_of_questions} questions left",
-                                  color=self.bot.default_colors())
-            embed.set_footer(text=f'Requested by {ctx.message.author.name}', icon_url=ctx.message.author.avatar_url)
-            embed.timestamp = ctx.message.created_at
-            random.shuffle(data[4])
-            n = -1
-
-            for answer in data[4]:
-                n += 1
-                embed.add_field(name=answer, value=reactions[n])
-
-            await msg.edit(embed=embed, content=text)
-
-            def check(reaction, user):
-                return user == ctx.author and reaction.emoji in reactions and reaction.message.id == msg.id
-
-            try:
-
-                reaction, user = await self.bot.wait_for('reaction_add', timeout=10, check=check)
-
-                with contextlib.suppress(discord.Forbidden):
-                    await msg.remove_reaction(reaction, user)
-
-            except asyncio.TimeoutError:
-                time_out_count += 1
-
-                if time_out_count >= 5:
-                    with contextlib.suppress(discord.Forbidden):
-                        return await msg.clear_reactions()
-
-                s = "\n\n:information_source: | {}, you took too long to give a response this question will be skipped."
-                text += s.format(ctx.author.name)
-                await msg.edit(embed=embed, content=text)
-                amount_of_questions -= 1
-                await asyncio.sleep(3)
-                continue
-
-            else:
-                reactions_copy = copy.copy(reactions)
-
-                if len(data[4]) == 2:
-                    del reactions_copy[2]
-                    del reactions_copy[2]
-
-                while True:
-
-                    if reaction.emoji in reactions_copy:
-                        index = reactions.index(reaction.emoji)
-
-                        if reaction.emoji == reactions[-1]:
-
-                            s = f"\n\n:information_source: | this question will be skipped, {ctx.author.name}."
-
-                        elif data[4][index] == correct_answer:
-                            score_count += 10
-                            s = f"\n\n> {ctx.author.name} correct answer"
-
-                        else:
-                            score_count += -2
-                            s = f"\n\n> Incorrect answer, the correct answer was `{correct_answer}` {ctx.author.name}"
-
-                        text += s
-                        await msg.edit(embed=embed, content=text)
-                        amount_of_questions -= 1
-                        time_out_count = 0
-                        await asyncio.sleep(3)
-                        break
-
-                    else:
-                        reaction, user = await self.bot.wait_for('reaction_add', timeout=10, check=check)
-
-        score.score = score_count
-        await ctx.release()
-        await msg.edit(content=f"quiz finished :white_check_mark: {score.score}")
+        triva = Triva()
+        await triva.run(ctx, difficulty, amount, category)
 
     @trivia.group(aliases=["cat"], invoke_without_command=True)
     async def categorises(self, ctx):
@@ -478,11 +149,9 @@ class Games(commands.Cog):
     async def tictactoe(self, ctx, member: discord.Member):
         """
         Play a game of TicTacToe
+        this command is reaction based just react with
+        the number you'd like to place your letter on."
         """
-
-        default_board_np = np.array([[1, 1, 1], [1, 1, 1], [1, 1, 1]])
-
-        board_np = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
 
         if member == ctx.author:
             return await ctx.send("You can't play against yourself silly rascal")
@@ -491,191 +160,29 @@ class Games(commands.Cog):
             return await ctx.send("Bots are too much for mere humans.")
 
         await ctx.send(f"awaiting a response from {member.display_name} (options yes or no)")
+        try:
 
-        message = await self.bot.wait_for('message', check=lambda message: message.author == member,
-                                          timeout=60)
+            message = await self.bot.wait_for('message', check=lambda message: message.author == member,
+                                              timeout=60)
+        except asyncio.TimeoutError:
+            return await ctx.send("A response wasn't received for awhile cancelling...", delete_after=3)
 
-        while message.content.lower() != "yes" and message.content.lower() != "no":
-            message = await self.bot.wait_for('message', check=lambda message: message.author == member, timeout=60)
+        choice = message.content.lower()
 
-        if message.content.lower() == "yes":
-            pass
+        if choice == "no":
+            await ctx.send(f":information_source: | "
+                           f"seems like {member.display_name} doesn't want a game shutting down the game...")
 
-        elif message.content.lower() == "no":
-            return await ctx.send(f":information_source: | seems like {member.display_name} doesn't want a game "
-                                  f"shutting down the game...")
+        elif choice != "yes":
+            await ctx.send("> Invalid option was passed aborting...")
 
-        def display_board():
-
-            board_display = [":one:", ":two:", ":three:",
-                             ":four:", ":five:", ":six:",
-                             ":seven:", ":eight:", ":nine:"
-                             ]
-
-            board_flat = default_board_np.flatten()
-
-            for i in range(0, 9):
-                if board_flat[i] == 0:
-                    board_display[i] = ":o:"
-
-                elif board_flat[i] == -1:
-                    board_display[i] = ":x:"
-
-            display = [" {}  {}  {} \n{}  {}  {} \n{}  {}  {} ".format(*board_display)]
-            return display
-
-        def return_open_spaces():
-            open_spaces = []
-            check_ = (default_board_np == 1)
-            flat_board_ = check_.flatten()
-
-            for i, _ in enumerate(flat_board_):
-                if flat_board_[i] == True:
-                    open_spaces.append(i + 1)
-
-            return open_spaces
-
-        def check_winner(last_played_move):
-
-            for i in range(3):
-                rows = np.all(default_board_np[i, :] == last_played_move)
-                cols = np.all(default_board_np[:, i] == last_played_move)
-
-                if rows or cols:
-                    return True
-
-            diags1 = np.all(np.diag(default_board_np) == last_played_move)
-            diags2 = np.all(np.diag(np.fliplr(default_board_np)) == last_played_move)
-
-            if diags1 or diags2:
-                return True
-
-            check_ = return_open_spaces()
-
-            if check_ == []:
-                return False
-
-        def place_letter(player_number, player_choice):
-            index = np.where(board_np == player_choice)
-            default_board_np[index] = player_number
-
-        async def player_letter_choice():
-            msg__ = await ctx.send(f"{ctx.author.mention} Do you want to be X or O ?")
-
-            message__ = await self.bot.wait_for('message', check=lambda m: m.author == ctx.author and
-                                                len(m.content) == 1, timeout=60)
-
-            await msg__.delete()
-
-            if message__.content.lower() == "o":
-                await ctx.send(":information_source: | your letter is O")
-                return 0, -1
-
-            await ctx.send(":information_source: | your letter is X")
-            return -1, 0
-
-        def first_turn():
-            if random.randint(0, 1) == 0:
-                return "Player two"
-
-            return "Player"
-
-        def embed():
-            display = display_board()
-
-            embed__ = discord.Embed(title=f"Tic Tac Toe", description=display[0], color=self.bot.default_colors())
-
-            embed__.set_footer(text=f'Requested by {ctx.message.author.name}')
-            embed__.timestamp = ctx.message.created_at
-            return embed__
-
-        msg = await ctx.send(embed=embed())
-        reactions = ["1\N{combining enclosing keycap}", "2\N{combining enclosing keycap}",
-                     "3\N{combining enclosing keycap}", "4\N{combining enclosing keycap}",
-                     "5\N{combining enclosing keycap}", "6\N{combining enclosing keycap}",
-                     "7\N{combining enclosing keycap}", "8\N{combining enclosing keycap}",
-                     "9\N{combining enclosing keycap}"]
-
-        for emoji in reactions:
-            await msg.add_reaction(emoji)
-
-        def check(reaction, user):
-            return user == ctx.author and reaction.emoji in reactions and reaction.message.id == msg.id
-
-        def check_mention(reaction, user):
-            return user == member and reaction.emoji in reactions and reaction.message.id == msg.id
-
-        embed_ = discord.Embed(title="Tic Tac Toe Guide :information_source:",
-                               description="this command is reaction based just react with"
-                                           " the number you'd like to place your letter on.",
-                               color=self.bot.default_colors())
-
-        guide = await ctx.send(embed=embed_)
-        await asyncio.sleep(5)
-        await guide.delete()
-
-        letter, letter2 = await player_letter_choice()
-
-        first = first_turn()
-
-        async def player_turn(_check, _letter, member):
-            await msg.edit(embed=embed(), content=f"It's {member.name} turn")
-
-            cancel_after = 0
-
-            reaction, user = await self.bot.wait_for('reaction_add', timeout=60, check=_check)
-
-            with contextlib.suppress(discord.HTTPException):
-                await msg.remove_reaction(reaction, user)
-
-            while True:
-
-                if reactions.index(reaction.emoji) + 1 in return_open_spaces():
-                    place_letter(_letter, reactions.index(reaction.emoji) + 1)
-                    break
-
-                else:
-                    await msg.edit(embed=embed(),
-                                   content=f":no_entry: | {member.display_name} invalid move react again")
-
-                    reaction, user = await self.bot.wait_for('reaction_add', timeout=30, check=_check)
-                    cancel_after += 1
-
-                    if cancel_after == 5:
-                        await msg.edit(embed=embed(),
-                                       content=":no_entry: | too many invalid moves cancelling the game.")
-                        return True
-
-            place_letter(_letter, reactions.index(reaction.emoji) + 1)
-
-            if check_winner(_letter):
-                place_letter(_letter, reactions.index(reaction.emoji) + 1)
-                await msg.edit(embed=embed(), content=f":information_source: | {member.display_name} won")
-                return True
-
-            if check_winner(_letter) is False:
-                place_letter(_letter, reactions.index(reaction.emoji) + 1)
-                await msg.edit(embed=embed(), content=":information_source: | The game was a draw")
-                return True
-
-            await msg.edit(embed=embed())
-
-        while True:
-
-            if first == "Player":
-
-                if await player_turn(check, letter, ctx.author):
-                    break
-                first = ""
-
-            else:
-
-                if await player_turn(check_mention, letter2, member):
-                    break
-
-                first = "Player"
+        else:
+            tic_tat_toe = TicTacToe(ctx)
+            await tic_tat_toe.run(member)
 
     @commands.command(aliases=["bj", "blackjack"])
+    # gotta actually rewrite this
+    @commands.is_owner()
     @checking_for_multiple_channel_instances()
     async def black_jack(self, ctx):
         """
