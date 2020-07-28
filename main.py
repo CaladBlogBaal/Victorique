@@ -168,7 +168,7 @@ async def send_emote(ctx, name: str):
     except ValueError:
         return
 
-    await ctx.send(emote)
+    await ctx.send(*emote)
 
 
 @bot.command(hidden=True)
