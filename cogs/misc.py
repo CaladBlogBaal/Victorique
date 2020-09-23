@@ -145,9 +145,9 @@ class Misc(commands.Cog):
             if "videoRenderer" in dict_:
                 web_cmd = dict_["videoRenderer"]["navigationEndpoint"]["commandMetadata"]["webCommandMetadata"]
                 url = web_cmd.get("url")
-                if top:
-                    return url
                 urls.append("https://www.youtube.com" + url)
+                if top:
+                    return urls
 
         return urls
 
