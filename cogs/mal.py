@@ -8,7 +8,7 @@ from bs4 import BeautifulSoup
 import discord
 from discord.ext import commands
 
-from jikanpy import AioJikan, ClientException
+from jikanpy import AioJikan, ClientException, APIException
 
 from config.utils.converters import SeasonConverter, MangaIDConverter, AnimeIDConverter
 from config.utils.cache import cache
@@ -28,6 +28,9 @@ class MyAnimeList(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
 
         if isinstance(error, ClientException):
             await ctx.send(":no_entry: | invalid day was passed.", delete_after=3)
+
+        if isinstance(error, APIException):
+            await ctx.send(error)
 
     @staticmethod
     def _embed(ctx, type_, result):

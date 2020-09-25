@@ -284,7 +284,13 @@ class Moderation(commands.Cog):
 
     @set_prefix.after_invoke
     async def set_prefix_after_invoke(self, ctx):
+        # invalidating caches here
         self.bot.prefix_invalidate(ctx.guild.id)
+        # invalidating the cache for every tag in this guild
+        async with ctx.acquire():
+            tags = await ctx.db.fetch("select tag_name from tags where guild_id = $1", ctx.guild.id)
+            for tag in tags:
+                self.bot.tags_invalidate(ctx.guild.id, tag["tag_name"])
 
 
 def setup(bot):

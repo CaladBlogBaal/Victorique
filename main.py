@@ -9,7 +9,6 @@ import asyncpg
 from discord.ext import commands, tasks
 import discord
 
-
 import loadconfig
 from config.utils import cache, requests, checks
 from config.utils import context
@@ -27,7 +26,6 @@ class Victorique(commands.Bot):
         db = await asyncpg.create_pool(loadconfig.credentials)
         self.pool = db
         with open("schema.sql") as f:
-
             await self.pool.execute(f.read())
 
     @staticmethod
@@ -99,7 +97,7 @@ class Victorique(commands.Bot):
         col = int(random.random() * len(colours))
         content = content
         embed = discord.Embed(color=colours[col],
-                              description=random.choice(content),)
+                              description=random.choice(content), )
         embed.set_image(url=js[key])
         return embed
 
@@ -118,19 +116,23 @@ class Victorique(commands.Bot):
         return msg
 
     @cache.cache()
-    async def get_tags(self, guild_id):
+    async def get_tag(self, guild_id, tag_name):
+
+        guild_id = guild_id
+        tag_name = tag_name
+
         async with bot.pool.acquire() as con:
-            tags = await con.fetch("select tag_name from tags where guild_id =  $1",
-                                   guild_id)
+            tag = await con.fetchrow("""select guild_id, content, nsfw, tag_name from tags where guild_id =  $1 
+                                     and lower(tag_name) LIKE $2""",
+                                     guild_id, tag_name)
 
-            return tags
+            return tag
 
-    tags_invalidate = get_tags.invalidate
-    tags = get_tags.get_stats
+    tags_invalidate = get_tag.invalidate
+    tags = get_tag.get_stats
 
 
 async def get_prefix(bot_, msg):
-
     if msg.guild is None:
         return commands.when_mentioned_or(*[loadconfig.__prefix__, ""])(bot_, msg)
 
@@ -150,6 +152,7 @@ async def get_prefix(bot_, msg):
     prefix.sort(reverse=True)
     return commands.when_mentioned_or(*prefix)(bot_, msg)
 
+
 bot = Victorique(command_prefix=get_prefix, case_insensitive=True)
 
 
@@ -162,7 +165,6 @@ async def after_invoke(ctx):
 @bot.command(aliases=["se"])
 @checks.private_guilds_check()
 async def send_emote(ctx, name: str):
-
     try:
         emote = (random.sample([str(e) for e in bot.emojis if name.lower() == e.name.lower()], 1))
     except ValueError:
@@ -188,7 +190,6 @@ async def i_cant_believe(ctx):
 
 @bot.event
 async def on_message(message):
-
     user = message.author
     msg = message.content
 
@@ -214,6 +215,7 @@ async def presence_change():
 async def before_presence_change():
     await bot.wait_until_ready()
 
+
 presence_change.start()
 
 
@@ -236,7 +238,6 @@ async def on_member_join(member):
         return
 
     async with bot.pool.acquire() as con:
-
         await con.execute("INSERT INTO users (user_id, name, credits) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING;",
                           member.id, member.name, 3000)
         await con.execute("INSERT INTO fish_users (user_id) VALUES ($1) ON CONFLICT DO NOTHING;", member.id)
@@ -276,4 +277,3 @@ if __name__ == "__main__":
             raise e
 
     bot.run(loadconfig.__token__, bot=True, reconnect=True)
-

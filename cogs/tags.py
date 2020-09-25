@@ -11,24 +11,9 @@ import humanize as h
 import discord
 from discord.ext import commands
 
-import loadconfig
 from config.utils.converters import TagNameConverter
 
-
-def tag_names_list(tags, prefix, allow_default):
-
-    if allow_default:
-        results = set()
-        for tag in tags:
-            # add both prefixes followed by tag name since allow default is True
-            results.add(f"{prefix}{tag['tag_name']}")
-            results.add(f"{loadconfig.__prefix__}{tag['tag_name']}")
-
-        return results
-
-    tags = {f"{prefix}{tag['tag_name']}" for tag in tags}
-
-    return tags
+import loadconfig
 
 
 async def send_tag_content(tag, message, bot):
@@ -113,10 +98,28 @@ class Tags(commands.Cog):
         await ctx.send(f":information_source: | created new tag `{name}` to add content to this tag do "
                        f"`{ctx.prefix}tag update {name} <content here>`.")
 
+    @staticmethod
+    def prefixed_tag_names(allow_default, prefix, tag):
+        if allow_default:
+            check = (f"{prefix}{tag['tag_name']}", f"{loadconfig.__prefix__}{tag['tag_name']}")
+
+        else:
+            check = (f"{prefix}{tag['tag_name']}",)
+
+        return check
+
+    async def check_failure(self, tag, name, guild_id):
+        if not tag:
+            # if it failed to find a tag invalidate the cache for it
+            self.bot.tags_invalidate(guild_id, name)
+            return True
+        return False
+
     @commands.Cog.listener()
     async def on_message(self, message):
         # still crude as hell
-        if not message.guild or message.author.bot:
+        check = await self.bot.get_prefix(message)
+        if not message.guild or message.author.bot or not check:
             return
 
         data = await self.bot.get_guild_prefix(message.guild.id)
@@ -128,21 +131,24 @@ class Tags(commands.Cog):
             prefix = data["prefix"]
             allow_default = data["allow_default"]
 
-        tags = await self.bot.get_tags(message.guild.id)
-        tags = tag_names_list(tags, prefix, allow_default)
         content = message.content.lower()
+        tag_name = content.replace(loadconfig.__prefix__, "", 1).replace(prefix, "", 1)
 
-        if content in tags:
+        tag = await self.bot.get_tag(message.guild.id, tag_name)
+        check = await self.check_failure(tag, tag_name, message.guild.id)
+
+        if check:
+            return
+
+        ptn = self.prefixed_tag_names(allow_default, prefix, tag)
+
+        if tag and content in ptn:
             bucket = self.cd.get_bucket(message)
             retry_after = bucket.update_rate_limit()
             if retry_after:
                 return await message.channel.send(":no_entry: | woah slow down there you're being rated limited.",
                                                   delete_after=3)
 
-            statement = "SELECT content, nsfw, tag_name from tags where LOWER(tag_name) = $1 and guild_id = $2"
-            name = content.replace(loadconfig.__prefix__, "", 1).replace(prefix, "", 1)
-
-            tag = await self.bot.pool.fetchrow(statement, name, message.guild.id)
             await send_tag_content(tag, message, self.bot)
 
     @commands.group(invoke_without_command=True, aliases=["tags"])
@@ -415,10 +421,9 @@ class Tags(commands.Cog):
 
         await ctx.paginator.paginate()
 
-    @create.after_invoke
     @update_content.after_invoke
     async def after_tag_update(self, ctx):
-        self.bot.tags_invalidate(ctx.guild.id)
+        self.bot.tags_invalidate(ctx.guild.id, ctx.args[-1])
 
 
 def setup(bot):
