@@ -104,7 +104,7 @@ class Tags(commands.Cog):
             check = (f"{prefix}{tag['tag_name']}", f"{loadconfig.__prefix__}{tag['tag_name']}")
 
         else:
-            check = (f"{prefix}{tag['tag_name']}",)
+            check = (f"{prefix}{tag['tag_name']}", )
 
         return check
 
@@ -118,8 +118,10 @@ class Tags(commands.Cog):
     @commands.Cog.listener()
     async def on_message(self, message):
         # still crude as hell
-        check = await self.bot.get_prefix(message)
-        if not message.guild or message.author.bot or not check:
+        # getting the context to check if the message contains a prefix
+        ctx = await self.bot.get_context(message)
+
+        if not message.guild or message.author.bot or not ctx.prefix:
             return
 
         data = await self.bot.get_guild_prefix(message.guild.id)
@@ -149,7 +151,9 @@ class Tags(commands.Cog):
                 return await message.channel.send(":no_entry: | woah slow down there you're being rated limited.",
                                                   delete_after=3)
 
-            await send_tag_content(tag, message, self.bot)
+            return await send_tag_content(tag, message, self.bot)
+        # invalidating the tag in the case the message was only the tag name with no prefix
+        self.bot.tags_invalidate(message.guild.id, tag_name)
 
     @commands.group(invoke_without_command=True, aliases=["tags"])
     async def tag(self, ctx, member: discord.Member = None):
