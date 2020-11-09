@@ -152,8 +152,19 @@ async def get_prefix(bot_, msg):
     prefix.sort(reverse=True)
     return commands.when_mentioned_or(*prefix)(bot_, msg)
 
+# As of 2020-10-28, discord requires users declare what sort of information their bot requires which is done in the form
+# of intents
+intents = discord.Intents.default()
 
-bot = Victorique(command_prefix=get_prefix, case_insensitive=True)
+# these intents are known as privileged which requires you to go to the developer portal
+# and manually enable it.
+
+# need this to track members
+intents.members = True
+# need this for discord.Member.status
+intents.presences = True
+
+bot = Victorique(command_prefix=get_prefix, case_insensitive=True, intents=intents)
 
 
 @bot.after_invoke
@@ -250,18 +261,6 @@ async def on_disconnect():
     await asyncio.sleep(loadconfig.__presenceTimer__)
     presence_change.start()
 
-# As of 2020-10-28, discord requires users declare what sort of information their bot requires which is done in the form
-# of intents
-intents = discord.Intents.default()
-
-# these intents are known as privileged which requires you to go to the developer portal
-# and manually enable it.
-
-# need this to track members
-intents.members = True
-# need this for discord.Member.status
-intents.presences = True
-
 
 @bot.event
 async def on_ready():
@@ -288,4 +287,4 @@ if __name__ == "__main__":
             print(f"{cog} could not be loaded.")
             raise e
 
-    bot.run(loadconfig.__token__, bot=True, reconnect=True, intents=intents)
+    bot.run(loadconfig.__token__, bot=True, reconnect=True)
