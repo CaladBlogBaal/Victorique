@@ -250,6 +250,14 @@ async def on_disconnect():
     await asyncio.sleep(loadconfig.__presenceTimer__)
     presence_change.start()
 
+# As of 2020-10-28, discord requires users declare what sort of information their bot requires which is done in the form
+# of intents
+intents = discord.Intents.default()
+# need this to track members
+intents.members = True
+# need this for discord.Member.status
+intents.presences = True
+
 
 @bot.event
 async def on_ready():
@@ -276,4 +284,4 @@ if __name__ == "__main__":
             print(f"{cog} could not be loaded.")
             raise e
 
-    bot.run(loadconfig.__token__, bot=True, reconnect=True)
+    bot.run(loadconfig.__token__, bot=True, reconnect=True, intents=intents)
