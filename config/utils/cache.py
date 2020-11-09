@@ -92,8 +92,12 @@ def cache(maxsize=256, strategy=Strategy.lru):
 
                 return True
 
+        def __clear():
+            __cache.clear()
+
         wrapper.get_stats = __stats
         wrapper.invalidate = __invalidate
+        wrapper.clear = __clear
         return wrapper
 
     return memoize
