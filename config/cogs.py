@@ -17,5 +17,6 @@ __cogs__ = [
     "cogs.jishaku",
     "cogs.fish",
     "cogs.tags",
-    "cogs.pillow"
+    "cogs.pillow",
+    "cogs.youtube"
     ]
