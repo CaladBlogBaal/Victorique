@@ -253,6 +253,10 @@ async def on_disconnect():
 # As of 2020-10-28, discord requires users declare what sort of information their bot requires which is done in the form
 # of intents
 intents = discord.Intents.default()
+
+# these intents are known as privileged which requires you to go to the developer portal
+# and manually enable it.
+
 # need this to track members
 intents.members = True
 # need this for discord.Member.status
