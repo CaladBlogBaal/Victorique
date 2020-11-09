@@ -75,6 +75,12 @@ class Tags(commands.Cog):
         self.bot = bot
         self.cd = commands.CooldownMapping.from_cooldown(1, 4, commands.BucketType.member)
 
+    async def invalidate_user_tags(self, ctx, member):
+        tag_names = await ctx.db.fetch("SELECT tag_name from tags where guild_id = $1 and user_id = $2",
+                                       ctx.guild.id, member.id)
+        for name in tag_names:
+            self.bot.tags_invalidate(ctx.guild.id, name)
+
     async def cog_check(self, ctx):
         return ctx.guild is not None
 
@@ -330,10 +336,10 @@ class Tags(commands.Cog):
             if deleted == []:
                 return await ctx.send(f"> {member.name} has no tags to delete.")
 
+            await self.invalidate_user_tags(ctx, member)
             await ctx.send(f"> successfully deleted {len(deleted)} from {member.name}.")
 
-        else:
-            await ctx.send(":no_entry: | you need manage message permissions for this command.")
+        await ctx.send(":no_entry: | you need manage message permissions for this command.")
 
     @tag.group(invoke_without_command=True)
     async def nsfw(self, ctx, nsfw: typing.Optional[bool] = True, *, name):
@@ -381,7 +387,9 @@ class Tags(commands.Cog):
             if nsfw:
                 return await ctx.send(f"> set all of {member.name} tags to NSFW")
 
+            await self.invalidate_user_tags(ctx, member)
             await ctx.send(f"> set all of {member.name} tags to not NSFW")
+
         else:
             await ctx.send(":no_entry: | you need manage message permissions for this command.")
 
@@ -428,6 +436,11 @@ class Tags(commands.Cog):
     @update_content.after_invoke
     async def after_tag_update(self, ctx):
         self.bot.tags_invalidate(ctx.guild.id, ctx.args[-1])
+
+    @delete.after_invoke
+    @nsfw.after_invoke
+    async def after_delete(self, ctx):
+        self.bot.tags_invalidate(ctx.guild.id, ctx.kwargs["name"])
 
 
 def setup(bot):
