@@ -129,8 +129,8 @@ class Triva(TriviaCore):
                    f"**Question:** {question[3]}"
 
             correct_answer = question[4][0]
-            embed = await self.embed(ctx, question, amount)
             random.shuffle(question[4])
+            embed = await self.embed(ctx, question, amount)
             await msg.edit(embed=embed, content=text)
 
             def check(reaction, user):
