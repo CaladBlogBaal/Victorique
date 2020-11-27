@@ -199,23 +199,6 @@ async def i_cant_believe(ctx):
     await ctx.send("I can't believe you've done this")
 
 
-@bot.event
-async def on_message(message):
-    user = message.author
-    msg = message.content
-
-    if message.author.id == bot.user.id:
-        return
-
-    if msg.lower() == "floof":
-        await message.channel.send(f"gloof {user.mention}")
-
-    if msg.lower() == "point and laugh":
-        await message.channel.send("https://i.imgur.com/uPHnUjQ.png")
-
-    await bot.process_commands(message)
-
-
 @tasks.loop(seconds=loadconfig.__presenceTimer__)
 async def presence_change():
     random_presence = random.choice(loadconfig.__presences__)
