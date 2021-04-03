@@ -40,8 +40,9 @@ class Youtube(commands.Cog):
         urls = list()
         search_url = "https://www.youtube.com/results?"
         params = {"search_query": "+".join(query.split())}
-
-        result = await self.bot.fetch(search_url, params=params)
+        # for the cookies and data consent forum
+        cookies = {"CONSENT": "YES+srp.gws-20210330-0-RC1.en+FX+461"}
+        result = await self.bot.fetch(search_url, params=params, cookies=cookies)
         soup = BeautifulSoup(result, "html.parser")
         pattern = re.compile(r"var ytInitialData = (.*);")
         scripts = soup.find_all("script")
