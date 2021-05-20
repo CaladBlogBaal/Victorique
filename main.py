@@ -40,22 +40,6 @@ class Victorique(commands.Bot):
         # modified version of the discord.utils.unescape_mentions
         return re.sub(r"@(everyone|here)", "@\u200b\\1", msg)
 
-    async def update_databases(self, guild=None):
-        async with self.pool.acquire() as con:
-            if guild:
-                await con.execute("""INSERT INTO guilds (guild_id, allow_default) VALUES ($1,$2)
-                                     ON CONFLICT DO NOTHING;""", guild.id, True)
-                user_tups = [(m.id, m.name, 3000) for m in guild.members if not m.bot]
-            else:
-                user_tups = [(m.id, m.name, 3000) for m in self.get_all_members() if not m.bot]
-            member_ids = list((data[0],) for data in user_tups)
-
-            await con.executemany("""INSERT INTO users (user_id, name, credits) 
-                                     VALUES ($1,$2,$3) ON CONFLICT DO NOTHING;""", user_tups)
-
-            await con.executemany("""INSERT INTO fish_users (user_id) 
-                                     VALUES ($1) ON CONFLICT DO NOTHING;""", member_ids)
-
     async def is_owner(self, user):
 
         return user.id in loadconfig.__owner_ids__
@@ -222,22 +206,6 @@ async def on_user_update(before, after):
 
 
 @bot.event
-async def on_guild_join(guild):
-    await bot.update_databases(guild)
-
-
-@bot.event
-async def on_member_join(member):
-    if member.bot:
-        return
-
-    async with bot.pool.acquire() as con:
-        await con.execute("INSERT INTO users (user_id, name, credits) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING;",
-                          member.id, member.name, 3000)
-        await con.execute("INSERT INTO fish_users (user_id) VALUES ($1) ON CONFLICT DO NOTHING;", member.id)
-
-
-@bot.event
 async def on_disconnect():
     presence_change.cancel()
     await bot.wait_until_ready()
@@ -247,8 +215,6 @@ async def on_disconnect():
 
 @bot.event
 async def on_ready():
-    await bot.update_databases()
-
     print(f"Successfully logged in and booted...!")
     print(f"\nLogged in as: {bot.user.name} - {bot.user.id}\nDiscord.py version: {discord.__version__}\n")
     print(f"Asyncpg version: {asyncpg.__version__}")

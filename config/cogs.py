@@ -18,5 +18,6 @@ __cogs__ = [
     "cogs.fish",
     "cogs.tags",
     "cogs.pillow",
-    "cogs.youtube"
+    "cogs.youtube",
+    "cogs.database"
     ]
