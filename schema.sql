@@ -13,6 +13,15 @@ CREATE TABLE IF NOT EXISTS users (
     daily_cooldown timestamp
 );
 
+CREATE TABLE IF NOT EXISTS user_tag_usage (
+    id SERIAL PRIMARY KEY,
+    guild_id bigint REFERENCES guilds (guild_id),
+    user_id bigint REFERENCES users (user_id),
+    uses smallint default 0
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS user_tag_usage_uniq_idx ON user_tag_usage (user_id, guild_id);
+
 CREATE TABLE IF NOT EXISTS tags (
     tag_id SERIAL PRIMARY KEY,
     guild_id bigint REFERENCES guilds (guild_id),
@@ -20,7 +29,8 @@ CREATE TABLE IF NOT EXISTS tags (
     tag_name text,
     content text,
     nsfw bool,
-    created_at timestamp
+    created_at timestamp,
+    uses smallint default 0
 );
 
 CREATE INDEX IF NOT EXISTS tags_name_trgm_idx ON tags USING GIN (tag_name gin_trgm_ops);
