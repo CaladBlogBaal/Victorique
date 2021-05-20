@@ -1,12 +1,9 @@
-import re
 import datetime
 import typing
-
-from io import BytesIO
-
-import aiohttp
 import asyncpg
 import humanize as h
+
+from collections import Counter
 
 import discord
 from discord.ext import commands
@@ -16,54 +13,11 @@ from config.utils.converters import TagNameConverter
 import loadconfig
 
 
-async def send_tag_content(tag, message, bot):
-    # will try and refractor this later
-
-    name = tag["tag_name"]
+async def send_tag_content(tag, message):
     if tag["nsfw"] and not message.channel.nsfw:
         return await message.channel.send(f"> This tag can only be used in NSFW channels.", delete_after=4)
 
     content = tag["content"]
-
-    if content.count("||") >= 2:
-        return await message.channel.send(content)
-
-    reg = re.compile(r"""(?:http|https)?://(?:www.)?[-a-zA-Z0-9@:%.+~#=]{2,256}.[a-z]{2,6}\b
-                         (?:[-a-zA-Z0-9@:%_+.~#?&//=]*).
-                         (?:<format>|jpe?g|png|gif?)""", flags=re.VERBOSE | re.IGNORECASE)
-
-    urls = reg.findall(content)
-
-    if urls:
-        url = urls[0]
-        # if there's multiple urls send the tag content as is or if there's an url followed by text
-        if len(urls) > 2 or content.replace(url, "") != "":
-            return await message.channel.send(content)
-
-        if "SPOILER" in url:
-            return await message.channel.send(f"|| {url} ||")
-        try:
-            async with bot.session.get(url) as response:
-                header = response.headers.get("content-type", "null")
-                # if the url is dead don't load it into a file
-                if "image/" not in header or response.status in (404, 403, 400, 401):
-                    return await message.channel.send(content)
-
-                extension = header.split("/")[1]
-                size = response.headers.get("content-length")
-                size = int(size)
-
-                if size > 5242880:
-                    embed = discord.Embed(color=0x36393f)
-                    return await message.channel.send(embed=embed.set_image(url=url))
-
-                file_ = discord.File(filename=f"{name}_image.{extension}",
-                                     fp=BytesIO(await bot.fetch(url)))
-
-                return await message.channel.send(file=file_)
-
-        except (aiohttp.ClientConnectionError, aiohttp.InvalidURL):
-            await message.channel.send(content)
 
     await message.channel.send(content)
 
@@ -74,6 +28,7 @@ class Tags(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.cd = commands.CooldownMapping.from_cooldown(1, 4, commands.BucketType.member)
+        self.emotes = {1: "🥇", 2: "🥈", 3: "🥉"}
 
     async def invalidate_user_tags(self, ctx, member):
         tag_names = await ctx.db.fetch("SELECT tag_name from tags where guild_id = $1 and user_id = $2",
@@ -88,13 +43,103 @@ class Tags(commands.Cog):
         # acquire a connection to the pool before every command
         await ctx.acquire()
 
+    async def get_member_stats(self, ctx, member):
+        query = """
+                WITH stats AS (
+                    SELECT tag_name, uses, tag_id,
+                           RANK() OVER ( ORDER BY uses DESC) rank
+                    FROM tags
+                    WHERE guild_id = $1 and user_id = $2
+                    )
+                    SELECT tag_name, tag_id, uses, rank
+                    FROM stats
+                        """
+
+        data = await ctx.db.fetch(query, ctx.guild.id, member.id)
+
+        owned_tags = len(data)
+        owned_tags_usage = sum(r["uses"] for r in data)
+
+        total_tags_uses = await ctx.db.fetchval("""SELECT SUM(uses) FROM user_tag_usage WHERE guild_id = $1 and user_id 
+                                                    = $2""",
+                                                ctx.guild.id, member.id)
+
+        embed = discord.Embed(title="Tag Stats",
+                              color=self.bot.default_colors())
+
+        embed.add_field(name="Owned Tags", value=h.intcomma(owned_tags), inline=True)
+        embed.add_field(name="Owned Tags (used)", value=h.intcomma(owned_tags_usage), inline=True)
+        embed.add_field(name="Total tags used", value=h.intcomma(total_tags_uses), inline=True)
+
+        value = "\n".join(f"{self.emotes[r['rank']]}: {r['tag_name']} ({h.intcomma(r['uses'])} times)"
+                          for r in data[:3]) or 0
+
+        embed.add_field(name="Top Owned Tags", value=value)
+        embed.set_author(name=member.name, icon_url=str(member.avatar_url))
+        await ctx.send(embed=embed)
+
+    async def get_guild_stats(self, ctx):
+        query = """
+            WITH stats AS (
+                SELECT tag_name, nsfw, created_at, user_id, uses,
+                       RANK() OVER ( ORDER BY uses DESC) rank
+                FROM tags
+                WHERE guild_id = $1
+                )
+                SELECT tag_name, nsfw, created_at, user_id, uses, rank
+                FROM stats
+                    """
+
+        data = await ctx.db.fetch(query, ctx.guild.id)
+
+        if not data:
+            return await ctx.send("> Currently no tags for this guild exist.")
+
+        top_creators = Counter(r["user_id"] for r in data).most_common(3)
+
+        description = f"{len(data)} tags, {sum(r['uses'] for r in data)} tag uses"
+
+        embed = discord.Embed(title="Tag Stats",
+                              color=self.bot.default_colors())
+
+        embed.description = description
+
+        value = "\n".join(f"{self.emotes[i + 1]}: <@{t[0]}> ({h.intcomma(t[1])} tags)"
+                          for i, t in enumerate(top_creators))
+        embed.add_field(name="Top Tag Creators", value=value, inline=False)
+
+        value = "\n".join(f"{self.emotes[r['rank']]}: {r['tag_name']} ({h.intcomma(r['uses'])} times)"
+                          for r in data[:3])
+        embed.add_field(name="Top Tags", value=value, inline=False)
+
+        query = """
+                    WITH stats AS (
+                        SELECT user_id, uses,
+                               RANK() OVER ( ORDER BY uses DESC) rank
+                        FROM user_tag_usage
+                        WHERE guild_id = $1
+                        LIMIT 3
+                        )
+                        SELECT user_id, uses, rank
+                        FROM stats
+                            """
+
+        data = await ctx.db.fetch(query, ctx.guild.id)
+
+        value = "\n".join(f"{r['rank']}: <@{r['user_id']}> ({h.intcomma(r['uses'])} used)" for r in data)
+
+        embed.add_field(name="Top Users", value=value, inline=False)
+
+        await ctx.send(embed=embed)
+
     @staticmethod
     async def create_tag(ctx, name, content):
 
         try:
-            await ctx.pool.execute("""INSERT INTO tags (tag_name, guild_id, user_id, content, created_at) 
-                                    VALUES ($1, $2, $3, $4, $5)""",
-                                   name, ctx.guild.id, ctx.author.id, content, ctx.message.created_at)
+            await ctx.pool.fetchval("""INSERT INTO tags (tag_name, guild_id, user_id, content, created_at) 
+                                       VALUES ($1, $2, $3, $4, $5)""",
+                                    name, ctx.guild.id, ctx.author.id, content, ctx.message.created_at)
+
         except asyncpg.UniqueViolationError:
             return await ctx.send(f":information_source: | tag name already exists")
 
@@ -110,7 +155,7 @@ class Tags(commands.Cog):
             check = (f"{prefix}{tag['tag_name']}", f"{loadconfig.__prefix__}{tag['tag_name']}")
 
         else:
-            check = (f"{prefix}{tag['tag_name']}", )
+            check = (f"{prefix}{tag['tag_name']}",)
 
         return check
 
@@ -120,6 +165,14 @@ class Tags(commands.Cog):
             self.bot.tags_invalidate(guild_id, name)
             return True
         return False
+
+    @commands.Cog.listener()
+    async def on_guild_join(self, guild):
+        async with self.bot.pool.acquire() as con:
+            tups = [(m.id, guild.id) for m in guild.members if not m.bot]
+
+            await con.executemany("""INSERT INTO user_tag_usage (user_id, guild_id) 
+                                     VALUES ($1, $2) ON CONFLICT DO NOTHING;""", tups)
 
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -132,15 +185,14 @@ class Tags(commands.Cog):
 
         data = await self.bot.get_guild_prefix(message.guild.id)
 
-        prefix = loadconfig.__prefix__
         allow_default = False
 
         if data["prefix"]:
-            prefix = data["prefix"]
             allow_default = data["allow_default"]
 
-        content = message.content.lower()
-        tag_name = content.replace(loadconfig.__prefix__, "", 1).replace(prefix, "", 1)
+        content = ctx.message.content.lower()
+
+        tag_name = content.replace(ctx.prefix, "", 1)
 
         tag = await self.bot.get_tag(message.guild.id, tag_name)
         check = await self.check_failure(tag, tag_name, message.guild.id)
@@ -148,31 +200,35 @@ class Tags(commands.Cog):
         if check:
             return
 
-        ptn = self.prefixed_tag_names(allow_default, prefix, tag)
+        ptn = self.prefixed_tag_names(allow_default, ctx.prefix, tag)
 
-        if tag and content in ptn:
+        if content in ptn:
             bucket = self.cd.get_bucket(message)
             retry_after = bucket.update_rate_limit()
             if retry_after:
                 return await message.channel.send(":no_entry: | woah slow down there you're being rated limited.",
                                                   delete_after=3)
 
-            return await send_tag_content(tag, message, self.bot)
-        # invalidating the tag in the case the message was only the tag name with no prefix
-        self.bot.tags_invalidate(message.guild.id, tag_name)
+            await send_tag_content(tag, message)
+            await ctx.acquire()
+            await ctx.db.execute("UPDATE tags SET uses = uses + 1 WHERE tag_name = $1 AND guild_id = $2",
+                                 tag_name, message.guild.id)
+
+            await ctx.db.execute("UPDATE user_tag_usage SET uses = uses + 1 WHERE user_id = $1 AND guild_id = $2",
+                                 message.author.id, message.guild.id)
 
     @commands.group(invoke_without_command=True, aliases=["tags"])
     async def tag(self, ctx, member: discord.Member = None):
         """The main command for tags returns your current tags by itself or another member's."""
 
         member = member or ctx.author
-        data = await ctx.db.fetch("SELECT tag_name from tags where user_id = $1 and guild_id = $2", member.id,
+        data = await ctx.db.fetch("SELECT tag_name, tag_id from tags where user_id = $1 and guild_id = $2", member.id,
                                   ctx.guild.id)
 
         if data == []:
             return await ctx.send(f"> {member.name} currently has no tags created for this guild.")
 
-        names = [f'\n> **{tag["tag_name"]}**' for tag in data]
+        names = [f'\n> **{tag["tag_name"]}** (ID: {tag["tag_id"]})' for tag in data]
 
         name_chunks = ctx.chunk(names, 10)
 
@@ -227,26 +283,47 @@ class Tags(commands.Cog):
         await ctx.send(discord.utils.escape_markdown(content["content"]))
 
     @tag.command()
+    async def stats(self, ctx, member: typing.Union[discord.Member, discord.User] = None):
+        """Get statistics for the current guild or a guild member"""
+        if not member:
+            return await self.get_guild_stats(ctx)
+
+        await self.get_member_stats(ctx, member)
+
+    @tag.command()
     async def info(self, ctx, *, name):
         """Get info on a tag"""
         name = name.lower()
 
-        data = await ctx.db.fetchrow("SELECT * from tags where LOWER(tag_name) = $1 and guild_id = $2", name,
-                                     ctx.guild.id)
+        query = """
+        WITH stats AS (
+            SELECT tag_name, nsfw, created_at, user_id, uses,
+                   RANK() OVER ( ORDER BY uses DESC) rank
+            FROM tags
+            WHERE guild_id = $1
+            )
+            SELECT tag_name, nsfw, created_at, user_id, uses, rank
+            FROM stats
+            WHERE LOWER(tag_name) = $2
+                """
+
+        data = await ctx.db.fetchrow(query, ctx.guild.id, name)
+
         if not data:
             return await ctx.send(f"> A tag with name `{name}` does not exist.")
-
-        nsfw = False if not data["nsfw"] else data["nsfw"]
 
         embed = discord.Embed(title=name,
                               color=self.bot.default_colors())
 
         member = ctx.guild.get_member(data["user_id"]) or await self.bot.fetch_user(data["user_id"])
         date = h.naturaltime(datetime.datetime.utcnow() - data["created_at"])
+        uses = h.intcomma(data["uses"])
         embed.add_field(name="Owner", value=member.name, inline=False)
-        embed.add_field(name="Nsfw", value=nsfw, inline=False)
+        embed.add_field(name="Nsfw", value=data["nsfw"], inline=False)
         embed.add_field(name="Created", value=date, inline=False)
+        embed.add_field(name="Uses: ", value=uses, inline=False)
         embed.set_author(name=member.name, icon_url=member.avatar_url_as(static_format="png"))
+        embed.add_field(name="Rank", value=data["rank"])
 
         await ctx.send(embed=embed)
 
@@ -283,13 +360,13 @@ class Tags(commands.Cog):
 
         tags = await ctx.db.fetch("select tag_name, user_id from tags where guild_id =  $1", ctx.guild.id)
 
+        if not tags:
+            return await ctx.send("> Currently no tags for this guild exist.")
+
         tags = [f"Tag name: **{tag['tag_name']}** created by "
                 f"**{str(ctx.guild.get_member(tag['user_id']))}**" for tag in tags if tag['tag_name']]
 
         tags_chunks = ctx.chunk(tags, 10)
-
-        if not tags_chunks:
-            return await ctx.send("> Currently no tags for this guild exist.")
 
         for tags in tags_chunks:
             tags = "\n".join(tags)
