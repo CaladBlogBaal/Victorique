@@ -1,9 +1,10 @@
 import datetime
 import typing
-import asyncpg
-import humanize as h
 
 from collections import Counter
+
+import asyncpg
+import humanize as h
 
 import discord
 from discord.ext import commands
@@ -356,11 +357,32 @@ class Tags(commands.Cog):
         except discord.HTTPException:
             await ctx.send(f":information_source: | successfully updated tag but content too long to display.")
 
+    @tag.command()
+    async def random(self, ctx):
+        """get a random tag"""
+        tag = await ctx.db.fetchrow("SELECT tag_name, content FROM tags TABLESAMPLE SYSTEM(10) WHERE guild_id = $1",
+                                    ctx.guild.id)
+
+        if not tag:
+            return await ctx.send("> Currently no tags for this guild exist.")
+
+        await ctx.send(f"Tag Name: {tag['tag_name']}\n{tag['content']}")
+
     @tag.command(ignore_extra=False)
     async def list(self, ctx):
         """Get a list of tags for the current guild"""
+        query = """
+            WITH stats AS (
+                SELECT tag_name, user_id,
+                       RANK() OVER ( ORDER BY uses DESC) rank
+                FROM tags
+                WHERE guild_id = $1
+                )
+                SELECT tag_name, user_id, rank
+                FROM stats
+                    """
 
-        tags = await ctx.db.fetch("select tag_name, user_id from tags where guild_id =  $1", ctx.guild.id)
+        tags = await ctx.db.fetch(query, ctx.guild.id)
 
         if not tags:
             return await ctx.send("> Currently no tags for this guild exist.")
