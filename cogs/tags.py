@@ -217,6 +217,8 @@ class Tags(commands.Cog):
             await ctx.db.execute("UPDATE user_tag_usage SET uses = uses + 1 WHERE user_id = $1 AND guild_id = $2",
                                  message.author.id, message.guild.id)
 
+            await ctx.release()
+
     @commands.group(invoke_without_command=True, aliases=["tags"])
     async def tag(self, ctx, member: discord.Member = None):
         """The main command for tags returns your current tags by itself or another member's."""
