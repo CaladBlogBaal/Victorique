@@ -33,6 +33,8 @@ CREATE TABLE IF NOT EXISTS tags (
     uses smallint default 0
 );
 
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE EXTENSION IF NOT EXISTS tsm_system_rows;
 CREATE INDEX IF NOT EXISTS tags_name_trgm_idx ON tags USING GIN (tag_name gin_trgm_ops);
 CREATE INDEX IF NOT EXISTS tags_name_lower_idx ON tags (LOWER(tag_name));
 CREATE UNIQUE INDEX IF NOT EXISTS tags_uniq_idx ON tags (tag_name, guild_id);
@@ -107,7 +109,7 @@ INSERT INTO category (category_id, name) VALUES (24, 'Entertainment: Cartoon & A
 
 
 DO $$ BEGIN
-    CREATE TYPE  question_type AS ENUM ('multiple choice', 'True or False');
+    CREATE TYPE question_type AS ENUM ('multiple choice', 'True or False');
 EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;
