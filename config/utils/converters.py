@@ -6,6 +6,16 @@ from discord.ext import commands
 
 
 class TagNameConverter(commands.Converter):
+
+    def add_command_alias(self, qualified_names, command: commands.Group):
+        for cmd in command.commands:
+            for alias in command.aliases:
+                test = cmd.parent.name
+                alias_qualified_name = cmd.qualified_name.replace(test, alias)
+                qualified_names.append(alias_qualified_name)
+            if isinstance(cmd, commands.Group):
+                self.add_command_alias(qualified_names, cmd)
+
     async def convert(self, ctx, argument):
 
         new_name = await commands.clean_content().convert(ctx, argument.lower())
@@ -16,11 +26,18 @@ class TagNameConverter(commands.Converter):
         if len(new_name) > 50:
             raise commands.BadArgument("tag names are a maximum of 50 characters.")
 
-        cmd_names = [c.name for c in ctx.bot.commands]
-        aliases = [alias for c in ctx.bot.commands for alias in c.aliases]
-        cmd_names.extend(aliases)
+        qualified_names = []
 
-        if any(new_name == name for name in cmd_names):
+        cmds = list(ctx.bot.walk_commands())
+        group_cmds = [cmd for cmd in cmds if isinstance(cmd, commands.Group)]
+
+        qualified_names.extend([cmd.qualified_name for cmd in cmds])
+        # adding the aliases of a command group
+        # otherwise tag create would fail but tags create would pass.
+        for cmd in group_cmds:
+            self.add_command_alias(qualified_names, cmd)
+
+        if any(new_name == name for name in qualified_names):
             raise commands.BadArgument("tag name starts with a bot command or sub command.")
 
         return new_name
@@ -46,7 +63,8 @@ class FishNameConventer(commands.Converter):
         async with ctx.acquire():
 
             if not argument.isdigit():
-                fish = await ctx.db.fetchval("SELECT fish_id from fish where (LOWER(fish_name) like '%' || $1 || '%')", argument)
+                fish = await ctx.db.fetchval("SELECT fish_id from fish where (LOWER(fish_name) like '%' || $1 || '%')",
+                                             argument)
 
             if fish:
                 return fish
@@ -70,9 +88,10 @@ class SeasonConverter(commands.Converter):
         if argument in seasons:
             return argument
 
-        spring = ("March", "April", "May")
-        summer = ("June", "July", "August")
-        autumn = ("September", "October", "November")
+        months_seasons = {"March": "spring", "April": "spring", "May": "spring",
+                          "June": "summer", "July": "summer", "August": "summer",
+                          "September": "fall", "October": "fall", "November": "fall",
+                          "December": "winter", "January": "winter", "February": "winter"}
 
         months = {'1': 'January', '2': 'February', '3': 'March',
                   '4': 'April', '5': 'May', '6': 'June',
@@ -92,17 +111,8 @@ class SeasonConverter(commands.Converter):
         else:
             month = months_short.get(argument, None)
 
-        if month in spring:
-            month = "spring"
-
-        elif month in summer:
-            month = "summer"
-
-        elif month in autumn:
-            month = "fall"
-
-        elif month:
-            month = "winter"
+        if month in months_seasons:
+            month = months_seasons[month]
 
         if month is None:
             raise commands.BadArgument("an invalid season was passed.")
@@ -132,7 +142,8 @@ class TriviaCategoryConverter(commands.Converter):
 class TriviaDiffcultyConventer(commands.Converter):
     async def convert(self, ctx, argument):
         async with ctx.acquire():
-            diffculties = [result["difficulty"] for result in await ctx.db.fetch("SELECT DISTINCT difficulty from question")]
+            diffculties = [result["difficulty"] for result in
+                           await ctx.db.fetch("SELECT DISTINCT difficulty from question")]
             if argument in diffculties:
                 return argument
 
@@ -171,9 +182,20 @@ class DieConventer(commands.Converter):
         return rolls, limit, expression
 
 
+def str_to_three_bytes(argument):
+    bytes_ = len(argument.encode("utf-8"))
+    while bytes_ < 3:
+        argument += " "
+        bytes_ = len(argument.encode("utf-8"))
+
+    return argument
+
+
 class MangaIDConverter(commands.Converter):
     async def convert(self, ctx, argument):
         if not isinstance(argument, int):
+            argument = str_to_three_bytes(argument)
+
             return await ctx.bot.cogs["MyAnimeList"].search_mal(ctx, "manga", argument, True)
 
         return argument
@@ -182,6 +204,7 @@ class MangaIDConverter(commands.Converter):
 class AnimeIDConverter(commands.Converter):
     async def convert(self, ctx, argument):
         if not isinstance(argument, int):
+            argument = str_to_three_bytes(argument)
             return await ctx.bot.cogs["MyAnimeList"].search_mal(ctx, "anime", argument, True)
 
         return argument
