@@ -1,6 +1,5 @@
 import re
 import copy
-import asyncio
 import csv
 import shutil
 import typing
@@ -13,6 +12,8 @@ from io import BytesIO
 
 import discord
 from discord.ext import commands
+
+from config.utils.menu import page_source
 
 
 class AzurLane(commands.Cog, name="Azur Lane"):
@@ -49,6 +50,17 @@ class AzurLane(commands.Cog, name="Azur Lane"):
                                ["SG Radar", 0, 15],
                                ["Beaver Badge", 75, 35],
                                ["Improved Hydraulic Rudder", 60, 40]]
+
+    @staticmethod
+    @page_source(per_page=11)
+    async def find_source(self, menu, entries):
+        return f'```fix\n{"".join(entries)}```'
+
+    @staticmethod
+    @page_source(per_page=10)
+    async def default_source(self, menu, entries):
+        entries = "\n".join(f"> **{name.replace('_', ' ')}**" for name in entries)
+        return entries
 
     @staticmethod
     def __return_based_on_length(aux_slot):
@@ -103,18 +115,17 @@ class AzurLane(commands.Cog, name="Azur Lane"):
                  if word.lower() in result["name"].lower() or
                  (result["height"] >= 800 and ship)]
 
-        names = list(ctx.chunk(names, 10))
+        if not names:
+            if ship:
+                return await ctx.send(f":no_entry: | no images for the ship {word} were found.")
 
-        if not names and ship:
-            return await ctx.send(f":no_entry: | no images for the ship {word} were found.")
+            return await ctx.send(f":no_entry: | nothing was found for file {word}.")
 
         await ctx.send(f"> Image File names for `{word}`")
 
-        for chunk in names:
-            name_chunk = "\n".join(f"> **{name.replace('_', ' ')}**" for name in chunk)
-            await ctx.paginator.add_page(name_chunk)
+        pages = ctx.menu(self.default_source(names))
 
-        await ctx.paginator.paginate()
+        await pages.start(ctx)
 
     async def azur_lane_wiki_search(self, ctx, item, allow_none_png=False, paginate=True):
 
@@ -138,7 +149,7 @@ class AzurLane(commands.Cog, name="Azur Lane"):
 
         params["aiprefix"] = item.replace("_", " ")
         js = await ctx.bot.fetch("https://azurlane.koumakan.jp/w/api.php", params=params)
-
+        entries = []
         for js in js["query"]["allimages"]:
 
             if paginate:
@@ -149,19 +160,18 @@ class AzurLane(commands.Cog, name="Azur Lane"):
                     if allow_none_png is False:
                         embed.set_image(url=js["url"])
 
-                    await ctx.paginator_global.add_page(embed)
-
+                    entries.append(embed)
             else:
                 return js["url"]
 
-        try:
-
-            await ctx.paginator_global.paginate()
-
-        except IndexError:
-            if not paginate:
-                return "https://i.imgur.com/la4e2G4.jpg"
+        if entries == [] and paginate:
             return await ctx.send(f":no_entry: | search failed for {item}")
+
+        if not paginate:
+            return "https://i.imgur.com/la4e2G4.jpg"
+
+        pages = ctx.global_menu(ctx.embed_source(entries))
+        await pages.start(ctx)
 
     def auxiliary_slots(self, option=0):
         auxiliary_slot_hp = 0
@@ -272,7 +282,7 @@ class AzurLane(commands.Cog, name="Azur Lane"):
         return embed
 
     async def get_hull_or_rarity(self, ctx, index, item):
-
+        entries = []
         col_name = self.ship_gear_hub[0][index]
 
         for row in self.ship_gear_hub:
@@ -280,14 +290,13 @@ class AzurLane(commands.Cog, name="Azur Lane"):
                 ship_name = row[0]
                 url = row[3]
                 embed = await self.make_gear_guide_embed(ctx, ship_name, url)
-                await ctx.paginator.add_page(embed)
+                entries.append(embed)
 
-        try:
+        if not entries:
+            return await ctx.send(f"> invalid {col_name} was entered.")
 
-            await ctx.paginator.paginate()
-
-        except IndexError:
-            await ctx.send(f"> invalid {col_name} was entered.")
+        pages = ctx.menu(ctx.embed_source(entries))
+        await pages.start(ctx)
 
     @commands.group(invoke_without_command=True)
     async def ehp(self, ctx, enemy_hit: typing.Optional[int] = 45, enemy_level: typing.Optional[int] = 0, *, ship_name):
@@ -523,13 +532,9 @@ class AzurLane(commands.Cog, name="Azur Lane"):
         ship_dets = regex.sub(lambda mo: replace_dict[mo.string[mo.start():mo.end()]], ship_dets)
         bytes_ = BytesIO(ship_dets.encode())
         await ctx.send(file=discord.File(bytes_, filename=f"{ship_name}_details.txt"))
-        ship_dets = ctx.chunk(ship_dets.split("\n"), 11)
 
-        for chunk in ship_dets:
-            chunk = "\n".join(chunk)
-            await ctx.paginator.add_page(f"```fix\n{chunk}```")
-
-        await ctx.paginator.paginate()
+        pages = ctx.menu(self.find_source(ship_dets.split("\n")))
+        await pages.start(ctx)
 
     @ship_details.error
     async def ship_details_error(self, ctx, error):
@@ -548,7 +553,7 @@ class AzurLane(commands.Cog, name="Azur Lane"):
 
         params = {"search": search}
         results = await self.bot.fetch("https://azurlane.koumakan.jp/w/api.php?action=opensearch", params=params)
-
+        entries = []
         for result in results:
 
             for url in result:
@@ -557,13 +562,13 @@ class AzurLane(commands.Cog, name="Azur Lane"):
                     embed = discord.Embed(title=f"Search results for {search}", color=self.bot.default_colors())
                     embed.add_field(name=f"Search result: {count}", value=url, inline=False)
                     count += 1
-                    await ctx.paginator.add_page(embed)
-        try:
+                    entries.append(embed)
 
-            await ctx.paginator.paginate()
-
-        except IndexError:
+        if not entries:
             return await ctx.send(f":no_entry: | search failed for {search}")
+
+        pages = ctx.menu(ctx.embed_source(entries))
+        await pages.start(ctx)
 
     @commands.command(aliases=["afs"])
     async def al_file_search(self, ctx, *, item):

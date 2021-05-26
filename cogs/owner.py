@@ -11,7 +11,7 @@ import humanize as h
 import discord
 from discord.ext import commands, tasks
 
-from config.utils.paginator import Paginator, WarpedPaginator
+from config.utils.menu import page_source
 from config.utils.converters import TriviaCategoryConverter, TriviaDiffcultyConventer
 
 
@@ -32,6 +32,11 @@ class Info(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+    @staticmethod
+    @page_source(per_page=24)
+    def source_source(self, menu, entries):
+        return f"```py\n{''.join(entries)}```"
+
     @commands.command()
     async def invite(self, ctx):
         """Get the bot's invite url"""
@@ -48,7 +53,6 @@ class Info(commands.Cog):
         if not command_name:
             return await ctx.send(git_url)
 
-        p = Paginator(ctx)
         command = self.bot.get_command(command_name)
         if not command:
             return await ctx.send(f"> couldn't find {command_name}")
@@ -65,15 +69,8 @@ class Info(commands.Cog):
                 final_url = f"<{git_url}/tree/master/{location}#L{firstlineno}-L{firstlineno + len(source_lines) - 1}>"
                 await ctx.send(final_url)
 
-            source_lines = ctx.chunk(source_lines, 24)
-
-            for chunk in source_lines:
-                source = "```py\n"
-                source += "".join(chunk)
-                source += "\n```"
-                await p.add_page(source)
-
-            await p.paginate()
+            pages = ctx.menu(self.source_source(source_lines))
+            await pages.start(ctx)
         except OSError:
             await ctx.send(f"> could not get source code for {command_name}")
 
@@ -116,6 +113,12 @@ class OwnerCog(commands.Cog, name="Owner Commands"):
 
     def __init__(self, bot):
         self.bot = bot
+
+    @staticmethod
+    @page_source(per_page=5)
+    def query_source(self, menu, entries):
+        # temporary
+        return f"```\n{entries}```"
 
     async def cog_unload(self):
         random_images.cancel()
@@ -198,15 +201,12 @@ class OwnerCog(commands.Cog, name="Owner Commands"):
                        f"spread across **{json_file_amount} files** for this bot.")
 
     @commands.command()
-    async def query(self, ctx, *, _query):
+    async def query(self, ctx, *, query):
         """Return rows from the postgres database"""
 
-        wp = WarpedPaginator(ctx)
-        _query = _query
-        rows = await ctx.db.fetch(_query)
-
-        await wp.add_page(str(rows))
-        await wp.paginate()
+        rows = await ctx.db.fetch(query)
+        pages = ctx.menu(self.query_source(rows))
+        await pages.start(ctx)
 
     @commands.command()
     async def update(self, ctx, *, _query):

@@ -1,5 +1,10 @@
 from discord.ext import commands
-from config.utils.paginator import Paginator, PaginatorGlobal, WarpedPaginator
+from config.utils.menu import BaseMenu, ReplyMenu, GlobalMenu, page_source
+
+
+@page_source(per_page=1)
+async def embed_source(self, menu, entry):
+    return entry
 
 
 class _ContextDBAcquire:
@@ -29,15 +34,15 @@ class Context(commands.Context):
     def __init__(self, **kwargs):
 
         super().__init__(**kwargs)
-
+        self.menu = BaseMenu
+        self.reply_menu = ReplyMenu
+        self.global_menu = GlobalMenu
+        self.embed_source = embed_source
         self.pool = self.bot.pool
         self._db = None
         self.emote_unescape = self.bot.emote_unescape
         self.safe_everyone = self.bot.safe_everyone
         self.chunk = self.chunks
-        self.paginator = Paginator(self)
-        self.paginator_global = PaginatorGlobal(self)
-        self.paginator_warped = WarpedPaginator(self)
 
     @staticmethod
     def chunks(l, n):

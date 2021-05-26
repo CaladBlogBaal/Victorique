@@ -21,11 +21,10 @@ class Animals(commands.Cog):
         if amount > 20:
             amount = 20
 
-        for _ in range(amount):
-            embed = await self.bot.api_get_image(content, url, key)
-            await ctx.paginator.add_page(embed)
-
-        await ctx.paginator.paginate()
+        data = [await self.bot.api_get_image(content, url, key) for _ in range(amount)]
+        
+        pages = ctx.menu(ctx.embed_source(data))
+        await pages.start(ctx)
 
     @commands.group(aliases=["afact"], ignore_extra=False)
     async def animal_fact(self, ctx):

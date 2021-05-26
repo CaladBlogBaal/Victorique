@@ -10,8 +10,9 @@ from discord.ext import commands
 
 from jikanpy import AioJikan, ClientException, APIException
 
-from config.utils.converters import SeasonConverter, MangaIDConverter, AnimeIDConverter
+from config.utils.converters import SeasonConverter, MangaIDConverter, AnimeIDConverter, str_to_three_bytes
 from config.utils.cache import cache
+from config.utils.menu import page_source
 
 from loadconfig import PRIVATE_GUILDS
 
@@ -21,6 +22,52 @@ class MyAnimeList(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
     def __init__(self, bot):
         self.bot = bot
         self.aio_jikan = AioJikan(loop=bot.loop)
+        # hacky and feels dumb but shrug
+        self.manga_source.aio_jikan = self.aio_jikan
+        self.manga_source.person = self.aio_jikan.person
+        self.recommendation_source.get_recommendation_description = self.get_recommendation_description
+
+    @staticmethod
+    @page_source(per_page=11)
+    async def schedule_source(self, menu, entries):
+
+        embed = discord.Embed(title=f"Anime schedule for {entries[0]['weekday']}", color=self.default_colors())
+
+        description = "\n".join(f"[{e['title']}]({e['url']}): **Episodes** ({e['episodes'] or 'Unknown'})"
+                                for e in entries)
+
+        embed.description = description
+        return embed
+
+    @staticmethod
+    @page_source(per_page=1)
+    async def staff_source(self, menu, entry):
+
+        embed = discord.Embed(color=self.default_colors())
+        embed.title = entry["name"]
+        embed.url = entry["url"]
+        embed.set_image(url=entry["image_url"])
+        embed.add_field(name="Positions", value=f"\n".join(f"`{pos}`" for pos in entry["positions"]))
+
+        return embed
+
+    @staticmethod
+    @page_source(per_page=1)
+    async def manga_source(self, menu, entry):
+        embed = discord.Embed(color=self.default_colors())
+        embed.title = entry["name"]
+        embed.url = entry["url"]
+        person_object = await self.person(entry["mal_id"])
+        embed.set_image(url=person_object["image_url"])
+        return embed
+
+    @staticmethod
+    @page_source(per_page=1)
+    async def recommendation_source(self, menu, entry):
+        title = f"{entry['title']}\n{entry['mal_id']}"
+        embed = discord.Embed(title=title, color=self.default_colors(), url=entry["url"])
+        embed.description = await self.get_recommendation_description(entry["recommendation_url"])
+        embed.add_field(name="Recommendation Count", value=entry["recommendation_count"])
 
     async def cog_command_error(self, ctx, error):
         if isinstance(error, commands.CommandInvokeError):
@@ -33,8 +80,9 @@ class MyAnimeList(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
             await ctx.send(error)
 
     @staticmethod
-    def _embed(ctx, type_, result):
-        embed = discord.Embed(title=f"{result['title']} \nMAL ID: {result['mal_id']}", color=ctx.bot.default_colors(),
+    @page_source(per_page=1)
+    def default_source(self, type_, result):
+        embed = discord.Embed(title=f"{result['title']} \nMAL ID: {result['mal_id']}", color=self.default_colors(),
                               url=result["url"])
 
         synopsis = result["synopsis"]
@@ -84,9 +132,12 @@ class MyAnimeList(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
         description = (soup.find("span", attrs={"style": "white-space: pre-wrap;"})).text
         return description
 
-    async def get_recommendations(self, ctx, type_, id_):
+    async def get_recommendations(self, ctx, type_: str, id_: int):
 
         await ctx.trigger_typing()
+
+        if not id_:
+            return None
 
         if type_ == "manga":
             name = await self.aio_jikan.manga(id_)
@@ -102,15 +153,10 @@ class MyAnimeList(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
         if not recommendations["recommendations"]:
             return await ctx.send(f"> No recommendations for {name} was found.")
 
-        for recommendation in recommendations["recommendations"][:10]:
-            title = f"{recommendation['title']}\n{recommendation['mal_id']}"
-            embed = discord.Embed(title=title, url=recommendation["url"])
-            embed.description = await self.get_recommendation_description(recommendation["recommendation_url"])
-            embed.add_field(name="Recommendation Count", value=recommendation["recommendation_count"])
-            await ctx.paginator.add_page(embed)
-
         await ctx.send(f"> Recommendations for {name}\n<{url}>")
-        await  ctx.paginator.paginate()
+
+        pages = ctx.menu(self.recommendation_source(recommendations["recommendations"][:10]))
+        await pages.start(ctx)
 
     async def random_anime_manga(self, ctx, type_, genre_id=None):
         if not genre_id:
@@ -118,7 +164,8 @@ class MyAnimeList(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
 
         results = await self.aio_jikan.genre(type=type_, genre_id=genre_id)
         anime = random.choice(results[type_])
-        return self._embed(ctx, type_, anime)
+        page = ctx.menu(self.default_source([anime]))
+        await page.start(ctx)
 
     async def seasonal_search(self, ctx, year, season):
 
@@ -127,14 +174,10 @@ class MyAnimeList(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
 
         season_ = await self.aio_jikan.season(year=year, season=season)
 
-        for result in season_["anime"]:
-            await ctx.paginator.add_page(self._embed(ctx, "anime", result))
+        pages = ctx.menu(self.default_source(season_["anime"]))
 
-        try:
-            await ctx.send(f"> Anime for {season} season of {year}.")
-            await ctx.paginator.paginate()
-        except IndexError:
-            await ctx.send(f":no_entry: | search failed.")
+        await ctx.send(f"> Anime for {season} season of {year}.")
+        await pages.start(ctx)
 
     async def search_mal(self, ctx, query_type, query_, return_id=False):
 
@@ -152,23 +195,22 @@ class MyAnimeList(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
         results = query["results"]
 
         if not results:
-            return await ctx.send(f":no_entry: | search failed for `{query_}`.")
+            await ctx.send(f":no_entry: | search failed for `{query_}`.")
+            # doing this because returning a message on the convertors is a bad idea.
+            return None
 
         if return_id:
             return results[0]["mal_id"]
 
-        for result in results:
-            await ctx.paginator.add_page(self._embed(ctx, query_type, result))
-
-        await  ctx.paginator.paginate()
+        pages = ctx.menu(self.default_source(results))
+        await pages.start(ctx)
 
     @commands.group(invoke_without_command=True)
-    async def anime(self, ctx, *, anime_name):
+    async def anime(self, ctx, *, anime_name: str_to_three_bytes):
         """Search for an anime on mal"""
         await self.search_mal(ctx, "anime", anime_name)
 
     @anime.command(name="staff")
-    @commands.is_owner()
     async def anime_staff(self, ctx, *, anime_name_or_id: AnimeIDConverter):
         """Retrieves the staff for an anime from mal using it's name or mal id"""
 
@@ -179,30 +221,20 @@ class MyAnimeList(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
 
         name = (await self.aio_jikan.anime(anime_name_or_id))["title"]
         await ctx.send(f"> Staff for anime **{name}**")
-
-        for staff in anime["staff"]:
-            embed = discord.Embed(color=self.bot.default_colors())
-            embed.title = staff["name"]
-            embed.url = staff["url"]
-            embed.set_image(url=staff["image_url"])
-            embed.add_field(name="Positions", value=f"\n".join(f"`{pos}`" for pos in staff["positions"]))
-            await ctx.paginator.add_page(embed)
-
-        await ctx.paginator.paginate()
+        pages = ctx.menu(self.staff_source(anime["staff"]), clear_reactions_after=True)
+        await pages.start(ctx)
 
     @anime.command(name="recommendations", aliases=["r"])
-    @commands.is_owner()
     async def anime_recommendations(self, ctx, *, anime_name_id: AnimeIDConverter):
         """Returns the first 10 recommendations for a anime"""
         await self.get_recommendations(ctx, "anime", anime_name_id)
 
     @commands.group(invoke_without_command=True)
-    async def manga(self, ctx, *, manga_name):
+    async def manga(self, ctx, *, manga_name: str_to_three_bytes):
         """Search for a manga on mal"""
         await self.search_mal(ctx, "manga", manga_name)
 
     @manga.command(name="staff")
-    @commands.is_owner()
     async def manga_staff(self, ctx, *, manga_name_id: MangaIDConverter):
         """Retrieves the staff for a manga from mal using it's name or mal id"""
 
@@ -210,18 +242,10 @@ class MyAnimeList(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
         name = manga["title"]
         await ctx.send(f"> Staff for manga **{name}**")
 
-        for author in manga["authors"]:
-            embed = discord.Embed(color=self.bot.default_colors())
-            embed.title = author["name"]
-            embed.url = author["url"]
-            person_object = await self.aio_jikan.person(author["mal_id"])
-            embed.set_image(url=person_object["image_url"])
-            await ctx.paginator.add_page(embed)
-
-        await ctx.paginator.paginate()
+        pages = ctx.menu(self.manga_source(manga["authors"]), clear_reactions_after=True)
+        await pages.start(ctx)
 
     @manga.command(name="recommendations", aliases=["r"])
-    @commands.is_owner()
     async def manga_recommendations(self, ctx, *, manga_name_id: MangaIDConverter):
         """Returns the first 10 recommendations for a manga"""
         await self.get_recommendations(ctx, "manga", manga_name_id)
@@ -255,7 +279,7 @@ class MyAnimeList(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
 
         """Get a list anime based on their schedule"""
 
-        weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+        weekdays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
 
         for weekday in weekdays:
             if day.lower() in (weekday.lower()[:3], weekday.lower()[:4]):
@@ -267,56 +291,28 @@ class MyAnimeList(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1,
         else:
             scheduled = await self.aio_jikan.schedule(day=day)
 
+        entries = []
         for weekday in weekdays:
 
-            if weekday.lower() in scheduled:
-                results = scheduled[weekday.lower()]
+            if weekday in scheduled:
+                results = scheduled[weekday]
+                for res in results:
+                    res["weekday"] = weekday
 
-                embed = discord.Embed(title=f"Anime schedule for {weekday}", color=ctx.bot.default_colors())
-                embed_two = None
+                entries.extend(results)
 
-                title_url_episodes_list = ((a["episodes"], a["title"], a["url"]) for a in results)
-
-                description = ""
-
-                for tuple_ in title_url_episodes_list:
-                    episodes, title, url = tuple_
-
-                    if episodes is None:
-                        episodes = "Unknown"
-
-                    description += f"[{title}]({url}): **Episodes** ({episodes})\n"
-                    embed.description = description
-
-                if len(description) > 2048:
-                    description = description.split("\n")
-
-                    index = len(description) // 2
-                    first_half = description[:index]
-                    second_half = description[index:]
-
-                    embed.description = "\n".join(a for a in first_half)
-
-                    embed_two = discord.Embed(title=f"Anime Schedule for {weekday} continued.",
-                                              color=ctx.bot.default_colors())
-                    embed_two.description = "\n".join(a for a in second_half)
-
-                await ctx.paginator.add_page(embed)
-
-                if embed_two:
-                    await ctx.paginator.add_page(embed_two)
-
-        await ctx.paginator.paginate()
+        pages = ctx.menu(self.schedule_source(entries))
+        await pages.start(ctx)
 
     @commands.command(aliases=["ra"])
     async def random_anime(self, ctx):
         """Get a random anime"""
-        await ctx.send(embed=await self.random_anime_manga(ctx, "anime"))
+        await self.random_anime_manga(ctx, "anime")
 
     @commands.command(aliases=["rm"])
     async def random_manga(self, ctx):
         """Get a random manga"""
-        await ctx.send(embed=await self.random_anime_manga(ctx, "manga"))
+        await self.random_anime_manga(ctx, "manga")
 
 
 def setup(bot):

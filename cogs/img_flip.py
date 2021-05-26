@@ -7,7 +7,6 @@ import discord
 from discord.ext import commands
 
 import loadconfig
-from config.utils.paginator import Paginator
 from cogs.utils import memes
 
 
@@ -83,10 +82,10 @@ class ImageFlip(commands.Cog):
     @img_flip_memes.command(name="list", aliases=["l"])
     async def img_flip_meme_list(self, ctx):
         """Get a list of valid meme templates"""
-        p = Paginator(ctx)
+
         i = Imgflip(ctx)
         results = i.memes
-
+        entries = []
         embed = discord.Embed(color=self.bot.default_colors())
         count = 0
         for dict_ in results:
@@ -94,10 +93,12 @@ class ImageFlip(commands.Cog):
                 embed.add_field(name=meme_name, value=f"ID:\n{meme_id['template_id']}")
                 count += 1
                 if count == 5:
-                    await p.add_page(embed)
+                    entries.append(embed)
                     embed = discord.Embed(color=self.bot.default_colors())
                     count = 0
-        await p.paginate()
+
+        pages = ctx.menu(ctx.embed_source(entries))
+        await pages.start(ctx)
 
     @img_flip_memes.command(name="generate", aliases=["g"])
     async def img_flip_generate(self, ctx, *, args):

@@ -11,6 +11,7 @@ from bs4 import BeautifulSoup
 
 from config.utils.emojis import TRANSPARENT, EXPLOSION, FIRE_ZERO, NUKE, GUN
 from config.utils.checks import private_guilds_check
+from config.utils.menu import page_source
 
 
 class ShapeDrawing:
@@ -136,6 +137,50 @@ class Misc(commands.Cog):
             cmd_help = name.capitalize() + " a guild member or user"
             self.bot.add_command(commands.Command(callback, name=name, help=cmd_help))
 
+    @staticmethod
+    @page_source(per_page=7)
+    def emote_source(self, menu, entries):
+        embed = discord.Embed(content=f"list of emotes for `{self.ctx.guild.name}`",
+                              title=f"{self.ctx.guild.name} emotes",
+                              color=discord.Color.dark_magenta())
+
+        for emote in entries:
+            value = f"Emote {self.count}"
+            embed.add_field(name=f"Emote name " f"{emote.name} : {str(emote)}",
+                            value=value, inline=False)
+            self.count += 1
+        return embed
+
+    @staticmethod
+    @page_source(per_page=1)
+    def urban_source(self, menu, entry):
+        word = entry["word"]
+        definition = " ".join(entry["definition"][:1024 + 1].split(' ')[0:-1]) + " ..."
+
+        example = entry["example"]
+
+        if example == "":
+            example = "No example(s)"
+
+        url = entry["permalink"]
+        written_on = dateutil.parser.parse(entry['written_on']).strftime('%Y-%m-%d %H:%M:%S')
+        author = f"written by {entry['author']} on {written_on}"
+
+        embed = discord.Embed(title='Word/Term: ' + word,
+                              description=f"**Definition**:\n{definition}",
+                              color=discord.Color.dark_magenta(),
+                              url=url)
+        embed.add_field(name="Example", value=example)
+        embed.add_field(name="Contributor", value=author, inline=False)
+        embed.add_field(name="Rating", value=f"\👍**{entry['thumbs_up']}** \👎**{entry['thumbs_down']}**")
+        embed.set_footer(text=f"Requested by {self.ctx.message.author.name}",
+                         icon_url=self.ctx.message.author.avatar_url)
+        embed.set_image(url="https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/UD_"
+                            "logo-01.svg/1280px-UD_logo-01.svg.png")
+
+        embed.timestamp = self.ctx.message.created_at
+        return embed
+
     @commands.command()
     async def triangle(self, ctx, size: typing.Optional[int] = 5, emote=":small_red_triangle:",
                        emote_two=None, reverse_triangle=False):
@@ -253,29 +298,12 @@ class Misc(commands.Cog):
         """
         Display the current emojis for the guild
         """
+        # for formatting
+        self.emote_source.ctx = ctx
+        self.emote_source.count = 1
+        pages = ctx.menu(self.emote_source(ctx.guild.emojis))
 
-        async def paginate(list_of_chunks):
-
-            count = 1
-
-            for chunk in list_of_chunks:
-                embed = discord.Embed(content=f"list of emotes for `{ctx.guild.name}`",
-                                      title=f"{ctx.guild.name} emotes",
-                                      color=discord.Color.dark_magenta())
-
-                for emote in chunk:
-                    value = f"Emote {str(count)}"
-                    embed.add_field(name=f"Emote name " f"{emote.name} : {str(emote)}",
-                                    value=value, inline=False)
-                    count += 1
-
-                await ctx.paginator.add_page(embed)
-
-            await ctx.paginator.paginate()
-
-        emote_chunks = ctx.chunk(ctx.guild.emojis, 7)
-
-        await paginate(emote_chunks)
+        await pages.start(ctx)
 
     @commands.command(aliases=["l_c"], hidden=True)
     @commands.guild_only()
@@ -380,11 +408,11 @@ class Misc(commands.Cog):
         if amount > 20:
             amount = 20
 
-        for _ in range(amount):
-            await ctx.paginator.add_page(
-                await self.bot.api_get_image([" ", " "], "https://nekos.life/api/v2/img/kemonomimi", "url"))
+        data = [await self.bot.api_get_image([" ", " "], "https://nekos.life/api/v2/img/kemonomimi", "url")
+                for _ in range(amount)]
 
-        await ctx.paginator.paginate()
+        pages = ctx.menu(ctx.embed_source(data))
+        await pages.start(ctx)
 
     @commands.command()
     async def funfact(self, ctx):
@@ -455,48 +483,20 @@ class Misc(commands.Cog):
         await ctx.send(f":information_source: | I choose `{random.choice(choices)}` {ctx.author.name}.")
 
     @commands.command()
-    async def urban(self, ctx, *, term: str):
+    async def urban(self, ctx, *, term):
         """
         Get the urban dictionary value of a term
         """
         params = {"term": term}
-        wp = ctx.paginator_warped
-        wp.max_size = 1024
 
         js = await self.bot.fetch("https://api.urbandictionary.com/v0/define", params=params)
 
         if "list" not in js or js["list"] == []:
             return await ctx.send(":no_entry: | nothing was found.")
 
-        results = js["list"]
-        for result in results:
-
-            word = result["word"]
-            definition_txt = result["definition"]
-            example_txt = result["example"]
-
-            if example_txt == "":
-                example_txt = "No example"
-
-            url = result["permalink"]
-            written_on = dateutil.parser.parse(result['written_on']).strftime('%Y-%m-%d %H:%M:%S')
-            author = f"written by {result['author']} on {written_on}"
-
-            embed = discord.Embed(title='Word/Term: ' + word,
-                                  description=f"**Definition**:\n{definition_txt}",
-                                  color=discord.Color.dark_magenta(),
-                                  url=url)
-            embed.add_field(name="Example", value=example_txt)
-            embed.add_field(name="Contributor", value=author, inline=False)
-            embed.add_field(name="Rating", value=f"\👍**{result['thumbs_up']}** \👎**{result['thumbs_down']}**")
-            embed.set_footer(text=f"Requested by {ctx.message.author.name}", icon_url=ctx.message.author.avatar_url)
-            embed.set_image(url="https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/UD_"
-                                "logo-01.svg/1280px-UD_logo-01.svg.png")
-
-            embed.timestamp = ctx.message.created_at
-            await wp.add_page(embed)
-
-        await wp.paginate()
+        self.urban_source.ctx = ctx
+        pages = ctx.menu(self.urban_source(js["list"]))
+        await pages.start(ctx)
 
     @commands.command()
     async def imgur(self, ctx, *, content):

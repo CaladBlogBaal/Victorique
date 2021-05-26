@@ -46,10 +46,6 @@ class Request:
         async with self.session.get(url, **kwargs) as response:
 
             if not response.status == 200:
-
-                if "danbooru" in url and response.status == 422:
-                    return dict()
-
                 raise RequestFailed(f"seems like an unexpected error occurred for this request `{response.reason}`.")
 
             headers = response.headers.get("content-type")

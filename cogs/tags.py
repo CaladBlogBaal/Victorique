@@ -10,6 +10,7 @@ import discord
 from discord.ext import commands
 
 from config.utils.converters import TagNameConverter
+from config.utils.menu import page_source
 
 import loadconfig
 
@@ -36,6 +37,18 @@ class Tags(commands.Cog):
                                        ctx.guild.id, member.id)
         for name in tag_names:
             self.bot.tags_invalidate(ctx.guild.id, name)
+
+    @staticmethod
+    @page_source()
+    def tag_source(self, menu, entries):
+
+        return "".join((f'\n> **{tag["tag_name"]}** (ID: {tag["tag_id"]})' for tag in entries))
+
+    @staticmethod
+    @page_source()
+    def search_source(self, menu, entries):
+
+        return f"> Tags found that contained `{self.name}`\n" + "\n".join((f"(**{tag['tag_name']}**)" for tag in entries))
 
     async def cog_check(self, ctx):
         return ctx.guild is not None
@@ -230,16 +243,8 @@ class Tags(commands.Cog):
 
         if data == []:
             return await ctx.send(f"> {member.name} currently has no tags created for this guild.")
-
-        names = [f'\n> **{tag["tag_name"]}** (ID: {tag["tag_id"]})' for tag in data]
-
-        name_chunks = ctx.chunk(names, 10)
-
-        for name_chunk in name_chunks:
-            names = "".join(name for name in name_chunk)
-            await ctx.paginator.add_page(f"> {member.name} current tags for **{str(ctx.guild)}**...\n> {names}")
-
-        await ctx.paginator.paginate()
+        pages = ctx.menu(self.tag_source(data))
+        await pages.start(ctx)
 
     @tag.command()
     async def create(self, ctx, *, name: TagNameConverter):
@@ -390,15 +395,17 @@ class Tags(commands.Cog):
         tags = [f"Tag name: **{tag['tag_name']}** created by "
                 f"**{str(ctx.guild.get_member(tag['user_id']))}**" for tag in tags if tag['tag_name']]
 
+        entries = []
         tags_chunks = ctx.chunk(tags, 10)
 
         for tags in tags_chunks:
             tags = "\n".join(tags)
             embed = discord.Embed(title="Tags for:", description=ctx.guild.name, colour=discord.Color.dark_magenta())
             embed.add_field(name='\uFEFF', value=tags)
-            await ctx.paginator.add_page(embed)
+            entries.append(embed)
 
-        await ctx.paginator.paginate()
+        pages = ctx.menu(ctx.embed_source(entries))
+        await pages.start(ctx)
 
     @tag.group(invoke_without_command=True, aliases=["remove", "prune"])
     async def delete(self, ctx, *, name):
@@ -519,20 +526,15 @@ class Tags(commands.Cog):
         """Search for tags that start with a name"""
         name = name.lower()
 
-        result = await ctx.db.fetch("SELECT tag_name from tags where guild_id = $1 and LOWER(tag_name) like $2 || '%'",
-                                    ctx.guild.id, name)
+        results = await ctx.db.fetch("SELECT tag_name from tags where guild_id = $1 and LOWER(tag_name) like $2 || '%'",
+                                     ctx.guild.id, name)
 
-        if not result:
+        if not results:
             return await ctx.send(f":no_entry: | could not find the tag {name}.")
 
-        result = list(f"(**{name['tag_name']}**)" for name in result)
-        results = ctx.chunk(result, 10)
-        new_line = "\n"
-
-        for result in results:
-            await ctx.paginator.add_page(f"> Tags found that contained `{name}`:\n{new_line.join(result)}")
-
-        await ctx.paginator.paginate()
+        self.search_source.name = name
+        pages = ctx.menu(self.search_source(results))
+        await pages.start(ctx)
 
     @update_content.after_invoke
     async def after_tag_update(self, ctx):

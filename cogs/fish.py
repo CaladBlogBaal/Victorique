@@ -8,6 +8,7 @@ from discord.ext import commands
 
 from config.utils.converters import FishNameConventer, FishRarityConventer
 from config.utils.emojis import FISHFOOD
+from config.utils.menu import page_source
 
 
 class Fishing(commands.Cog):
@@ -29,6 +30,21 @@ class Fishing(commands.Cog):
             return await ctx.send(f":no_entry: | a response wasn't given in a while aborting command "
                                   f"`{ctx.command.name}`",
                                   delete_after=10)
+
+    @staticmethod
+    @page_source(per_page=1)
+    def catch_source(self, menu, entry):
+        return entry
+
+    @staticmethod
+    @page_source(per_page=4)
+    def view_source(self, menu, entries):
+
+        display = "\n".join(f"> **fish ID**: `{fish['fish_id']}` {fish['fish_name']} | ({fish['amount']}) : "
+                            f"{fish['fish_name'].split('Icon')[0].replace('<', '').replace(':', '')}\n"
+                            for fish in entries)
+
+        return self.m + display
 
     async def embed_(self, ctx, current_balance, bait, cost):
         if cost > current_balance or current_balance - cost < 0:
@@ -61,17 +77,16 @@ class Fishing(commands.Cog):
             return cost
         return confirmation
 
-    @staticmethod
-    async def __fish_catches_view(ctx, rarity_id=None, global_paginator=False):
+    async def __fish_catches_view(self, ctx, rarity_id=None, global_paginator=False):
 
         if rarity_id:
             rarity_id = await FishRarityConventer().convert(ctx, rarity_id)
 
         if not global_paginator:
-            p = ctx.paginator
+            menu = ctx.menu
 
         else:
-            p = ctx.paginator_global
+            menu = ctx.global_menu
 
         m = f"""<:shybuki_2:595024454271238145> | **{ctx.author.name}'s current fish collection**.\n"""
 
@@ -97,18 +112,11 @@ class Fishing(commands.Cog):
         if data == []:
             return await ctx.send(m + "you currently have no fish caught.")
 
-        data = list(ctx.chunk(data, 4))
+        # for formatting
+        self.view_source.m = m
 
-        for fish_chunk in data:
-            for fish in fish_chunk:
-                name = fish['fish_name'].split("Icon")[0].replace("<", "").replace(":", "")
-
-                fishes += f"\n> **fish ID**: `{fish['fish_id']}` {fish['fish_name']} | ({fish['amount']}) : {name} \n"
-
-            await p.add_page(m + fishes)
-            fishes = ""
-
-        await p.paginate()
+        pages = menu(self.view_source(data))
+        await pages.start(ctx)
 
     @staticmethod
     def price_sum_setter(data):
@@ -264,11 +272,13 @@ class Fishing(commands.Cog):
         records = [(ctx.author.id, fish['fish_id'], 1, fish['fish_name']) for fish in fishes]
 
         await ctx.db.executemany(statement, records)
+        entries = []
         for fish in fishes:
-            await ctx.paginator.add_page(f"> **{ctx.author.name}** you caught a {fish['fish_name']}")
+            entries.append(f"> **{ctx.author.name}** you caught a {fish['fish_name']}")
 
-        await ctx.paginator.shuffle_pages()
-        await ctx.paginator.paginate()
+        pages = ctx.menu(self.catch_source(entries))
+        random.shuffle(pages.source.entries)
+        await pages.start(ctx)
 
     async def __fish_user_reel(self, reaction_emoji, ctx, amount):
 

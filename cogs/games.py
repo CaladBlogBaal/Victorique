@@ -11,6 +11,7 @@ from games.trivia import Triva
 from cogs.utils.games import *
 from config.utils.checks import checking_for_multiple_channel_instances
 from config.utils.converters import TriviaCategoryConverter, TriviaDiffcultyConventer, DieConventer
+from config.utils.menu import page_source
 
 
 class Games(commands.Cog):
@@ -51,6 +52,12 @@ class Games(commands.Cog):
         if isinstance(error, commands.CheckFailure):
             await ctx.send(f":no_entry: | only one instance of this {ctx.command.name} command per channel",
                            delete_after=3)
+
+    @staticmethod
+    @page_source()
+    def trivia_source(self, menu, entries):
+        res = "\n".join(f"> ID: `{result['question_id']}`: **{result['content']}**" for result in entries)
+        return f"Category Name: ```{self.category}```\nAmount of questions ({self.amount})\n{res}"
 
     @commands.command(aliases=["8ball", "8-ball", "magic_eight_ball"])
     async def eight_ball(self, ctx, *, message):
@@ -127,6 +134,10 @@ class Games(commands.Cog):
 
         description = "\n".join(f"ID: `{result['category_id']}`: **{result['name']}** `({result['count']}) questions`"
                                 for result in results)
+
+        if not description:
+            await ctx.send("> No categories have been set for this bot, contact the owner")
+
         await ctx.send(description)
 
     @categorises.command()
@@ -134,16 +145,16 @@ class Games(commands.Cog):
         """Search returns all questions based on their category, category accepts either an id or name"""
 
         async with ctx.acquire():
-            results = await ctx.db.fetch("SELECT content, question_id from question where category_id = $1", category)
-            results = ctx.chunk(results, 10)
+            results = await ctx.db.fetch("""SELECT q.content, q.question_id, c.name as category_name
+                                            FROM question q 
+                                            INNER JOIN category c on c.category_id = q.category_id
+                                            WHERE q.category_id = $1
+                                            GROUP BY q.question_id, c.category_id""", category)
 
-            for chunk in results:
-                amt = await ctx.db.fetchval("SELECT COUNT(question_id) from question where category_id = $1", category)
-                name = await ctx.db.fetchval("SELECT name from category where category_id = $1", category)
-                chunk = "\n".join(f"> ID: `{result['question_id']}`: **{result['content']}**" for result in chunk)
-                await ctx.paginator.add_page(f"Category Name: ```{name}```\nAmount of questions ({amt})\n{chunk}")
-
-            await ctx.paginator.paginate()
+        self.trivia_source.category = results[0]["category_name"]
+        self.trivia_source.amount = len(results)
+        pages = ctx.menu(self.trivia_source(results))
+        await pages.start(ctx)
 
     @commands.command(aliases=["ttt"])
     async def tictactoe(self, ctx, member: discord.Member):

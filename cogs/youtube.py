@@ -69,10 +69,8 @@ class Youtube(commands.Cog):
         if not results:
             return await ctx.send(f":no_entry: | search failed for `{query}.`")
 
-        for url in results:
-            await ctx.paginator.add_page(url)
-
-        await ctx.paginator.paginate()
+        pages = ctx.menu(ctx.embed_source(results))
+        await pages.start(ctx)
 
     @youtube.command()
     async def one(self, ctx, *, query):
