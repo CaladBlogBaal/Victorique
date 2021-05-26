@@ -1,5 +1,4 @@
 import secrets
-import asyncio
 import random
 
 import numpy as np
@@ -110,10 +109,7 @@ class Casino(commands.Cog):
                                   f" the current amount of credits in your bank is "
                                   f"{current_balance}")
 
-        if spins > 9:
-            spins = 9
-
-        if spins <= 0:
+        if spins > 9 or spins <= 0:
             spins = 9
 
         sm = SlotMachine(bet)
@@ -126,7 +122,6 @@ class Casino(commands.Cog):
             await sm.spin_wheel()
             display = sm.display_wheel()
             await msg.edit(content=display[0])
-            await asyncio.sleep(0.5)
 
         po = PayOuts(sm)
         pay_out = po.pay_out_reel(bet, sm.wheel)
@@ -156,17 +151,11 @@ class Casino(commands.Cog):
         if times > 100:
             times = 100
 
-        heads_or_tail = ["heads", "tail"]
+        heads_or_tail = ["heads", "tails"]
         results = [heads_or_tail[random.randint(0, 1)] for _ in range(times)]
 
-        head_count = 0
-        tail_count = 0
-
-        for result in results:
-            if result == "heads":
-                head_count += 1
-            else:
-                tail_count += 1
+        head_count = results.count("heads")
+        tail_count = results.count("tails")
 
         results = f"> {ctx.author.name}, you flipped ({head_count}) heads and ({tail_count}) tails"
 
@@ -196,7 +185,6 @@ class Casino(commands.Cog):
         result = heads_or_tail[index]
 
         await ctx.send(f"The result was {result}.")
-        await asyncio.sleep(1)
 
         async with ctx.acquire():
             if result == choice.lower():
