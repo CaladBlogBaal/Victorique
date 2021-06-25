@@ -1,4 +1,4 @@
-discord.py==1.6.0
+discord.py==1.7.3
 numpy==1.16.4
 asyncpg==0.18.3
 beautifulsoup4==4.8.0
