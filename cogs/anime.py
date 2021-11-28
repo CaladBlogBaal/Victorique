@@ -277,7 +277,8 @@ class Anime(commands.Cog, command_attrs=dict(cooldown=commands.CooldownMapping(c
 
     @commands.command()
     async def tracemoe(self, ctx, skip=0):
-        """Performs a reverse image query using tracemoe on the last uploaded or embedded image"""
+        """Performs a reverse image query using tracemoe on the last uploaded or embedded image
+           will attempt to prune nsfw results unlike saucenao for the not set nsfw channel"""
 
         await ctx.trigger_typing()
 
@@ -297,6 +298,28 @@ class Anime(commands.Cog, command_attrs=dict(cooldown=commands.CooldownMapping(c
         image = urls[0]
 
         js = await trace.search(image, anilist=True)
+
+        safe = False
+
+        if ctx.guild:
+            nsfw_channel_id = await ctx.db.fetchval("SELECT nsfw_channel from guilds where guild_id = $1",
+                                                    ctx.guild.id)
+            safe = ctx.channel.id != nsfw_channel_id
+
+        safe_results = []
+        for result in js["result"]:
+
+            if result["anilist"]["isAdult"] is False and safe:
+                safe_results.append(result)
+
+        if safe:
+            js["result"] = safe_results
+
+        if not js["result"]:
+            msg = "> only nsfw results were found but can't display them outside the set nsfw channel."
+            msg = f"{msg} set a nsfw channel with `{ctx.prefix}set_nsfw_channel`"
+            return await ctx.send(msg, delete_after=10)
+
         pages = ctx.menu(self.tracemoe_source(js["result"]))
         await pages.start(ctx)
 
