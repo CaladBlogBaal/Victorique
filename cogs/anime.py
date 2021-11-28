@@ -128,8 +128,13 @@ class Anime(commands.Cog, command_attrs=dict(cooldown=commands.CooldownMapping(c
     async def get_recent_image_urls(self, ctx, skip):
 
         messages = await ctx.channel.history().filter(lambda m: m.attachments != [] or m.embeds != []).flatten()
-
         image_urls = []
+
+        # ctx.history limit is 100 by default
+        skip = skip if skip < 100 else 99
+        # delete n elements
+        del messages[:skip]
+
         for i, message in enumerate(messages):
             if message.attachments:
                 if "image/" not in message.attachments[0].content_type:
@@ -142,9 +147,6 @@ class Anime(commands.Cog, command_attrs=dict(cooldown=commands.CooldownMapping(c
             else:
                 if message.embeds[0].image:
                     image_urls.append(message.embeds[0].image.url)
-
-        for _ in range(skip):
-            messages.pop()
 
         return image_urls
 
@@ -313,7 +315,9 @@ class Anime(commands.Cog, command_attrs=dict(cooldown=commands.CooldownMapping(c
 
                 entries = await aio.from_url(url)
 
-            except (errors.LongLimitReachedError, errors.ShortLimitReachedError) as e:
+            except (errors.LongLimitReachedError, errors.ShortLimitReachedError,
+                    errors.BadFileSizeError, errors.UnknownClientError,
+                    errors, errors.UnknownServerError) as e:
                 return await ctx.send(str(e))
 
             if entries.long_remaining == 0:
