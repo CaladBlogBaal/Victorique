@@ -1,7 +1,7 @@
 import typing
 import asyncio
 
-from discord.ext import menus
+from discord.ext.menus.views import menus
 from discord.ext.menus import First, Last, button
 
 from config.utils.emojis import RIGHT_POINT, DRIGHT_POINT, LEFT_POINT, DLEFT_POINT, STOP
@@ -26,7 +26,7 @@ def page_source(per_page=10, parent: typing.Union[menus.PageSource,
     return pages
 
 
-class BaseMenu(menus.MenuPages):
+class BaseMenu(menus.views.ViewMenuPages):
 
     def __init__(self, source, **kwargs):
         # to not allow spamming of certain buttons
@@ -73,18 +73,6 @@ class BaseMenu(menus.MenuPages):
     async def stop_pages(self, payload):
         """stops the pagination session."""
         self.stop()
-
-
-# road map for later on how to make this not racy
-#    async def update(self, payload):
-#
-#       if self._can_remove_reactions:
-#            if payload.event_type == 'REACTION_ADD':
-#                await self.bot.http.remove_reaction(
-#                    payload.channel_id, payload.message_id,
-#                    payload.emoji._as_reaction(), payload.member.id
-#                )
-#        await super().update(payload)
 
 
 class ReplyMenu(BaseMenu):

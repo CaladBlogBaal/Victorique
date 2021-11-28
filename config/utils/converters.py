@@ -106,18 +106,18 @@ class SeasonConverter(commands.Converter):
         if argument.isdigit():
             if argument.startswith("0"):
                 argument = argument[1::]
-            month = months.get(argument, None)
+            season = months.get(argument, None)
 
         else:
-            month = months_short.get(argument, None)
+            season = months_short.get(argument, None)
 
-        if month in months_seasons:
-            month = months_seasons[month]
+        if season in months_seasons:
+            season = months_seasons[season]
 
-        if month is None:
+        if season is None:
             raise commands.BadArgument("an invalid season was passed.")
 
-        return month
+        return season
 
 
 class TriviaCategoryConverter(commands.Converter):
@@ -180,31 +180,3 @@ class DieConventer(commands.Converter):
                 del expression[-1]
 
         return rolls, limit, expression
-
-
-def str_to_three_bytes(argument):
-    bytes_ = len(argument.encode("utf-8"))
-    while bytes_ < 3:
-        argument += " "
-        bytes_ = len(argument.encode("utf-8"))
-
-    return argument
-
-
-class MangaIDConverter(commands.Converter):
-    async def convert(self, ctx, argument):
-        if not isinstance(argument, int):
-            argument = str_to_three_bytes(argument)
-
-            return await ctx.bot.cogs["MyAnimeList"].search_mal(ctx, "manga", argument, True)
-
-        return argument
-
-
-class AnimeIDConverter(commands.Converter):
-    async def convert(self, ctx, argument):
-        if not isinstance(argument, int):
-            argument = str_to_three_bytes(argument)
-            return await ctx.bot.cogs["MyAnimeList"].search_mal(ctx, "anime", argument, True)
-
-        return argument

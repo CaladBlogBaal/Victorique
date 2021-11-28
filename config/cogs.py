@@ -6,7 +6,7 @@ __cogs__ = [
     "cogs.games",
     "cogs.help",
     "cogs.bank",
-    "cogs.mal",
+    "cogs.anime",
     "cogs.member",
     "cogs.misc",
     "cogs.moderation",

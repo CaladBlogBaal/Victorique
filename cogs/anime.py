@@ -1,0 +1,327 @@
+import typing
+import discord
+
+from datetime import datetime as d
+from dateutil.relativedelta import relativedelta
+from bs4 import BeautifulSoup
+from discord.ext import commands
+from saucenao_api import AIOSauceNao, errors
+
+from cogs.utils.anime import AniListApi
+from cogs.utils.tracemoe import TraceMoeApi
+
+from config.utils.menu import page_source
+from config.utils.converters import SeasonConverter
+
+from loadconfig import __saucenao_api_key__
+
+
+class Anime(commands.Cog, command_attrs=dict(cooldown=commands.CooldownMapping(commands.Cooldown(1, 4),
+                                                                               type=commands.BucketType.user))):
+    """Anime related commands"""
+
+    def __init__(self, bot):
+        self.bot = bot
+        self.ani_list_api = AniListApi()
+
+    @staticmethod
+    @page_source(per_page=1)
+    async def sauce_source(self, menu, entry):
+        embed = discord.Embed(color=self.default_colors())
+        embed.title = entry.title
+        embed.set_image(url=entry.thumbnail)
+        embed.description = "\n".join(entry.urls)
+        embed.set_footer(text=f"Author/Artist: {entry.author}\npage {menu.current_page + 1} /{self.get_max_pages()}")
+        return embed
+
+    @staticmethod
+    @page_source(per_page=1)
+    async def tracemoe_source(self, menu, entry):
+        embed = discord.Embed(color=self.default_colors(), url=f"https://anilist.co/anime/{entry['anilist']['id']}")
+        embed.title = entry["anilist"]["title"]["native"]
+        embed.set_image(url=entry["image"])
+
+        start = entry["from"]
+        end = entry["to"]
+        # h:mm:ss
+        # 0:00:00
+        start = f"{start // (60*60)}:{start % (60*60) // 60:02.0f}:{start % (60*60) % 60:02.0f}"
+        end = f"{end // (60*60)}:{end % (60*60) // 60:02.0f}:{end % (60*60) % 60:02.0f}"
+
+        embed.description = f"Episode {entry['episode'] or 'NaN'}\n{start} - {end}"
+        embed.set_footer(text=f"~Similarity {round(entry['similarity'], 2)}"
+                              f"\npage {menu.current_page + 1} /{self.get_max_pages()}")
+        return embed
+
+    @staticmethod
+    @page_source(per_page=11)
+    async def schedule_source(self, menu, entries):
+
+        timestamp = entries[0]["nextAiringEpisode"]["airingAt"]
+        date = d.fromtimestamp(timestamp)
+        schedule_day = date.strftime("%A")
+
+        embed = discord.Embed(title=f"Anime schedule for {schedule_day}", color=self.default_colors())
+
+        description = "\n".join(f"[{e['title']['romaji']}]({e['siteUrl']}): **Episodes** ({e['episodes'] or 'Unknown'})"
+                                for e in entries)
+
+        embed.description = description
+        embed.set_footer(text=f"page {menu.current_page + 1} /{self.get_max_pages()}")
+
+        return embed
+
+    @staticmethod
+    @page_source(per_page=1)
+    async def staff_source(self, menu, entry):
+        embed = discord.Embed(color=self.default_colors())
+        embed.title = entry["name"]["full"]
+        embed.url = entry["siteUrl"]
+        embed.set_image(url=entry["image"]["large"])
+        embed.add_field(name="Positions", value="\n".join(entry["primaryOccupations"]))
+        embed.set_footer(text=f"page {menu.current_page + 1} /{self.get_max_pages()}")
+
+        return embed
+
+    @staticmethod
+    @page_source(per_page=1)
+    def default_source(self, menu, entry):
+        title = f"{entry['title']['romaji']} ({entry['title']['english']})"
+
+        embed = discord.Embed(title=f"{title} \nMAL ID: {entry['idMal']}", color=self.default_colors(),
+                              url=entry["siteUrl"])
+        # html.unescape refused to work
+        synopsis = BeautifulSoup(entry["description"], "lxml").text
+        embed.description = f":book: **Synopsis**\n{synopsis}"
+
+        start_date = "/".join(str(x) for x in entry["startDate"].values() if x)
+        end_date = "/".join(str(x) for x in entry["endDate"].values() if x)
+
+        if entry["type"] == "ANIME":
+            airing = entry.get("airing") or "False"
+            embed.add_field(name=":airplane: Airing", value=airing)
+            embed.add_field(name=":tv: Episodes", value=entry["episodes"])
+        else:
+            publishing = entry.get("publishing") or "False"
+            chapters = entry.get("chapters")
+            if chapters:
+                embed.add_field(name=":tv: Chapters", value=entry["chapters"])
+            embed.add_field(name=":airplane: Publishing", value=publishing)
+
+        score = entry["averageScore"]
+
+        if score is None:
+            score = 0
+
+        embed.add_field(name=":star: Rating", value=f"{score} / 100")
+        embed.add_field(name=":clapper: Type", value=entry["type"])
+        embed.add_field(name=":date: Start Date", value=start_date or "NaN")
+        embed.add_field(name=":date: End Date", value=end_date or "NaN")
+
+        if entry["coverImage"]["medium"]:
+            embed.set_thumbnail(url=entry["coverImage"]["medium"])
+
+        embed.set_footer(text=f"page {menu.current_page + 1} /{self.get_max_pages()}")
+
+        return embed
+
+    async def get_recent_image_urls(self, ctx, skip):
+
+        messages = await ctx.channel.history().filter(lambda m: m.attachments != [] or m.embeds != []).flatten()
+
+        image_urls = []
+        for i, message in enumerate(messages):
+            if message.attachments:
+                if "image/" not in message.attachments[0].content_type:
+                    del messages[i]
+
+        for message in messages:
+            if message.attachments:
+                image_urls.append(message.attachments[0].proxy_url)
+
+            else:
+                if message.embeds[0].image:
+                    image_urls.append(message.embeds[0].image.url)
+
+        for _ in range(skip):
+            messages.pop()
+
+        return image_urls
+
+    async def get_recommendations(self, ctx, js):
+        title = js["data"]["Media"]["title"]["english"]
+        url = js["data"]["Media"]["siteUrl"]
+        await ctx.send(f"> Recommendations for {title} \n<{url}>")
+
+        entries = [node["node"]["mediaRecommendation"] for node in js["data"]["Media"]["recommendations"]["edges"]]
+        pages = ctx.menu(self.default_source(entries))
+        await pages.start(ctx)
+
+    async def get_staff(self, ctx, js):
+        entries = [node["node"] for node in js["data"]["Media"]["staff"]["edges"]]
+        pages = ctx.menu(self.staff_source(entries))
+        await pages.start(ctx)
+
+    async def get_media(self, ctx, js):
+        entries = js["data"]["Page"]["media"]
+        pages = ctx.menu(self.default_source(entries))
+        await pages.start(ctx)
+
+    @commands.group(invoke_without_command=True)
+    async def anime(self, ctx, *, anime_name):
+        """Search for an anime on anilist"""
+        js = await self.ani_list_api.anime_search(anime_name)
+        await self.get_media(ctx, js)
+
+    @anime.command(name="staff")
+    async def anime_staff(self, ctx, *, anime_name_or_id: typing.Union[int, str]):
+        """Retrieves the staff for an anime from anilist using it's name or id"""
+        js = await self.ani_list_api.anime_staff_by_title(anime_name_or_id)
+        await self.get_staff(ctx, js)
+
+    @anime.command(name="recommendations", aliases=["r"])
+    async def anime_recommendations(self, ctx, *, anime_name_id: typing.Union[int, str]):
+        """Returns the first 10 recommendations for a anime"""
+
+        js = await self.ani_list_api.anime_rec_by_title(anime_name_id)
+        await self.get_recommendations(ctx, js)
+
+    @commands.group(invoke_without_command=True)
+    async def manga(self, ctx, *, manga_name):
+        """Search for a manga on anilist"""
+        js = await self.ani_list_api.anime_search(manga_name)
+        await self.get_media(ctx, js)
+
+    @manga.command(name="staff")
+    async def manga_staff(self, ctx, *, manga_name_id: typing.Union[int, str]):
+        """Retrieves the staff for a manga from anilist using it's name or id"""
+        js = await self.ani_list_api.anime_staff_by_title(manga_name_id)
+        await self.get_staff(ctx, js)
+
+    @manga.command(name="recommendations", aliases=["r"])
+    async def manga_recommendations(self, ctx, *, manga_name_id: typing.Union[int, str]):
+        """Returns the first 10 recommendations for a manga"""
+        js = await self.ani_list_api.manga_rec_by_title(manga_name_id)
+        await self.get_recommendations(ctx, js)
+
+    @commands.command()
+    async def seasonal(self, ctx, year: typing.Optional[int] = d.now().year, season: SeasonConverter = None):
+        """Get a list of anime for a year and season will default to the currently airing season."""
+
+        if season is None:
+            month_day = d.now().month - 1
+
+            if month_day == 0:
+                month_day = 1
+
+            season = await SeasonConverter().convert(ctx, str(month_day))
+
+        js = await self.ani_list_api.seasonal_search(year, season)
+        entries = js["data"]["Page"]["media"]
+
+        while js["data"]["Page"]["pageInfo"]["hasNextPage"]:
+            js = await self.ani_list_api.seasonal_search(year, season)
+            entries.extend(js)
+
+        await ctx.send(f"Anime for {season.lower()} season of {year}.")
+        pages = ctx.menu(self.default_source(entries))
+        await pages.start(ctx)
+
+    # being worked on doesn't actually await yet
+    @commands.command()
+    @commands.is_owner()
+    async def schedule(self, ctx, day=""):
+
+        """Get a list anime based on their schedule"""
+
+        weekdays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+        page = 1
+        js = await self.ani_list_api.schedule_search()
+        entries = js["data"]["Page"]["media"]
+
+        while js["data"]["Page"]["pageInfo"]["hasNextPage"]:
+            page += 1
+            js = await self.ani_list_api.schedule_search(str(page))
+            entries.extend(js)
+
+        for weekday in weekdays:
+            if day.lower() in (weekday.lower()[:3], weekday.lower()[:4]):
+                day = weekday
+
+        for i, media in enumerate(entries):
+
+            if not isinstance(media, dict):
+                continue
+
+            timestamp = media.get("nextAiringEpisode")
+
+            if not timestamp:
+                continue
+
+            timestamp = timestamp["airingAt"]
+            date = d.fromtimestamp(timestamp)
+            schedule_day = date.strftime("%A")
+
+            # filter out days
+            if day:
+                if not schedule_day.lower() != day.lower():
+                    del entries[i]
+
+        pages = ctx.menu(self.schedule_source(entries))
+        await pages.start(ctx)
+
+    @commands.command()
+    async def tracemoe(self, ctx, skip=0):
+        """Performs a reverse image query using tracemoe on the last uploaded or embedded image"""
+
+        await ctx.trigger_typing()
+
+        urls = await self.get_recent_image_urls(ctx, skip)
+
+        if not urls:
+            return await ctx.send("> couldn't find a recent image.")
+
+        trace = TraceMoeApi(ctx)
+
+        if await trace.quota_reached():
+            dt = d.now() + relativedelta(months=1, day=1)
+            days = dt - d.now()
+            days = days.days
+            return await ctx.send(f"> Bot's tracemoe quota has reached for the month will reset in {days} day(s).")
+
+        image = urls[0]
+
+        js = await trace.search(image, anilist=True)
+        pages = ctx.menu(self.tracemoe_source(js["result"]))
+        await pages.start(ctx)
+
+    @commands.command()
+    async def saucenao(self, ctx, skip=0):
+        """Performs a reverse image query using saucenao on the last uploaded or embedded image"""
+
+        await ctx.trigger_typing()
+
+        async with AIOSauceNao(__saucenao_api_key__) as aio:
+
+            urls = await self.get_recent_image_urls(ctx, skip)
+
+            if not urls:
+                return await ctx.send("> couldn't find a recent image.")
+
+            url = urls[0]
+            try:
+
+                entries = await aio.from_url(url)
+
+            except (errors.LongLimitReachedError, errors.ShortLimitReachedError) as e:
+                return await ctx.send(str(e))
+
+            if entries.long_remaining == 0:
+                return await ctx.send(f"> Bot's saucenao daily quota has reached for the day try tomorrow.")
+
+            pages = ctx.menu(self.sauce_source(entries))
+            await pages.start(ctx)
+
+
+def setup(bot):
+    bot.add_cog(Anime(bot))

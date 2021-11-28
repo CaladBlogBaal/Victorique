@@ -47,7 +47,7 @@ class Bank(commands.Cog):
         transaction_id = random.randint(1000, 90000)
         transaction_id = str(transaction_id)
 
-        embed = discord.Embed(content=":atm: | credit transfer",
+        embed = discord.Embed(
                               description=f"Amount of credits to transfer {amount}"
                                           f"\nCurrent balance {current_balance}"
                                           f"\nBalance after with tax {current_balance - amount * 1.05}"
@@ -99,17 +99,21 @@ class Bank(commands.Cog):
         check = await ctx.db.fetchval("SELECT daily_cooldown from users where user_id = $1", ctx.author.id)
 
         if check is None:
-            await ctx.db.execute(statement, ctx.message.created_at + datetime.timedelta(days=1), ctx.author.id)
+            await ctx.db.execute(statement,
+                                 ctx.message.created_at.replace(tzinfo=None) + datetime.timedelta(days=1),
+                                 ctx.author.id)
 
         else:
             time = check
-            now = datetime.datetime.utcnow()
+            now = discord.utils.utcnow()
 
-            if time > datetime.datetime.utcnow():
+            if time > discord.utils.utcnow():
                 return await ctx.send(":information_source: | you can collect your daily credits again in "
                                       + h.naturaldelta(now - time))
 
-            await ctx.db.execute(statement, ctx.message.created_at + datetime.timedelta(days=1), ctx.author.id)
+            await ctx.db.execute(statement,
+                                 ctx.message.created_at.replace(tzinfo=None) + datetime.timedelta(days=1),
+                                 ctx.author.id)
 
         await ctx.db.execute("UPDATE users SET credits = credits + $1 WHERE user_id = $2", 2000, ctx.author.id)
 

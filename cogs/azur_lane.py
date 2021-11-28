@@ -170,7 +170,7 @@ class AzurLane(commands.Cog, name="Azur Lane"):
         if not paginate:
             return "https://i.imgur.com/la4e2G4.jpg"
 
-        pages = ctx.global_menu(ctx.embed_source(entries))
+        pages = ctx.global_menu(ctx.list_source(entries))
         await pages.start(ctx)
 
     def auxiliary_slots(self, option=0):
@@ -295,7 +295,7 @@ class AzurLane(commands.Cog, name="Azur Lane"):
         if not entries:
             return await ctx.send(f"> invalid {col_name} was entered.")
 
-        pages = ctx.menu(ctx.embed_source(entries))
+        pages = ctx.menu(ctx.list_source(entries))
         await pages.start(ctx)
 
     @commands.group(invoke_without_command=True)
@@ -567,7 +567,7 @@ class AzurLane(commands.Cog, name="Azur Lane"):
         if not entries:
             return await ctx.send(f":no_entry: | search failed for {search}")
 
-        pages = ctx.menu(ctx.embed_source(entries))
+        pages = ctx.menu(ctx.list_source(entries))
         await pages.start(ctx)
 
     @commands.command(aliases=["afs"])

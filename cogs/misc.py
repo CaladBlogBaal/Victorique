@@ -140,8 +140,7 @@ class Misc(commands.Cog):
     @staticmethod
     @page_source(per_page=7)
     def emote_source(self, menu, entries):
-        embed = discord.Embed(content=f"list of emotes for `{self.ctx.guild.name}`",
-                              title=f"{self.ctx.guild.name} emotes",
+        embed = discord.Embed(title=f"{self.ctx.guild.name} emotes",
                               color=discord.Color.dark_magenta())
 
         for emote in entries:
@@ -174,7 +173,7 @@ class Misc(commands.Cog):
         embed.add_field(name="Contributor", value=author, inline=False)
         embed.add_field(name="Rating", value=f"\👍**{entry['thumbs_up']}** \👎**{entry['thumbs_down']}**")
         embed.set_footer(text=f"Requested by {self.ctx.message.author.name}",
-                         icon_url=self.ctx.message.author.avatar_url)
+                         icon_url=self.ctx.message.author.avatar.url)
         embed.set_image(url="https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/UD_"
                             "logo-01.svg/1280px-UD_logo-01.svg.png")
 
@@ -411,7 +410,7 @@ class Misc(commands.Cog):
         data = [await self.bot.api_get_image([" ", " "], "https://nekos.life/api/v2/img/kemonomimi", "url")
                 for _ in range(amount)]
 
-        pages = ctx.menu(ctx.embed_source(data))
+        pages = ctx.menu(ctx.list_source(data))
         await pages.start(ctx)
 
     @commands.command()

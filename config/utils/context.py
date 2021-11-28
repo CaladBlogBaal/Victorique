@@ -1,9 +1,18 @@
+import discord
 from discord.ext import commands
 from config.utils.menu import BaseMenu, ReplyMenu, GlobalMenu, page_source
 
 
 @page_source(per_page=1)
-async def embed_source(self, menu, entry):
+async def list_source(self, menu, entry):
+    if isinstance(entry, discord.Embed):
+        footer_text = ""
+        # check if it's not empty
+        if entry.footer:
+            footer_text = entry.footer.text
+        entry.set_footer(text=footer_text + f"page {menu.current_page + 1} /{self.get_max_pages()}")
+    elif isinstance(entry, str):
+        entry += f"\npage {menu.current_page + 1} /{self.get_max_pages()}"
     return entry
 
 
@@ -37,7 +46,7 @@ class Context(commands.Context):
         self.menu = BaseMenu
         self.reply_menu = ReplyMenu
         self.global_menu = GlobalMenu
-        self.embed_source = embed_source
+        self.list_source = list_source
         self.pool = self.bot.pool
         self._db = None
         self.emote_unescape = self.bot.emote_unescape

@@ -2,6 +2,9 @@ import os
 from config.cogs import __cogs__
 from config.presence import __presences__, __presenceTimer__
 
+__tracemoe_api__key__ = ""
+__saucenao_api_key__ = "3cead9686cf24d48d6e1f232e17fd1b63e59276c"
+
 
 PRIVATE_GUILDS = (520242432386793473, 432569553353048075)
 

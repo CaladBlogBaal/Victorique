@@ -330,7 +330,7 @@ class Tags(commands.Cog):
         embed.add_field(name="Nsfw", value=data["nsfw"], inline=False)
         embed.add_field(name="Created", value=date, inline=False)
         embed.add_field(name="Uses: ", value=uses, inline=False)
-        embed.set_author(name=member.name, icon_url=member.avatar_url_as(static_format="png"))
+        embed.set_author(name=member.name, icon_url=member.avatar.replace(static_format="png"))
         embed.add_field(name="Rank", value=data["rank"])
 
         await ctx.send(embed=embed)
@@ -404,7 +404,7 @@ class Tags(commands.Cog):
             embed.add_field(name='\uFEFF', value=tags)
             entries.append(embed)
 
-        pages = ctx.menu(ctx.embed_source(entries))
+        pages = ctx.menu(ctx.list_source(entries))
         await pages.start(ctx)
 
     @tag.group(invoke_without_command=True, aliases=["remove", "prune"])

@@ -1,15 +1,14 @@
-import contextlib
 import random
 
 import discord
 import numpy as np
 
+from games.views import RequestToPlayView
+
 
 class TicTacToePlayer:
-    def __init__(self, member, letter, board, board_indexes):
-        self.board = board
-        self.board_reactions = board_indexes
-        self.member_object = member
+    def __init__(self, member, letter):
+        self.member = member
         self.name = str(member)
         self.letter = letter
         self.winner = None
@@ -33,206 +32,163 @@ class TicTacToePlayer:
     def won(self):
         self.winner = True
 
-    def place_letter(self, option):
-        index = np.where(self.board_reactions == option)
-        self.board[index] = self.letter
-        self.check_winning_move()
 
-    def check_winning_move(self):
-
-        for i in range(3):
-            rows = np.all(self.board[i, :] == self.letter)
-            cols = np.all(self.board[:, i] == self.letter)
-
-            if rows or cols:
-                self.won()
-
-        diags1 = np.all(np.diag(self.board) == self.letter)
-        diags2 = np.all(np.diag(np.fliplr(self.board)) == self.letter)
-
-        if diags1 or diags2:
-            self.won()
-
-
-class TicTacToe:
-    reactions = ["1\N{combining enclosing keycap}", "2\N{combining enclosing keycap}",
-                 "3\N{combining enclosing keycap}", "4\N{combining enclosing keycap}",
-                 "5\N{combining enclosing keycap}", "6\N{combining enclosing keycap}",
-                 "7\N{combining enclosing keycap}", "8\N{combining enclosing keycap}",
-                 "9\N{combining enclosing keycap}"]
-
-    def __init__(self, ctx):
-        self.board = np.array([[1, 1, 1], [1, 1, 1], [1, 1, 1]])
-        self.board_reaction_index = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+class TicTacToePlayersView(discord.ui.View):
+    def __init__(self, ctx, member, message=None, timeout=15):
+        super(TicTacToePlayersView, self).__init__(timeout=timeout)
         self.ctx = ctx
-        self.player_one = None
-        self.player_two = None
-        self.running = True
-        self.game_embed = None
-        self.current_players_turn = None
+        self.member = member
+        self.message = message
+        self.players = None
 
-    @property
-    def current_players_turn(self):
-        return self._current_players_turn
+    def set_players(self, player_one_letter, player_two_letter):
+        player_one = TicTacToePlayer(self.ctx.author, player_one_letter)
+        player_two = TicTacToePlayer(self.member, player_two_letter)
+        self.clear_items()
+        self.players = {self.ctx.author.id: player_one,
+                        self.member.id: player_two}
+        self.stop()
 
-    @current_players_turn.setter
-    def current_players_turn(self, value):
-        self._current_players_turn = value
+    @discord.ui.button(style=discord.ButtonStyle.green, label="O")
+    async def set_o(self, button, interaction):
+        self.set_players("O", "X")
 
-    def display_board(self):
+    @discord.ui.button(style=discord.ButtonStyle.red, label="X")
+    async def set_x(self, button, interaction):
+        self.set_players("X", "O")
 
-        board_display = [":one:", ":two:", ":three:",
-                         ":four:", ":five:", ":six:",
-                         ":seven:", ":eight:", ":nine:"
-                         ]
+    async def start(self):
+        message = f"{self.ctx.author.name} do you want to be X or O?"
 
-        board_flat = self.board.flatten()
+        if not self.message:
+            self.message = await self.ctx.send(message, view=self)
 
-        for i in range(0, 9):
-            if board_flat[i] == 0:
-                board_display[i] = ":o:"
+        await self.message.edit(message, view=self)
 
-            elif board_flat[i] == -1:
-                board_display[i] = ":x:"
+    async def interaction_check(self, interaction):
+        return interaction.user.id == self.ctx.author.id
 
-        display = " {}  {}  {} \n{}  {}  {} \n{}  {}  {} ".format(*board_display)
-        return display
+    async def on_timeout(self) -> None:
+        self.clear_items()
+        await self.message.edit(":information_source: | haven't received an input for awhile stopping the game.",
+                                delete_after=10)
+        self.stop()
 
-    def return_open_spaces(self):
-        open_spaces = []
-        check = (self.board == 1)
-        flat_board = check.flatten()
 
-        for i, _ in enumerate(flat_board):
-            if flat_board[i] == True:
-                open_spaces.append(i + 1)
+class TicTacToeButton(discord.ui.Button["TicTacToe"]):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
-        return open_spaces
+    async def callback(self, interaction: discord.Interaction):
+        assert self.view is not None
 
-    def first_turn(self):
-        if random.randint(0, 1) == 0:
-            return self.player_two, self.player_one
+        if interaction.user.id != self.view.current_player_id:
+            return
 
-        return self.player_one, self.player_two
+        if self.label != "--":
+            return await interaction.response.send_message("Someone already played there!", ephemeral=True)
 
-    def boards_full(self):
-        return self.return_open_spaces() == []
+        player = self.view.players[interaction.user.id]
+        indexes = []
 
-    def embed(self):
+        for c in self.custom_id:
+            if c.isdigit():
+                indexes.append(int(c))
 
-        display = self.display_board()
-        embed = discord.Embed(title=f"Tic Tac Toe", description=display, color=self.ctx.bot.default_colors())
-        embed.timestamp = self.ctx.message.created_at
-        return embed
+        self.label = player.letter
+        self.view.board[indexes[0], indexes[1]] = player.letter
 
-    async def set_players(self, author, member):
-        letters = await self.player_letter_choice()
-        self.player_one = TicTacToePlayer(author, letters[0], self.board, self.board_reaction_index)
-        self.player_two = TicTacToePlayer(member, letters[1], self.board, self.board_reaction_index)
+        if self.label == "X":
+            self.style = discord.ButtonStyle.red
+        else:
+            self.style = discord.ButtonStyle.green
 
-    async def player_letter_choice(self):
-        msg = await self.ctx.send(f"{self.ctx.author.mention} Do you want to be X or O ?")
-
-        choice = await self.ctx.bot.wait_for('message', check=lambda m: m.author == self.ctx.author and len(m.content)
-                                             == 1, timeout=60)
-
-        await msg.delete()
-
-        if choice.content.lower() == "o":
-            await self.ctx.send(":information_source: | your letter is O")
-            return 0, -1
-
-        await self.ctx.send(":information_source: | your letter is X")
-        return -1, 0
-
-    async def play_again(self):
-        check_mark = "✅"
-
-        await self.game_embed.add_reaction(check_mark)
-        await self.game_embed.edit(content=f"{self.ctx.author.mention} Do you want to play again?")
-
-        def check(reaction, user):
-            return user == self.ctx.author and reaction.emoji == check_mark and reaction.message.id == self.game_embed.id
-
-        reaction, user = await self.ctx.bot.wait_for('reaction_add', timeout=30, check=check)
-
-        while reaction.emoji != check_mark:
-            reaction, user = await self.ctx.bot.wait_for('reaction_add', timeout=30, check=check)
-
-        if reaction.emoji == check_mark:
-            new_game = TicTacToe(self.ctx)
-            return await new_game.run(self.player_two.member_object)
-
-        with contextlib.suppress(discord.Forbidden):
-            await self.game_embed.clear_reactions()
-
-    async def player_turn(self, check, player: TicTacToePlayer):
-
-        if self.boards_full():
-            await self.game_embed.edit(embed=self.embed(), content=":information_source: | The game was a draw")
-            return await self.end_game()
-
-        self.current_players_turn = player.member_object
-        await self.game_embed.edit(embed=self.embed(), content=f"It's {player.name} turn")
-
-        cancel_after = 0
-
-        reaction, user = await self.ctx.bot.wait_for('reaction_add', timeout=60, check=check)
-
-        with contextlib.suppress(discord.HTTPException):
-            await self.game_embed.remove_reaction(reaction, user)
-
-        while True:
-
-            if self.reactions.index(reaction.emoji) + 1 in self.return_open_spaces():
-                player.place_letter(self.reactions.index(reaction.emoji) + 1)
-                break
-
-            else:
-                await self.game_embed.edit(embed=self.embed(),
-                                           content=f":no_entry: | {player.name} invalid move react again")
-
-                reaction, user = await self.ctx.bot.wait_for('reaction_add', timeout=30, check=check)
-                cancel_after += 1
-
-                if cancel_after == 5:
-                    await self.game_embed.edit(embed=self.embed(),
-                                               content=":no_entry: | too many invalid moves cancelling the game.")
-                    await self.end_game()
-                    # setting it to true so it skips the other player's turn
-                    player.winner = True
+        self.view.check_winning_move(player)
 
         if player.winner:
-            await self.game_embed.edit(embed=self.embed(), content=f":information_source: | {player.name} won")
-            await self.end_game()
+            await self.view.message.edit(f":information_source: | {player.name} won", view=self.view)
+            return self.view.stop()
 
-        await self.game_embed.edit(embed=self.embed())
-        return player.winner
+        if self.view.boards_full():
+            await self.view.message.edit("Game was a draw.", view=self.view)
+            return self.view.stop()
 
-    async def end_game(self):
-        with contextlib.suppress(discord.Forbidden):
-            self.running = False
-            await self.game_embed.clear_reactions()
+        # honestly have no id of a better way to do this for now, this feels janky
+        for player_id in self.view.players:
+            if interaction.user.id != player_id:
+                self.view.current_player_id = player_id
+                await self.view.message.edit(f"It's {self.view.players[player_id].name} turn!", view=self.view)
 
-    async def run(self, member):
-        self.game_embed = await self.ctx.send(embed=self.embed())
-        for emoji in self.reactions:
-            await self.game_embed.add_reaction(emoji)
 
-        def check(reaction, user):
+class TicTacToe(discord.ui.View):
 
-            return user == self.current_players_turn and reaction.emoji in self.reactions \
-                   and reaction.message.id == self.game_embed.id
+    def __init__(self, timeout=40):
+        super().__init__(timeout=timeout)
+        self.board = None
+        self.message = None
+        self.players = None
+        self.current_player_id = None
+        self.setup()
 
-        await self.set_players(self.ctx.author, member)
-        first = self.first_turn()
+    async def play_again(self):
+        pass
 
-        while self.running:
+    async def run(self, ctx, member):
 
-            first_player, second_player = first
-            await self.player_turn(check, first_player)
+        view = RequestToPlayView(ctx, member, game="Tic-Tac-Toe")
+        await view.start()
+        await view.wait()
 
-            if not first_player.winner:
-                await self.player_turn(check, second_player)
+        if view.value:
+            view = TicTacToePlayersView(ctx, member, message=view.message)
+            await view.start()
+            await view.wait()
+            if view.players:
+                self.players = view.players
+                self.message = view.message
+                # who goes first
+                _, player = random.choice(list(self.players.items()))
+                self.current_player_id = player.member.id
+                await self.message.edit(f"It's {player.name} turn!", view=self)
 
-        await self.play_again()
+    @property
+    def current_player_id(self):
+        return self._current_players_turn
+
+    @current_player_id.setter
+    def current_player_id(self, value):
+        self._current_players_turn = value
+
+    def setup(self):
+        alist = []
+        buttons = [[TicTacToeButton(style=discord.ButtonStyle.gray,
+                                    label="--", row=row + 1, custom_id=f"ttt{row}{col}")
+                    for col in range(3)] for row in range(3)]
+
+        for row in buttons:
+            sub_list = []
+            for button in row:
+                sub_list.append("")
+                self.add_item(button)
+            alist.append(sub_list)
+
+        self.board = np.array(alist, dtype=np.str_)
+
+    def check_winning_move(self, player):
+
+        for i in range(3):
+            rows = np.all(self.board[i, :] == player.letter)
+            cols = np.all(self.board[:, i] == player.letter)
+
+            if rows or cols:
+                player.won()
+
+        diags1 = np.all(np.diag(self.board) == player.letter)
+        diags2 = np.all(np.diag(np.fliplr(self.board)) == player.letter)
+
+        if diags1 or diags2:
+            player.won()
+
+    def boards_full(self):
+        board = self.board.flatten()
+        return np.all(board != "")

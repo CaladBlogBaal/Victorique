@@ -1,5 +1,5 @@
 from jishaku.exception_handling import *
-from jishaku import cog
+from jishaku.cog import Jishaku
 from config.utils.emojis import *
 
 # emojis
@@ -37,16 +37,10 @@ class ReactorSub(ReplResponseReactor):
             await send_traceback(self.message.author, 8, exc_type, exc_val, exc_tb)
 
 
-cog.ReplResponseReactor = ReactorSub
-cog.JISHAKU_RETAIN = True
-cog.JISHAKU_HIDE = True
-
-# This allows us to unload the cog
-
-
-class SubJsk(cog.Jishaku):
-    pass
+Jishaku.ReplResponseReactor = ReactorSub
+Jishaku.JISHAKU_RETAIN = True
+Jishaku.JISHAKU_HIDE = True
 
 
 def setup(bot):
-    bot.add_cog(SubJsk(bot))
+    bot.add_cog(Jishaku(bot=bot))

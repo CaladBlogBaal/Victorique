@@ -1,4 +1,4 @@
-# Work with Python 3.6+
+# Work with Python 3.8+
 import asyncio
 import re
 import random
@@ -8,6 +8,7 @@ import asyncpg
 
 from discord.ext import commands, tasks
 import discord
+
 
 import loadconfig
 from config.utils import cache, requests, checks
@@ -236,4 +237,4 @@ if __name__ == "__main__":
             print(f"{cog} could not be loaded.")
             raise e
 
-    bot.run(loadconfig.__token__, bot=True, reconnect=True)
+    bot.run(loadconfig.__token__, reconnect=True)

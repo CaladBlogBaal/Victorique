@@ -46,7 +46,6 @@ class Youtube(commands.Cog):
         soup = BeautifulSoup(result, "html.parser")
         pattern = re.compile(r"var ytInitialData = (.*);")
         scripts = soup.find_all("script")
-
         for script in scripts:
             if pattern.search(str(script.string)):
                 data = pattern.search(script.string)
@@ -69,7 +68,7 @@ class Youtube(commands.Cog):
         if not results:
             return await ctx.send(f":no_entry: | search failed for `{query}.`")
 
-        pages = ctx.menu(ctx.embed_source(results))
+        pages = ctx.menu(ctx.list_source(results))
         await pages.start(ctx)
 
     @youtube.command()

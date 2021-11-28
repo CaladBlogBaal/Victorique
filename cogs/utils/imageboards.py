@@ -40,10 +40,14 @@ async def default_source(self, menu, entry):
     embed = discord.Embed(colour=discord.Colour.dark_magenta(),
                           description=f"{cleaned_sources}\n```{cleaned_tags}```\n[Full size img url]({full_size})")
 
+    footer_text = f"page {menu.current_page + 1} /{self.get_max_pages()}"
+
     embed.set_image(url=preview_url)
 
     if entry.preview:
-        embed.set_footer(text="preview image for discord.")
+        footer_text += "\npreview image for discord."
+
+    embed.set_footer(text=footer_text)
 
     return embed
 
@@ -187,7 +191,7 @@ class BoardError(Exception):
 
 class _Moebooru:
 
-    def __init__(self, site_name="", session=aiohttp.ClientSession(), bot=None):
+    def __init__(self, site_name="", session=None, bot=None):
 
         self.site_list = {
             "konachan": {
@@ -220,8 +224,9 @@ class _Moebooru:
         self.__site_url = ""
         self.request = requests.Request(bot, session)
         self.site_name = site_name
+        if not session:
+            self.client = aiohttp.ClientSession(headers=headers)
         self.client = session
-        self.client.headers = headers
 
     async def fetch(self, url, **kwargs):
         return await self.request.fetch(url, **kwargs)
@@ -358,15 +363,16 @@ class Moebooru(_Moebooru, MoebooruApiMixin):
         # flag for safe is the nsfw channel is not set as well
         safe = self.ctx.channel.id != nsfw_channel_id and nsfw_channel_id is not True
         tags = self.process_tags(tags, safe)
-        result = await self.post_list(tags=tags)
+        results = await self.post_list(tags=tags)
 
-        if not result:
+        if not results:
             return await self.ctx.send(f":no_entry: | search failed with tags `{tags}`")
 
         pictures = set()
-        result = random.sample(result, limit)
+        limit = limit if len(results) >= limit else limit - len(results)
+        results = random.sample(results, limit)
 
-        for js in result:
+        for js in results:
             pictures.add(post(js.get("sample_url") or js.get("file_url"),
                               js.get("source", " "), js.get("tags"),
                               js.get("file_url")))

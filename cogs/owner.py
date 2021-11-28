@@ -8,8 +8,12 @@ import inspect
 import psutil
 import humanize as h
 
+from collections import namedtuple
+
 import discord
 from discord.ext import commands, tasks
+
+from cogs.utils.imageboards import default_source
 
 from config.utils.menu import page_source
 from config.utils.converters import TriviaCategoryConverter, TriviaDiffcultyConventer
@@ -17,15 +21,18 @@ from config.utils.converters import TriviaCategoryConverter, TriviaDiffcultyConv
 
 @tasks.loop(hours=24)
 async def random_images(ctx, tags="rating:safe score:>100"):
+    post = namedtuple("post", "preview sources tags full_image")
     params = {"random": "true", "tags": tags}
     js = await ctx.bot.fetch("https://danbooru.donmai.us/posts.json", params=params)
-
+    results = []
     for picture in js:
+        result = post(picture.get("file_url"), picture.get("source", " "),
+                      picture.get("tag_string"), picture.get("file_url"))
 
-        result = (picture.get("file_url"), picture.get("source", "null"),
-                  picture.get("file_url"), picture.get("tag_string"))
+        results.append(result)
 
-        await ctx.send(embed=ctx.bot.cogs["ImageBoards"].embed_(*result))
+    pages = ctx.global_menu(default_source(results))
+    await pages.start(ctx)
 
 
 class Info(commands.Cog):
@@ -41,7 +48,7 @@ class Info(commands.Cog):
     async def invite(self, ctx):
         """Get the bot's invite url"""
 
-        await ctx.send(discord.utils.oauth_url(ctx.me.id, discord.Permissions(1342515266)))
+        await ctx.send(discord.utils.oauth_url(ctx.me.id, permissions=discord.Permissions(1342515266)))
 
     @commands.command()
     async def source(self, ctx, *, command_name=None):
@@ -83,7 +90,7 @@ class Info(commands.Cog):
 
         ignore_these = (604816023291428874, 604688858591920148, 604688905190637598, 604688959640961038)
         guild_count = len(list(g for g in self.bot.guilds if g.id not in ignore_these))
-        invite_url = f"[invite url]({discord.utils.oauth_url(ctx.me.id, discord.Permissions(1342515266))})"
+        invite_url = f"[invite url]({discord.utils.oauth_url(ctx.me.id, permissions=discord.Permissions(1342515266))})"
         # pretty much a modified version of the jishaku, jsk/jishaku command
         proc = psutil.Process()
         mem = proc.memory_full_info()
@@ -92,14 +99,14 @@ class Info(commands.Cog):
         py_version = ".".join(str(n) for n in sys.version_info[:3])
         embed = discord.Embed(color=self.bot.default_colors(), title="", description=f"")
         embed.add_field(name="Basic:", value=f"**OS**: {platform.platform()}\n**Hostname: **OVH\n**Python Version: **"
-                        f"{py_version}\n**Links**: {invite_url}")
+                                             f"{py_version}\n**Links**: {invite_url}")
         embed.add_field(name="Dev:", value="CaladWoDestroyer#9313")
         embed.add_field(name="Library:", value=f"Discord.py {discord.__version__}")
         embed.add_field(name="Commands:", value=str(command_count))
         embed.add_field(name="Guilds:", value=str(guild_count))
         embed.add_field(name="RAM:", value=f"Using {h.naturalsize(mem.rss)}")
         embed.add_field(name="VRAM:", value=str(h.naturalsize(mem.vms) + f" of which {str(h.naturalsize(mem.uss))}"
-                                                f"\nis unique to this process"))
+                                                                         f"\nis unique to this process"))
         embed.add_field(name="Ping", value=round(self.bot.latency * 1000, 2))
         # get these emotes by joining the discord.py server
         embed.add_field(name="Members", value=f"<:status_online:596576749790429200> Online: {member_online}\n"

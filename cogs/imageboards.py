@@ -6,7 +6,8 @@ from discord.ext import commands
 from cogs.utils.imageboards import Moebooru, AnimePicturesNet, Safebooru
 
 
-class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.Cooldown(1, 3, commands.BucketType.user))):
+class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.CooldownMapping(commands.Cooldown(1, 3),
+                                                                                     type=commands.BucketType.user))):
     """Anime image boards related commands
        divide tags with | or || or && **no mixing separators**
 

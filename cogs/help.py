@@ -7,7 +7,7 @@ class MyHelpCommand(commands.MinimalHelpCommand):
         super().__init__(**options, command_attrs=dict(help=""))
 
     def get_command_signature(self, command):
-        return '**{0.clean_prefix}{1.qualified_name} {1.signature}**'.format(self, command)
+        return '**{0.context.clean_prefix}{1.qualified_name} {1.signature}**'.format(self, command)
 
     def get_opening_note(self):
         return None
@@ -18,7 +18,7 @@ class MyHelpCommand(commands.MinimalHelpCommand):
         second_line = "*category names are case sensitive*.\n"
         third_line = ":information_source: < > refers to a required argument, [ ] is optional\n"
         last_line = "**do not actually type these**"
-        return f"{first_line}{second_line}{third_line}{last_line}".format(self.clean_prefix, command_name)
+        return f"{first_line}{second_line}{third_line}{last_line}".format(self.context.clean_prefix, command_name)
 
     def add_subcommand_formatting(self, command):
         fmt = "→ **{0} {1}** \N{EN DASH} `{2}`" if command.short_doc else '→ **{0} {1}** \N{EN DASH} `no description`'
@@ -51,12 +51,12 @@ class MyHelpCommand(commands.MinimalHelpCommand):
 
     async def send_pages(self):
         destination = self.get_destination()
-        avatar_url = self.context.me.avatar_url_as(format="png")
+        avatar_url = self.context.me.avatar.replace(format="png")
         name = self.context.me.name
         for page in self.paginator.pages:
 
             embed = discord.Embed(description=page, color=self.context.bot.default_colors())
-            embed.set_author(name=name, icon_url=avatar_url)
+            embed.set_author(name=name, icon_url=str(avatar_url))
             await destination.send(embed=embed)
 
 

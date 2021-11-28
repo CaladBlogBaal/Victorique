@@ -23,7 +23,7 @@ class Animals(commands.Cog):
 
         data = [await self.bot.api_get_image(content, url, key) for _ in range(amount)]
         
-        pages = ctx.menu(ctx.embed_source(data))
+        pages = ctx.menu(ctx.list_source(data))
         await pages.start(ctx)
 
     @commands.group(aliases=["afact"], ignore_extra=False)

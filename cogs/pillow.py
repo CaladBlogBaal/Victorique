@@ -237,14 +237,14 @@ class Images(commands.Cog):
         for i, member_ in enumerate(avatar_icon_bytes_list):
 
             # if it's a default avatar resize, since (format="png", size=32) does not work on default avatars
-            if str(member_.avatar_url_as(format="png")) in self.default_avatars:
+            if str(member_.avatar.replace(format="png")) in self.default_avatars:
                 avatar_icon_bytes = BytesIO(await member_.avatar_url_as(format="png").read())
                 partial_func = partial(self.image_resize, avatar_icon_bytes, (32, 32))
                 avatar_bytes = await self.bot.loop.run_in_executor(None, partial_func)
                 avatar_bytes = await image.circle_crop(avatar_bytes)
 
             else:
-                avatar_icon_bytes = BytesIO(await member_.avatar_url_as(format="png", size=32).read())
+                avatar_icon_bytes = BytesIO(await member_.avatar.replace(format="png", size=32).read())
                 avatar_bytes = await image.circle_crop(avatar_icon_bytes)
 
             avatar_icon_bytes_list[i] = avatar_bytes

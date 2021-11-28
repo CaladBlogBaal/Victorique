@@ -54,7 +54,7 @@ class Fishing(commands.Cog):
         transaction_id = random.randint(1000, 90000)
         transaction_id = str(transaction_id)
 
-        embed = discord.Embed(content=":atm: | bait purchase",
+        embed = discord.Embed(
                               description=f"{ctx.author.name} buying bait"
                                           f"\nCurrent balance {current_balance}"
                                           f"\nBalance after pet purchase {current_balance - cost}"

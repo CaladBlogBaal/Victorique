@@ -49,7 +49,7 @@ class Members(commands.Cog):
         embed.add_field(name="**Joined at**", value=joined_at)
         embed.add_field(name="**Roles**", value=roles)
         embed.add_field(name="**Nitro boosting since**", value=prem_since)
-        embed.set_author(icon_url=member.avatar_url, name=str(member))
+        embed.set_author(icon_url=member.avatar.url, name=str(member))
 
         await ctx.send(embed=embed)
 
@@ -64,7 +64,7 @@ class Members(commands.Cog):
 
         perms = '\n'.join(perm for perm, value in member.guild_permissions if value)
         embed = discord.Embed(title='Permissions for:', description=ctx.guild.name, colour=member.colour)
-        embed.set_author(icon_url=member.avatar_url, name=str(member))
+        embed.set_author(icon_url=member.avatar.url, name=str(member))
         embed.add_field(name='\uFEFF', value=perms)
 
         await ctx.send(embed=embed)
@@ -78,8 +78,8 @@ class Members(commands.Cog):
         member = member or ctx.author
 
         embed = discord.Embed(color=self.bot.default_colors())
-        embed.set_author(name=str(member), icon_url=member.avatar_url_as(format="png", size=32))
-        embed.set_image(url=member.avatar_url_as(static_format="png"))
+        embed.set_author(name=str(member), icon_url=member.avatar.replace(format="png", size=32))
+        embed.set_image(url=member.avatar.replace(static_format="png", size=1024))
         await ctx.send(embed=embed)
 
 

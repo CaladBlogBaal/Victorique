@@ -124,7 +124,7 @@ class Moderation(commands.Cog):
         embed = discord.Embed(title="Purge",
                               description=f"Deleted __**{len(deleted)}**__ message(s)",
                               color=self.bot.default_colors())
-        embed.set_footer(text=f"Requested by {ctx.message.author.name}", icon_url=ctx.message.author.avatar_url)
+        embed.set_footer(text=f"Requested by {ctx.message.author.name}", icon_url=ctx.message.author.avatar.url)
         embed.timestamp = ctx.message.created_at
         await ctx.send(embed=embed, delete_after=4)
 

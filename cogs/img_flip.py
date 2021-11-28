@@ -97,7 +97,7 @@ class ImageFlip(commands.Cog):
                     embed = discord.Embed(color=self.bot.default_colors())
                     count = 0
 
-        pages = ctx.menu(ctx.embed_source(entries))
+        pages = ctx.menu(ctx.list_source(entries))
         await pages.start(ctx)
 
     @img_flip_memes.command(name="generate", aliases=["g"])
@@ -142,7 +142,7 @@ class ImageFlip(commands.Cog):
         n = NekoBot(ctx)
 
         kwargs = {"type": "phcomment",
-                  "image": str(ctx.author.avatar_url_as(format="png")),
+                  "image": str(ctx.author.avatar.replace(format="png")),
                   "text": comment,
                   "username": ctx.author.name,
                   "key": "message"}
@@ -210,8 +210,8 @@ class ImageFlip(commands.Cog):
 
         n = NekoBot(ctx)
         kwargs = {"type": "whowouldwin",
-                  "user1": str(ctx.author.avatar_url_as(format="png")),
-                  "user2": str(member.avatar_url_as(format="png")),
+                  "user1": str(ctx.author.avatar.replace(format="png")),
+                  "user2": str(member.avatar.replace(format="png")),
                   "key": "message"}
 
         await ctx.send(embed=await n.get_image(**kwargs))

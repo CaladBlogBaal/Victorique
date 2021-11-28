@@ -45,7 +45,7 @@ class Games(commands.Cog):
         if isinstance(error, commands.CommandInvokeError):
             error = error.original
 
-        if isinstance(error, (asyncio.TimeoutError, asyncio.futures.TimeoutError)):
+        if isinstance(error, asyncio.TimeoutError):
             await ctx.send(f"> no response was received for awhile cancelling the game for `{ctx.command.name}`",
                            delete_after=10)
 
@@ -117,8 +117,8 @@ class Games(commands.Cog):
         if amount <= 0:
             return await ctx.send(":no_entry: | please type in a valid amount of questions.")
 
-        triva = Triva()
-        await triva.run(ctx, difficulty, amount, category)
+        triva = Triva(ctx)
+        await triva.run(difficulty, amount, category)
 
     @trivia.group(aliases=["cat"], invoke_without_command=True)
     async def categorises(self, ctx):
@@ -170,26 +170,8 @@ class Games(commands.Cog):
         if member.bot:
             return await ctx.send("Bots are too much for mere humans.")
 
-        await ctx.send(f"awaiting a response from {member.display_name} (options yes or no)")
-        try:
-
-            message = await self.bot.wait_for('message', check=lambda message: message.author == member,
-                                              timeout=60)
-        except asyncio.TimeoutError:
-            return await ctx.send("A response wasn't received for awhile cancelling...", delete_after=3)
-
-        choice = message.content.lower()
-
-        if choice == "no":
-            await ctx.send(f":information_source: | "
-                           f"seems like {member.display_name} doesn't want a game shutting down the game...")
-
-        elif choice != "yes":
-            await ctx.send("> Invalid option was passed aborting...")
-
-        else:
-            tic_tat_toe = TicTacToe(ctx)
-            await tic_tat_toe.run(member)
+        ttt = TicTacToe()
+        await ttt.run(ctx, member)
 
     @commands.command(aliases=["bj", "blackjack"])
     # gotta actually rewrite this
