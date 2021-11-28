@@ -45,8 +45,8 @@ class Anime(commands.Cog, command_attrs=dict(cooldown=commands.CooldownMapping(c
         end = entry["to"]
         # h:mm:ss
         # 0:00:00
-        start = f"{start // (60*60)}:{start % (60*60) // 60:02.0f}:{start % (60*60) % 60:02.0f}"
-        end = f"{end // (60*60)}:{end % (60*60) // 60:02.0f}:{end % (60*60) % 60:02.0f}"
+        start = f"{start // (60 * 60)}:{start % (60 * 60) // 60:02.0f}:{start % (60 * 60) % 60:02.0f}"
+        end = f"{end // (60 * 60)}:{end % (60 * 60) // 60:02.0f}:{end % (60 * 60) % 60:02.0f}"
 
         embed.description = f"Episode {entry['episode'] or 'NaN'}\n{start} - {end}"
         embed.set_footer(text=f"~Similarity {round(entry['similarity'], 2)}"
@@ -129,7 +129,6 @@ class Anime(commands.Cog, command_attrs=dict(cooldown=commands.CooldownMapping(c
 
         messages = await ctx.channel.history().filter(lambda m: m.attachments != [] or m.embeds != []).flatten()
         image_urls = []
-
         # ctx.history limit is 100 by default
         skip = skip if skip < 100 else 99
         # delete n elements
@@ -145,8 +144,12 @@ class Anime(commands.Cog, command_attrs=dict(cooldown=commands.CooldownMapping(c
                 image_urls.append(message.attachments[0].proxy_url)
 
             else:
-                if message.embeds[0].image:
-                    image_urls.append(message.embeds[0].image.url)
+                embed = message.embeds[0]
+                if embed.image:
+                    image_urls.append(embed.image.proxy_url)
+                # for urls that auto embed with a thumbnail
+                elif embed.thumbnail:
+                    image_urls.append(embed.thumbnail.proxy_url)
 
         return image_urls
 
@@ -317,7 +320,7 @@ class Anime(commands.Cog, command_attrs=dict(cooldown=commands.CooldownMapping(c
 
             except (errors.LongLimitReachedError, errors.ShortLimitReachedError,
                     errors.BadFileSizeError, errors.UnknownClientError,
-                    errors, errors.UnknownServerError) as e:
+                    errors.UnknownServerError) as e:
                 return await ctx.send(str(e))
 
             if entries.long_remaining == 0:
