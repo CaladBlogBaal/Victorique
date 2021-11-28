@@ -1,3 +1,4 @@
+import asyncio
 import copy
 import traceback
 import sys
@@ -38,7 +39,7 @@ class CommandErrorHandler(commands.Cog):
                          commands.MissingPermissions, commands.CommandOnCooldown, commands.NoPrivateMessage,
                          commands.NotOwner, commands.CommandNotFound, commands.TooManyArguments,
                          commands.DisabledCommand, commands.BadArgument, commands.BadUnionArgument,
-                         RequestFailed)
+                         RequestFailed, asyncio.TimeoutError)
 
         error = getattr(error, 'original', error)
 
