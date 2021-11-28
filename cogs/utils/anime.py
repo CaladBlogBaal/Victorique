@@ -1,8 +1,11 @@
 import asyncio
+import collections
 
 from discord.ext import tasks
 
 from python_graphql_client import GraphqlClient
+
+from cogs.error_handler import RequestFailed
 
 from queries.seasonal import search_seasonal
 from queries.schedule import search_schedule
@@ -26,6 +29,29 @@ class AniListApi:
         self.unlocked = asyncio.Event()
         self.set_lock.start()
 
+    # taken from
+    # https://github.com/ScriptSmith/socialreaper/blob/master/socialreaper/tools.py#L8
+    def flatten(self, dictionary, parent_key=False, separator='.'):
+        """
+        Turn a nested dictionary into a flattened dictionary
+        :param dictionary: The dictionary to flatten
+        :param parent_key: The string to prepend to dictionary's keys
+        :param separator: The string used to separate flattened keys
+        :return: A flattened dictionary
+        """
+
+        items = []
+        for key, value in dictionary.items():
+            new_key = str(parent_key) + separator + key if parent_key else key
+            if isinstance(value, collections.MutableMapping):
+                items.extend(self.flatten(value, new_key, separator).items())
+            elif isinstance(value, list):
+                for k, v in enumerate(value):
+                    items.extend(self.flatten({str(k): v}, new_key).items())
+            else:
+                items.append((new_key, value))
+        return dict(items)
+
     @tasks.loop(seconds=1)
     async def set_lock(self):
         if self.lock.locked() is False:
@@ -38,7 +64,12 @@ class AniListApi:
         await self.unlocked.wait()
 
         async with self.lock:
+
             data = await self.client.execute_async(query=query, variables=variables)
+
+            if all(not value for value in self.flatten(data).values()):
+                raise RequestFailed("Failed to get any data for this request.")
+
             return data
 
     async def seasonal_search(self, year, season):
