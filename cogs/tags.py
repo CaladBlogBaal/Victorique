@@ -152,7 +152,7 @@ class Tags(commands.Cog):
         try:
             await ctx.pool.fetchval("""INSERT INTO tags (tag_name, guild_id, user_id, content, created_at) 
                                        VALUES ($1, $2, $3, $4, $5)""",
-                                    name, ctx.guild.id, ctx.author.id, content, ctx.message.created_at)
+                                    name, ctx.guild.id, ctx.author.id, content, ctx.message.created_at.replace(tzinfo=None))
 
         except asyncpg.UniqueViolationError:
             return await ctx.send(f":information_source: | tag name already exists")
