@@ -89,7 +89,7 @@ class Tags(commands.Cog):
                           for r in data[:3]) or 0
 
         embed.add_field(name="Top Owned Tags", value=value)
-        embed.set_author(name=member.name, icon_url=str(member.avatar_url))
+        embed.set_author(name=member.name, icon_url=str(member.avatar.url))
         await ctx.send(embed=embed)
 
     async def get_guild_stats(self, ctx):
