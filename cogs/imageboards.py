@@ -122,19 +122,19 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.CooldownMap
     @commands.group(invoke_without_command=True, ignore_extra=False)
     async def kc(self, ctx):
         """
-        Gets a random image from konochan
+        Gets a random image from konachan
         """
 
-        m = Moebooru(ctx, "konochan")
+        m = Moebooru(ctx, "konachan")
         await m.get_posts()
 
-    @kc.command(aliases=["konochan_search", "search"])
+    @kc.command(aliases=["konachan_search", "search"])
     async def kc_search(self, ctx, amount: typing.Optional[int] = 1, *, tags):
-        """Search for a picture on konochan
+        """Search for a picture on konachan
         20 is the maximum"""
 
         amount = self.range_check(amount)
-        m = Moebooru(ctx, "konochan")
+        m = Moebooru(ctx, "konachan")
         await m.get_posts(tags, amount)
 
     @commands.group(invoke_without_command=True, ignore_extra=False, name="lb")
