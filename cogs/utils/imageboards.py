@@ -365,6 +365,9 @@ class Moebooru(_Moebooru, MoebooruApiMixin):
         tags = self.process_tags(tags, safe)
         results = await self.post_list(tags=tags)
 
+        if isinstance(results, dict):
+            results = results["post"]
+
         if not results:
             return await self.ctx.send(f":no_entry: | search failed with tags `{tags}`")
 
