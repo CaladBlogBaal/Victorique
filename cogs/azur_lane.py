@@ -391,7 +391,7 @@ class AzurLane(commands.Cog, name="Azur Lane"):
                                           "\n ( say 0 to exit )",
                               color=discord.Color.dark_magenta())
 
-        embed.set_footer(text=f'Requested by {ctx.message.author.name}', icon_url=ctx.message.author.avatar_url)
+        embed.set_footer(text=f'Requested by {ctx.message.author.name}', icon_url=ctx.message.author.avatar.url)
         embed.timestamp = ctx.message.created_at
 
         try:
