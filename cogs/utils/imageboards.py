@@ -342,15 +342,15 @@ class Moebooru(_Moebooru, MoebooruApiMixin):
         # Do call
         return await self._request(url, request_args, method)
 
-    def process_tags(self, tags, safe):
+    def process_tags(self, tags, safe, safe_string="rating:safe"):
         # re.split(r"(\)(?=\s+))"
         # for later
         tags = tags.replace("||", "\u200B").replace("|", "\u200B").replace("&&", "\u200B")
         tags = list(tag.rstrip().lstrip().replace(" ", "_") for tag in tags.split("\u200B"))
 
         if safe:
-            tags.append("rating:safe")
-            tags = re.sub(r"rating:[^\s\\]*.", "rating:safe", " ".join(tags))
+            tags.append(safe_string)
+            tags = re.sub(r"rating:[^\s\\]*.", safe_string, " ".join(tags))
         else:
 
             tags = " ".join(tags)
@@ -362,11 +362,17 @@ class Moebooru(_Moebooru, MoebooruApiMixin):
         nsfw_channel_id = await self.get_nsfw_channel()
         # flag for safe is the nsfw channel is not set as well
         safe = self.ctx.channel.id != nsfw_channel_id and nsfw_channel_id is not True
-        tags = self.process_tags(tags, safe)
+
+        # gelbooru doesn't use rating:safe for safe images anymore so this is a hacky solution
+        if self.site_name == "gelbooru":
+            tags = self.process_tags(tags, safe, "rating:general")
+        else:
+            tags = self.process_tags(tags, safe)
+
         results = await self.post_list(tags=tags)
 
         if isinstance(results, dict):
-            results = results["post"]
+            results = results.get("post")
 
         if not results:
             return await self.ctx.send(f":no_entry: | search failed with tags `{tags}`")
