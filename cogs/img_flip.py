@@ -8,11 +8,13 @@ from discord.ext import commands
 
 import loadconfig
 from cogs.utils import memes
+from config.utils.context import Context
 
 
 class Imgflip:
 
-    def __init__(self, ctx, username=loadconfig.__img_flip_username__, password=loadconfig.__img_flip_password__):
+    def __init__(self, ctx: Context, username=loadconfig.__img_flip_username__,
+                 password=loadconfig.__img_flip_password__):
         self.ctx = ctx
         self.username = username
         self.password = password
@@ -76,11 +78,11 @@ class ImageFlip(commands.Cog):
         return comment
 
     @commands.group(name="memes", aliases=["meme"])
-    async def img_flip_memes(self, ctx):
+    async def img_flip_memes(self, ctx: Context):
         """The main command for creating imgflip memes does nothing by itself"""
         
     @img_flip_memes.command(name="list", aliases=["l"])
-    async def img_flip_meme_list(self, ctx):
+    async def img_flip_meme_list(self, ctx: Context):
         """Get a list of valid meme templates"""
 
         i = Imgflip(ctx)
@@ -101,7 +103,7 @@ class ImageFlip(commands.Cog):
         await pages.start(ctx)
 
     @img_flip_memes.command(name="generate", aliases=["g"])
-    async def img_flip_generate(self, ctx, *, args):
+    async def img_flip_generate(self, ctx: Context, *, args):
         """Generate a meme as you'd if you were using imgflip make sure it exists in the list of memes
         In the format (meme name or id separator top text separator bottom text)
         do (vic meme list) for a list of possible memes to be generated
@@ -127,7 +129,7 @@ class ImageFlip(commands.Cog):
         await ctx.send(await i.caption_image(meme, top_text, bottom_text))
 
     @img_flip_memes.command(name="format", aliases=["f"])
-    async def img_flip_format(self, ctx, *, name):
+    async def img_flip_format(self, ctx: Context, *, name):
         """Get the format of a meme make sure it exists in the list of memes"""
         msg = copy.copy(ctx.message)
         msg.content = ctx.prefix + f"meme g {name} | | |"
@@ -135,7 +137,7 @@ class ImageFlip(commands.Cog):
         await new_ctx.reinvoke()
 
     @commands.command()
-    async def phc(self, ctx, *, comment: commands.clean_content):
+    async def phc(self, ctx: Context, *, comment: commands.clean_content):
         """Generate a porn hub comment using the nekobot api"""
         comment = ctx.emote_unescape(comment)
         comment = comment.replace("&", "%26")
@@ -150,7 +152,7 @@ class ImageFlip(commands.Cog):
         await ctx.send(embed=await n.get_image(**kwargs))
 
     @commands.command()
-    async def tweet(self, ctx, *, comment: commands.clean_content):
+    async def tweet(self, ctx: Context, *, comment: commands.clean_content):
         """Generate a tweet using the nekobot api"""
         n = NekoBot(ctx)
         comment = ctx.emote_unescape(comment)
@@ -176,7 +178,7 @@ class ImageFlip(commands.Cog):
         await ctx.send(embed=await n.get_image(**kwargs))
 
     @commands.command()
-    async def t_tweet(self, ctx, *, comment: commands.clean_content):
+    async def t_tweet(self, ctx: Context, *, comment: commands.clean_content):
         """Generate a trump tweet using the neko bot api"""
         n = NekoBot(ctx)
 
@@ -190,9 +192,9 @@ class ImageFlip(commands.Cog):
         await ctx.send(embed=await n.get_image(**kwargs))
 
     @commands.command()
-    async def cmm(self, ctx, *, comment: commands.clean_content):
+    async def cmm(self, ctx: Context, *, comment: commands.clean_content):
         """Generate a change my mind image using the nekobot api."""
-        await ctx.trigger_typing()
+        await ctx.typing()
         n = NekoBot(ctx)
         comment = ctx.emote_unescape(comment)
         comment = self.string_splice(comment, 79)
@@ -205,7 +207,7 @@ class ImageFlip(commands.Cog):
         await ctx.send(embed=await n.get_image(**kwargs))
 
     @commands.command()
-    async def www(self, ctx, *, member: typing.Union[discord.Member, discord.User]):
+    async def www(self, ctx: Context, *, member: typing.Union[discord.Member, discord.User]):
         """Generate a who would win image using the nekobot api."""
 
         n = NekoBot(ctx)
@@ -217,6 +219,6 @@ class ImageFlip(commands.Cog):
         await ctx.send(embed=await n.get_image(**kwargs))
 
 
-def setup(bot):
+async def setup(bot):
     n = ImageFlip(bot)
-    bot.add_cog(n)
+    await bot.add_cog(n)

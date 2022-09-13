@@ -16,7 +16,8 @@ from discord.ext import commands, tasks
 from cogs.utils.imageboards import default_source
 
 from config.utils.menu import page_source
-from config.utils.converters import TriviaCategoryConverter, TriviaDiffcultyConventer
+from config.utils.converters import TriviaCategoryConverter, TriviaDiffcultyConventer, FishRarityConventer
+from config.utils.context import Context
 
 
 @tasks.loop(hours=24)
@@ -45,13 +46,13 @@ class Info(commands.Cog):
         return f"```py\n{''.join(entries)}```"
 
     @commands.command()
-    async def invite(self, ctx):
+    async def invite(self, ctx: Context):
         """Get the bot's invite url"""
 
         await ctx.send(discord.utils.oauth_url(ctx.me.id, permissions=discord.Permissions(1342515266)))
 
     @commands.command()
-    async def source(self, ctx, *, command_name=None):
+    async def source(self, ctx: Context, *, command_name=None):
         """Get the source for a command or the bot's source"""
         # idea pretty much taken from
         # https://github.com/Rapptz/RoboDanny/blob/99a8545b8aa86c75701f131a29d61bbc2f703eb6/cogs/meta.py#L329
@@ -82,7 +83,7 @@ class Info(commands.Cog):
             await ctx.send(f"> could not get source code for {command_name}")
 
     @commands.command()
-    async def about(self, ctx):
+    async def about(self, ctx: Context):
         """Get info about the bot."""
 
         member_online = len(list(m for m in self.bot.get_all_members() if m.status.value in ("online", "dnd")))
@@ -130,7 +131,7 @@ class OwnerCog(commands.Cog, name="Owner Commands"):
     async def cog_unload(self):
         random_images.cancel()
 
-    async def cog_check(self, ctx):
+    async def cog_check(self, ctx: Context):
 
         if not await self.bot.is_owner(ctx.author):
             raise commands.NotOwner("begone thot.")
@@ -138,14 +139,14 @@ class OwnerCog(commands.Cog, name="Owner Commands"):
         return True
 
     @commands.command(name="close", hidden=True)
-    async def __close(self, ctx):
+    async def __close(self, ctx: Context):
         """Closes the bot"""
         await ctx.send("*shutting down...*")
         await asyncio.sleep(1)
         await self.bot.logout()
 
     @commands.command(hidden=True, name="bot_avatar")
-    async def __edit_bot_avatar(self, ctx, url: str):
+    async def __edit_bot_avatar(self, ctx: Context, url: str):
         """Edits the bots avatar"""
 
         async with self.bot.session.get(url) as response:
@@ -159,7 +160,7 @@ class OwnerCog(commands.Cog, name="Owner Commands"):
                            f" | new bot avatar is \n{self.bot.user.avatar_url}")
 
     @commands.command()
-    async def count(self, ctx):
+    async def count(self, ctx: Context):
         """Count lines of code"""
 
         def get_total(file_dir, check_sql=False):
@@ -208,7 +209,7 @@ class OwnerCog(commands.Cog, name="Owner Commands"):
                        f"spread across **{json_file_amount} files** for this bot.")
 
     @commands.command()
-    async def query(self, ctx, *, query):
+    async def query(self, ctx: Context, *, query):
         """Return rows from the postgres database"""
 
         rows = await ctx.db.fetch(query)
@@ -216,7 +217,7 @@ class OwnerCog(commands.Cog, name="Owner Commands"):
         await pages.start(ctx)
 
     @commands.command()
-    async def update(self, ctx, *, _query):
+    async def update(self, ctx: Context, *, _query):
         """Update rows in the postgres database"""
         async with ctx.acquire():
             await ctx.db.execute(_query)
@@ -224,11 +225,11 @@ class OwnerCog(commands.Cog, name="Owner Commands"):
         await ctx.send("successfully updated.")
 
     @commands.command()
-    async def add_fish(self, ctx, fish_emote, rarity_id):
+    async def add_fish(self, ctx:  Context, fish_emote: discord.Emoji, rarity_id: FishRarityConventer):
         """Add a fish to the fish table"""
         async with ctx.db.acquire():
             await ctx.db.execute("""INSERT INTO fish (fish_name, bait_id) VALUES
-                                ($1, $2) ON CONFLICT DO NOTHING""", fish_emote, rarity_id)
+                                ($1, $2) ON CONFLICT DO NOTHING""", str(fish_emote), rarity_id)
 
         await ctx.send("successfully updated.")
 
@@ -237,30 +238,32 @@ class OwnerCog(commands.Cog, name="Owner Commands"):
         """Add the default fish"""
         async with ctx.db.acquire():
             await ctx.db.execute("""
-    INSERT INTO fish (fish_name, bait_id) VALUES ('<:MutsukiIcon:603142310686883860>', 1) ON CONFLICT DO NOTHING;
-    INSERT INTO fish (fish_name, bait_id) VALUES ('<:BeagleIcon:603139176417722368>', 1) ON CONFLICT DO NOTHING;
-    INSERT INTO fish (fish_name, bait_id) VALUES ('<:SaratogaIcon:603137225663709204>', 2) ON CONFLICT DO NOTHING;
-    INSERT INTO fish (fish_name, bait_id) VALUES ('<:LaffeyIcon:603137082373963797>', 2) ON CONFLICT DO NOTHING;
-    INSERT INTO fish (fish_name, bait_id) VALUES ('<:JavelinIcon:603136994410889216>', 2) ON CONFLICT DO NOTHING;
-    INSERT INTO fish (fish_name, bait_id) VALUES ('<:HiryuuIcon:603771548310175808>', 2) ON CONFLICT DO NOTHING;
-    INSERT INTO fish (fish_name, bait_id) VALUES ('<:AkashiIcon:603140892823650307>', 3) ON CONFLICT DO NOTHING;
-    INSERT INTO fish (fish_name, bait_id) VALUES ('<:IllustriousIcon:603141500737421313>', 3) ON CONFLICT DO NOTHING;
-    INSERT INTO fish (fish_name, bait_id) VALUES ('<:AkagiIcon:603137320266498059>', 3) ON CONFLICT DO NOTHING;
-    INSERT INTO fish (fish_name, bait_id) VALUES ('<:KagaIcon:603137459320127543>', 3) ON CONFLICT DO NOTHING;
-    INSERT INTO fish (fish_name, bait_id) VALUES ('<:Saint_LouisIcon:605216882106040342>', -1) ON CONFLICT DO NOTHING;
-    INSERT INTO fish (fish_name, bait_id) VALUES ('<:IbukiIcon:605216888326324225>', -1) ON CONFLICT DO NOTHING;
-    INSERT INTO fish (fish_name, bait_id) VALUES ('<:KitakazeIcon:605216894030446593>', -1) ON CONFLICT DO NOTHING;
-    INSERT INTO fish (fish_name, bait_id) VALUES ('<:GeorgiaIcon:605216899923443732>', -1) ON CONFLICT DO NOTHING;
-    INSERT INTO fish (fish_name, bait_id) VALUES ('<:RoonIcon:605216905736880129>', -1) ON CONFLICT DO NOTHING;
-    INSERT INTO fish (fish_name, bait_id) VALUES ('<:GascogneIcon:605216915597557771>', -1) ON CONFLICT DO NOTHING;
-    INSERT INTO fish (fish_name, bait_id) VALUES ('<:IzumoIcon:605216921725566992>', -1) ON CONFLICT DO NOTHING;
-    INSERT INTO fish (fish_name, bait_id) VALUES ('<:HMS_NeptuneIcon:605216928125943818>', -1) ON CONFLICT DO NOTHING;
-    INSERT INTO fish (fish_name, bait_id) VALUES ('<:SeattleIcon:605216934203752448>', -1) ON CONFLICT DO NOTHING;
-    INSERT INTO fish (fish_name, bait_id) VALUES ('<:MonarchIcon:606868127648710689>', -1) ON CONFLICT DO NOTHING;
+    INSERT INTO fish (fish_name, bait_id, rarity_id) VALUES ('<:MutsukiIcon:603142310686883860>', 1, 1) ON CONFLICT DO NOTHING;
+    INSERT INTO fish (fish_name, bait_id, rarity_id) VALUES ('<:BeagleIcon:603139176417722368>', 1, 2) ON CONFLICT DO NOTHING;
+    INSERT INTO fish (fish_name, bait_id, rarity_id) VALUES ('<:SaratogaIcon:603137225663709204>', 1, 3) ON CONFLICT DO NOTHING;
+    INSERT INTO fish (fish_name, bait_id, rarity_id) VALUES ('<:LaffeyIcon:603137082373963797>', 1, 3) ON CONFLICT DO NOTHING;
+    INSERT INTO fish (fish_name, bait_id, rarity_id) VALUES ('<:JavelinIcon:603136994410889216>', 1, 3) ON CONFLICT DO NOTHING;
+    INSERT INTO fish (fish_name, bait_id, rarity_id) VALUES ('<:HiryuuIcon:603771548310175808>', 1, 3) ON CONFLICT DO NOTHING;
+    INSERT INTO fish (fish_name, bait_id, rarity_id) VALUES ('<:AkashiIcon:603140892823650307>', 1, 4) ON CONFLICT DO NOTHING;
+    INSERT INTO fish (fish_name, bait_id, rarity_id) VALUES ('<:IllustriousIcon:603141500737421313>', 1, 4) ON CONFLICT DO NOTHING;
+    INSERT INTO fish (fish_name, bait_id, rarity_id) VALUES ('<:AkagiIcon:603137320266498059>', 1, 4) ON CONFLICT DO NOTHING;
+    INSERT INTO fish (fish_name, bait_id, rarity_id) VALUES ('<:KagaIcon:603137459320127543>', 1, 4) ON CONFLICT DO NOTHING;
+    INSERT INTO fish (fish_name, bait_id, rarity_id) VALUES ('<:Saint_LouisIcon:605216882106040342>', 1, 5) ON CONFLICT DO NOTHING;
+    INSERT INTO fish (fish_name, bait_id, rarity_id) VALUES ('<:IbukiIcon:605216888326324225>', 1, 5) ON CONFLICT DO NOTHING;
+    INSERT INTO fish (fish_name, bait_id, rarity_id) VALUES ('<:KitakazeIcon:605216894030446593>', 1, 5) ON CONFLICT DO NOTHING;
+    INSERT INTO fish (fish_name, bait_id, rarity_id) VALUES ('<:GeorgiaIcon:605216899923443732>', 1, 5) ON CONFLICT DO NOTHING;
+    INSERT INTO fish (fish_name, bait_id, rarity_id) VALUES ('<:RoonIcon:605216905736880129>', 1, 5) ON CONFLICT DO NOTHING;
+    INSERT INTO fish (fish_name, bait_id, rarity_id) VALUES ('<:GascogneIcon:605216915597557771>', 1, 5) ON CONFLICT DO NOTHING;
+    INSERT INTO fish (fish_name, bait_id, rarity_id) VALUES ('<:IzumoIcon:605216921725566992>', 1, 5) ON CONFLICT DO NOTHING;
+    INSERT INTO fish (fish_name, bait_id, rarity_id) VALUES ('<:HMS_NeptuneIcon:605216928125943818>', 1, 5) ON CONFLICT DO NOTHING;
+    INSERT INTO fish (fish_name, bait_id, rarity_id) VALUES ('<:SeattleIcon:605216934203752448>', 1, 5) ON CONFLICT DO NOTHING;
+    INSERT INTO fish (fish_name, bait_id, rarity_id) VALUES ('<:MonarchIcon:606868127648710689>', 1, 5) ON CONFLICT DO NOTHING;
             """)
 
+        await ctx.send("Successfully added")
+
     @commands.group(invoke_without_command=True, aliases=["da"])
-    async def daily_anime(self, ctx, *, tags=None):
+    async def daily_anime(self, ctx: Context, *, tags=None):
         """Get x amount of random images from danbooru and send them to the current channel periodically."""
         try:
 
@@ -277,24 +280,24 @@ class OwnerCog(commands.Cog, name="Owner Commands"):
             await ctx.send(":no_entry: task is already launched.")
 
     @daily_anime.command()
-    async def cancel(self, ctx):
+    async def cancel(self, ctx: Context):
         """Cancel the random images task"""
         random_images.cancel()
         await ctx.send("> successfully cancelled.")
 
     @daily_anime.command(aliases=["ci"])
-    async def change_interval(self, ctx, hours: float):
+    async def change_interval(self, ctx: Context, hours: float):
         """Change the interval"""
         random_images.cancel()
         random_images.change_interval(hours=hours)
         await ctx.send(f"> successfully changed to `{hours}` hours restart the task with `{ctx.prefix}daily_anime`")
 
     @commands.group(invoke_without_command=True)
-    async def question(self, ctx):
+    async def question(self, ctx: Context):
         """The main command for updaing the trivia tables does nothing by itself"""
 
     @question.command()
-    async def add(self, ctx, category: TriviaCategoryConverter, difficulty: TriviaDiffcultyConventer,
+    async def add(self, ctx: Context, category: TriviaCategoryConverter, difficulty: TriviaDiffcultyConventer,
                   type_, *, question):
         """Adds a question to the question table."""
         categories = (cat_id["category_id"] for cat_id in await ctx.db.fetch("SELECT category_id from category"))
@@ -308,7 +311,7 @@ class OwnerCog(commands.Cog, name="Owner Commands"):
         await ctx.send(f"> successfully updated with question `{question}`.")
 
     @question.command()
-    async def delete(self, ctx, *, question):
+    async def delete(self, ctx: Context, *, question):
         """Delete a question and it's answers."""
 
         async with ctx.db.acquire():
@@ -321,7 +324,7 @@ class OwnerCog(commands.Cog, name="Owner Commands"):
         await ctx.send("> successfully updated.")
 
     @question.command()
-    async def add_answer(self, ctx, content, is_correct: bool, *, question):
+    async def add_answer(self, ctx: Context, content: str, is_correct: bool, *, question: str):
         """Add an answer to a existing question."""
         question_id = await ctx.db.fetchval("SELECT question_id from question where LOWER(content) = $1",
                                             question.lower())
@@ -335,7 +338,7 @@ class OwnerCog(commands.Cog, name="Owner Commands"):
         await ctx.send("> successfully updated.")
 
     @question.command()
-    async def delete_answer(self, ctx, question, *, answer):
+    async def delete_answer(self, ctx: Context, question: str, *, answer: str):
         """Delete an answer for a question."""
         question = await ctx.db.fetchval("SELECT question_id from question where content = $1", question)
 
@@ -352,6 +355,6 @@ class OwnerCog(commands.Cog, name="Owner Commands"):
         await ctx.send("> successfully updated.")
 
 
-def setup(bot):
-    bot.add_cog(OwnerCog(bot))
-    bot.add_cog(Info(bot))
+async def setup(bot):
+    await bot.add_cog(OwnerCog(bot))
+    await bot.add_cog(Info(bot))

@@ -58,7 +58,7 @@ class TicTacToePlayersView(discord.ui.View):
         self.set_players("X", "O")
 
     async def start(self):
-        message = f"{self.ctx.author.name} do you want to be X or O?"
+        message = f"{self.ctx.author.input} do you want to be X or O?"
 
         if not self.message:
             self.message = await self.ctx.send(message, view=self)
@@ -106,7 +106,7 @@ class TicTacToeButton(discord.ui.Button["TicTacToe"]):
         self.view.check_winning_move(player)
 
         if player.winner:
-            await self.view.message.edit(f":information_source: | {player.name} won", view=self.view)
+            await self.view.message.edit(f":information_source: | {player.input} won", view=self.view)
             return self.view.stop()
 
         if self.view.boards_full():
@@ -117,7 +117,7 @@ class TicTacToeButton(discord.ui.Button["TicTacToe"]):
         for player_id in self.view.players:
             if interaction.user.id != player_id:
                 self.view.current_player_id = player_id
-                await self.view.message.edit(f"It's {self.view.players[player_id].name} turn!", view=self.view)
+                await self.view.message.edit(f"It's {self.view.players[player_id].input} turn!", view=self.view)
 
 
 class TicTacToe(discord.ui.View):
@@ -149,7 +149,7 @@ class TicTacToe(discord.ui.View):
                 # who goes first
                 _, player = random.choice(list(self.players.items()))
                 self.current_player_id = player.member.id
-                await self.message.edit(f"It's {player.name} turn!", view=self)
+                await self.message.edit(f"It's {player.input} turn!", view=self)
 
     @property
     def current_player_id(self):

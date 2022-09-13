@@ -14,6 +14,7 @@ import discord
 from discord.ext import commands
 
 from config.utils.menu import page_source
+from config.utils.context import Context
 
 
 class AzurLane(commands.Cog, name="Azur Lane"):
@@ -96,7 +97,7 @@ class AzurLane(commands.Cog, name="Azur Lane"):
 
         return ship_name
 
-    async def find_image_names(self, ctx, word, ship=True):
+    async def find_image_names(self, ctx: Context, word, ship=True):
 
         params = {
             "aisort": "name",
@@ -271,7 +272,7 @@ class AzurLane(commands.Cog, name="Azur Lane"):
 
         shutil.move(temp.name, filename)
 
-    async def make_gear_guide_embed(self, ctx, ship_name, url):
+    async def make_gear_guide_embed(self, ctx: Context, ship_name, url):
         # since im lazy this only temp
         if "kai" in ship_name:
             ship_name = ship_name.replace("kai", "Kai")
@@ -281,7 +282,7 @@ class AzurLane(commands.Cog, name="Azur Lane"):
         embed.set_image(url=img_url)
         return embed
 
-    async def get_hull_or_rarity(self, ctx, index, item):
+    async def get_hull_or_rarity(self, ctx: Context, index, item):
         entries = []
         col_name = self.ship_gear_hub[0][index]
 
@@ -299,7 +300,8 @@ class AzurLane(commands.Cog, name="Azur Lane"):
         await pages.start(ctx)
 
     @commands.group(invoke_without_command=True)
-    async def ehp(self, ctx, enemy_hit: typing.Optional[int] = 45, enemy_level: typing.Optional[int] = 0, *, ship_name):
+    async def ehp(self, ctx: Context, enemy_hit: typing.Optional[int] = 45, enemy_level: typing.Optional[int] = 0, *,
+                  ship_name):
         """
         The main command for ehp by itself it gets a ships basic ehp value
         """
@@ -391,7 +393,7 @@ class AzurLane(commands.Cog, name="Azur Lane"):
                                           "\n ( say 0 to exit )",
                               color=discord.Color.dark_magenta())
 
-        embed.set_footer(text=f'Requested by {ctx.message.author.name}', icon_url=ctx.message.author.avatar.url)
+        embed.set_footer(text=f'Requested by {ctx.message.author.input}', icon_url=ctx.message.author.avatar.url)
         embed.timestamp = ctx.message.created_at
 
         try:
@@ -448,7 +450,7 @@ class AzurLane(commands.Cog, name="Azur Lane"):
             pass
 
     @ehp.command()
-    async def default(self, ctx, enemy_hit: typing.Optional[int] = 45, *, ship_name):
+    async def default(self, ctx: Context, enemy_hit: typing.Optional[int] = 45, *, ship_name):
         """Attempts to find the best ehp with default aux slots set and formation set to diamond"""
         # it just works.tm function and goes beyond
 
@@ -545,7 +547,7 @@ class AzurLane(commands.Cog, name="Azur Lane"):
             return await ctx.send(f"> The ship `{ctx.kwargs['ship_name']}` could not be found.")
 
     @commands.command(name="al")
-    async def azur_lane_wiki_opensearch(self, ctx, *, search):
+    async def azur_lane_wiki_opensearch(self, ctx: Context, *, search):
         """
         Search for something on the AL wiki
         """
@@ -571,17 +573,17 @@ class AzurLane(commands.Cog, name="Azur Lane"):
         await pages.start(ctx)
 
     @commands.command(aliases=["afs"])
-    async def al_file_search(self, ctx, *, item):
+    async def al_file_search(self, ctx: Context, *, item):
         """Search for any file type on the al wiki by filename, **file names are case sensitive**"""
         await self.azur_lane_wiki_search(ctx, item, True)
 
     @commands.command(aliases=["ais"])
-    async def al_img_search(self, ctx, *, item):
+    async def al_img_search(self, ctx: Context, *, item):
         """Search for a image on the al wiki by filename, **file names are case sensitive**"""
         await self.azur_lane_wiki_search(ctx, item)
 
     @commands.group(aliases=["gg"], invoke_without_command=True)
-    async def gear_guide(self, ctx, *, ship_name):
+    async def gear_guide(self, ctx: Context, *, ship_name):
         """The main command for gear guides by itself gets the gear guide of a ship"""
 
         if "kai" in ship_name.lower():
@@ -597,16 +599,16 @@ class AzurLane(commands.Cog, name="Azur Lane"):
         return await ctx.send(f"> couldn't find a guide for {ship_name}")
 
     @gear_guide.command()
-    async def hull(self, ctx, *, hull):
+    async def hull(self, ctx: Context, *, hull):
         """Get a list of gear guides based on hull type."""
-        await ctx.trigger_typing()
+        await ctx.typing()
         await self.get_hull_or_rarity(ctx, 2, hull)
 
     @gear_guide.command()
-    async def rarity(self, ctx, *, rarity):
+    async def rarity(self, ctx: Context, *, rarity):
         """Get a list of gear guides based on rarity
            rarities are as follow common, rare, elite, super rare or ssr."""
-        await ctx.trigger_typing()
+        await ctx.typing()
 
         if rarity.lower() == "super rare":
             rarity = "ssr"
@@ -615,7 +617,7 @@ class AzurLane(commands.Cog, name="Azur Lane"):
 
     @commands.is_owner()
     @gear_guide.command(name="add")
-    async def add_ship_to_ggh(self, ctx, url, hull, rarity, *, ship_name):
+    async def add_ship_to_ggh(self, ctx: Context, url, hull, rarity, *, ship_name):
         """Add a new ship to the gear guide hub"""
         new_row = [ship_name, rarity, hull, url]
 
@@ -630,7 +632,7 @@ class AzurLane(commands.Cog, name="Azur Lane"):
 
     @commands.is_owner()
     @gear_guide.command(name="delete")
-    async def delete_ship_from_ggh(self, ctx, *, ship_name):
+    async def delete_ship_from_ggh(self, ctx: Context, *, ship_name):
         """Remove a ship from the gear guide hub."""
         if not self.delete_from_reader(ship_name, self.ship_gear_hub, self.update_ship_gear_hub):
             return await ctx.send(f":no_entry: | {ship_name} doesn't exist")
@@ -640,12 +642,12 @@ class AzurLane(commands.Cog, name="Azur Lane"):
 
     @commands.is_owner()
     @commands.group(name="uss", invoke_without_command=True)
-    async def update_ship_stats(self, ctx):
+    async def update_ship_stats(self, ctx: Context):
         """Main command for updating the ship stats csv does nothing by itself"""
 
     @commands.is_owner()
     @update_ship_stats.command(name="add")
-    async def add_ship_to_ss_csv(self, ctx, *fields):
+    async def add_ship_to_ss_csv(self, ctx: Context, *fields):
         """Add a ship to the ship stats csv"""
 
         keys = ["# Lvl 120", "Name", "Hull", "HP", "EVA", "LUK", "Armor", "EVA Rate", "EVAS", "DMGR"]
@@ -666,7 +668,7 @@ class AzurLane(commands.Cog, name="Azur Lane"):
 
     @commands.is_owner()
     @update_ship_stats.command(name="delete")
-    async def delete_ship_from_ss_csv(self, ctx, *, ship_name):
+    async def delete_ship_from_ss_csv(self, ctx: Context, *, ship_name):
         """Remove a ship from the ship stats csv"""
         if not self.delete_from_reader(ship_name, self.ship_stats_reader, self.update_ship_stats_csv):
             return await ctx.send(f":no_entry: | {ship_name} doesn't exist")
@@ -675,9 +677,9 @@ class AzurLane(commands.Cog, name="Azur Lane"):
         self.bot.reload_extension("cogs.azur_lane")
 
     @commands.command(aliases=["fsi"])
-    async def find_ship_image(self, ctx, *, word):
+    async def find_ship_image(self, ctx: Context, *, word):
         """Attempts to find image file names for a ship or any image that starts with the word."""
-        await ctx.trigger_typing()
+        await ctx.typing()
         word = self.check_ship_name(word)
         await self.find_image_names(ctx, word)
 
@@ -688,5 +690,5 @@ class AzurLane(commands.Cog, name="Azur Lane"):
         await self.find_image_names(ctx, word, False)
 
 
-def setup(bot):
-    bot.add_cog(AzurLane(bot))
+async def setup(bot):
+    await bot.add_cog(AzurLane(bot))

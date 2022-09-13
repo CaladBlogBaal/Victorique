@@ -12,6 +12,7 @@ from cogs.utils.games import *
 from config.utils.checks import checking_for_multiple_channel_instances
 from config.utils.converters import TriviaCategoryConverter, TriviaDiffcultyConventer, DieConventer
 from config.utils.menu import page_source
+from config.utils.context import Context
 
 
 class Games(commands.Cog):
@@ -23,7 +24,7 @@ class Games(commands.Cog):
     @staticmethod
     def multiple_user_instance_set(ctx):
         if ctx.guild:
-            key = str(ctx.channel.id) + ctx.command.name
+            key = str(ctx.channel.id) + ctx.command.input
 
             if key not in ctx.bot.channels_running_commands:
                 ctx.bot.channels_running_commands[key] = []
@@ -60,7 +61,7 @@ class Games(commands.Cog):
         return f"Category Name: ```{self.category}```\nAmount of questions ({self.amount})\n{res}"
 
     @commands.command(aliases=["8ball", "8-ball", "magic_eight_ball"])
-    async def eight_ball(self, ctx, *, message):
+    async def eight_ball(self, ctx: Context, *, message):
         """
         Answers from cthulu
         """
@@ -86,7 +87,7 @@ class Games(commands.Cog):
         await msg.edit(content=f"{random.choice(possible_responses)} {ctx.author.name}")
 
     @commands.command()
-    async def roll(self, ctx, *, dice: DieConventer):
+    async def roll(self, ctx: Context, *, dice: DieConventer):
         """
         Roll a die in a NdN+m format
         """
@@ -107,7 +108,7 @@ class Games(commands.Cog):
         await ctx.send(results)
 
     @commands.group(aliases=["tri"], invoke_without_command=True)
-    async def trivia(self, ctx, difficulty: typing.Optional[TriviaDiffcultyConventer] = None,
+    async def trivia(self, ctx: Context, difficulty: typing.Optional[TriviaDiffcultyConventer] = None,
                      amount: typing.Optional[int] = 5, *, category: TriviaCategoryConverter = None):
         """
         Answer some trivia questions category accepts either an id or name
@@ -121,7 +122,7 @@ class Games(commands.Cog):
         await triva.run(difficulty, amount, category)
 
     @trivia.group(aliases=["cat"], invoke_without_command=True)
-    async def categorises(self, ctx):
+    async def categorises(self, ctx: Context):
         """The main command for finding questions based on category by itself returns all the categories available"""
 
         async with ctx.acquire():
@@ -141,7 +142,7 @@ class Games(commands.Cog):
         await ctx.send(description)
 
     @categorises.command()
-    async def search(self, ctx, *, category: TriviaCategoryConverter):
+    async def search(self, ctx: Context, *, category: TriviaCategoryConverter):
         """Search returns all questions based on their category, category accepts either an id or name"""
 
         async with ctx.acquire():
@@ -157,7 +158,7 @@ class Games(commands.Cog):
         await pages.start(ctx)
 
     @commands.command(aliases=["ttt"])
-    async def tictactoe(self, ctx, member: discord.Member):
+    async def tictactoe(self, ctx: Context, member: discord.Member):
         """
         Play a game of TicTacToe
         this command is reaction based just react with
@@ -177,7 +178,7 @@ class Games(commands.Cog):
     # gotta actually rewrite this
     @commands.is_owner()
     @checking_for_multiple_channel_instances()
-    async def black_jack(self, ctx):
+    async def black_jack(self, ctx: Context):
         """
         Start a game of black jack
         rules for black jack are as follows taken from www.blackjackchamp.com
@@ -341,6 +342,6 @@ class Games(commands.Cog):
                 await ctx.send(f"> {player.mention} has lost.")
 
 
-def setup(bot):
+async def setup(bot):
     n = Games(bot)
-    bot.add_cog(n)
+    await bot.add_cog(n)

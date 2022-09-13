@@ -10,7 +10,7 @@ from discord.ext import commands
 from PIL import Image, ImageDraw, ImageFont
 
 from config.utils.checks import private_guilds_check
-
+from config.utils.context import Context
 
 class ImageDrawText:
     def __init__(self, bot, file_or_path):
@@ -183,9 +183,11 @@ class Images(commands.Cog):
         return buf
 
     @commands.command()
-    async def rate(self, ctx, *, message):
+    async def rate(self, ctx: Context, *, message: str):
         """Have momiji rate something"""
         image = ImageDrawText(self.bot, "images/rate.png")
+
+        random.seed(message + str(ctx.author.id))
         number = random.randint(0, 10)
         rating = f"{number}/10"
 
@@ -202,7 +204,7 @@ class Images(commands.Cog):
         await ctx.send(file=file)
 
     @commands.command()
-    async def clyde(self, ctx, *, message: commands.clean_content):
+    async def clyde(self, ctx: Context, *, message: commands.clean_content):
         """Have clyde say a echo a message"""
         image = ImageDrawText(self.bot, "images/clyde.png")
         message = ctx.emote_unescape(message)
@@ -216,13 +218,13 @@ class Images(commands.Cog):
 
     @commands.command(aliases=["fc"])
     @commands.guild_only()
-    async def fake_kick(self, ctx, *, member: discord.Member):
+    async def fake_kick(self, ctx: Context, *, member: discord.Member):
         """Get a false kick image of a guild/user member"""
-        await ctx.trigger_typing()
+        await ctx.typing()
         image = ImageDrawText(self.bot, "images/kick.png")
         avatar_icon_bytes_list = [member]
 
-        guild_members = [member for member in ctx.guild.members if member.status.value in ("online", "dnd", "idle")]
+        guild_members = [member for member in ctx.guild.members if str(member.status) in ("online", "dnd", "idle")]
 
         if member in guild_members:
             guild_members.remove(member)
@@ -289,7 +291,7 @@ class Images(commands.Cog):
         await ctx.send(file=file)
 
     @commands.command()
-    async def sign(self, ctx, *, text: commands.clean_content):
+    async def sign(self, ctx: Context, *, text: commands.clean_content):
         """write some text on a dead meme"""
         # this is gonna be improved later tbh
         image = ImageDrawText(self.bot, "images/sign.png")
@@ -304,7 +306,7 @@ class Images(commands.Cog):
         await ctx.send(file=file)
 
     @commands.command()
-    async def two_cats(self, ctx, *, text: commands.clean_content):
+    async def two_cats(self, ctx: Context, *, text: commands.clean_content):
         """Write some text on two signs
         to write on both signs split the text with || or | if no separator is passed the text will be halved
         and written on both signs."""
@@ -339,7 +341,7 @@ class Images(commands.Cog):
 
     @private_guilds_check()
     @commands.command()
-    async def nimi(self, ctx, *, message: commands.clean_content):
+    async def nimi(self, ctx: Context, *, message: commands.clean_content):
         """Have nimi say something"""
         image = ImageDrawText(self.bot, "images/warnimage.PNG")
         date = ctx.message.created_at
@@ -361,5 +363,5 @@ class Images(commands.Cog):
         await ctx.send(file=file)
 
 
-def setup(bot):
-    bot.add_cog(Images(bot))
+async def setup(bot):
+    await bot.add_cog(Images(bot))

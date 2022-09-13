@@ -19,15 +19,16 @@ class Victorique(commands.Bot):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.channels_running_commands = {}
-        self.loop.run_until_complete(self.__ainit__(self, *args, **kwargs))
 
     async def __ainit__(self, *args, **kwargs):
-        self.session = aiohttp.ClientSession()
         self.request = requests.Request(self, self.session)
         db = await asyncpg.create_pool(loadconfig.credentials)
         self.pool = db
         with open("schema.sql") as f:
             await self.pool.execute(f.read())
+
+    async def setup_hook(self):
+        await self.loop.create_task(self.__ainit__())
 
     @staticmethod
     def default_colors():
@@ -148,6 +149,8 @@ intents = discord.Intents.default()
 intents.members = True
 # need this for discord.Member.status
 intents.presences = True
+# needed for commands now
+intents.message_content = True
 
 bot = Victorique(command_prefix=get_prefix, case_insensitive=True, intents=intents)
 
@@ -194,13 +197,9 @@ async def presence_change():
 async def before_presence_change():
     await bot.wait_until_ready()
 
-
-presence_change.start()
-
-
 @bot.event
 async def on_user_update(before, after):
-    new_name = after.name
+    new_name = after.input
     user_id = after.id
     async with bot.pool.acquire() as con:
         await con.execute("UPDATE users SET name = $1 where user_id = $2", new_name, user_id)
@@ -227,14 +226,23 @@ async def on_ready():
 
 if __name__ == "__main__":
 
-    for cog in loadconfig.__cogs__:
+    async def main():
+        async with aiohttp.ClientSession() as session:
 
-        try:
+            bot.session = session
+            async with bot:
 
-            bot.load_extension(cog)
+                for cog in loadconfig.__cogs__:
 
-        except Exception as e:
-            print(f"{cog} could not be loaded.")
-            raise e
+                    try:
 
-    bot.run(loadconfig.__token__, reconnect=True)
+                        await bot.load_extension(cog)
+
+                    except Exception as e:
+                        print(f"{cog} could not be loaded.")
+                        raise e
+
+                await bot.start(loadconfig.__bot_token__, reconnect=True)
+                await presence_change.start()
+
+    asyncio.run(main())

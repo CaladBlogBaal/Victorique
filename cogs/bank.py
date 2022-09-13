@@ -6,6 +6,8 @@ import humanize as h
 import discord
 from discord.ext import commands
 
+from config.utils.context import Context
+
 
 class Bank(commands.Cog):
     """User bank related commands"""
@@ -14,12 +16,12 @@ class Bank(commands.Cog):
 
         self.bot = bot
 
-    async def cog_before_invoke(self, ctx):
+    async def cog_before_invoke(self, ctx: Context):
         # acquire a connection to the pool before every command
         await ctx.acquire()
 
     @commands.command()
-    async def transfer_credits(self, ctx, member: discord.Member, amount: float):
+    async def transfer_credits(self, ctx: Context, member: discord.Member, amount: float):
         """
         Transfer credits to a guild member
         """
@@ -77,7 +79,7 @@ class Bank(commands.Cog):
                                   f" cancelling the transaction")
 
     @commands.command()
-    async def credits(self, ctx, member: discord.Member = None):
+    async def credits(self, ctx: Context, member: discord.Member = None):
         """
         View a guild member's credits
         """
@@ -89,7 +91,7 @@ class Bank(commands.Cog):
             f":credit_card: | {member.display_name}, has {round(current_balance, 2)} credits in their account")
 
     @commands.command()
-    async def daily(self, ctx):
+    async def daily(self, ctx: Context):
         """
         Get your daily credits
         """
@@ -105,9 +107,9 @@ class Bank(commands.Cog):
 
         else:
             time = check
-            now = discord.utils.utcnow()
+            now = discord.utils.utcnow().replace(tzinfo=None)
 
-            if time > discord.utils.utcnow():
+            if time > discord.utils.utcnow().replace(tzinfo=None):
                 return await ctx.send(":information_source: | you can collect your daily credits again in "
                                       + h.naturaldelta(now - time))
 
@@ -120,5 +122,5 @@ class Bank(commands.Cog):
         await ctx.send(f":atm: | 2000 credits was added to your account {ctx.author.name}")
 
 
-def setup(bot):
-    bot.add_cog(Bank(bot))
+async def setup(bot):
+    await bot.add_cog(Bank(bot))

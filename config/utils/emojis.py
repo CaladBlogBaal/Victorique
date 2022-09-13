@@ -18,4 +18,14 @@ DRIGHT_POINT = PartialEmoji(animated=False, name="doubleleftpoint", id=624200763
 DLEFT_POINT = PartialEmoji(animated=False, name="doublerightpoint", id=624200775479984128)
 STOP = PartialEmoji(animated=False, name="stop", id=623238530771976234)
 
-FISHFOOD = PartialEmoji(animated=False, name="Food1", id=603902930541608960)
+C_BAIT = PartialEmoji(animated=False, name="Food1", id=603902930541608960)
+R_BAIT = PartialEmoji(animated=False, name="Food2", id=603902989068926976)
+E_BAIT = PartialEmoji(animated=False, name="Food5", id=603903148683427840)
+# Food5:603903148683427840
+SL_BAIT = PartialEmoji(animated=False, name="Food3", id=605394612877656094)
+
+SHYBUKI2 = PartialEmoji(animated=False, name="shybuki_2", id=595024454271238145)
+
+PLAT = PartialEmoji(animated=False, name="plat", id=1016842692178739311)
+PLATWAA = PartialEmoji(animated=False, name="platwaa", id=1016842689066577991)
+# shybuki_2:595024454271238145

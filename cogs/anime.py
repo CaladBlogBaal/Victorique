@@ -14,6 +14,7 @@ from config.utils.menu import page_source
 from config.utils.converters import SeasonConverter
 
 from loadconfig import __saucenao_api_key__
+from config.utils.context import Context
 
 
 class Anime(commands.Cog, command_attrs=dict(cooldown=commands.CooldownMapping(commands.Cooldown(1, 4),
@@ -125,7 +126,7 @@ class Anime(commands.Cog, command_attrs=dict(cooldown=commands.CooldownMapping(c
 
         return embed
 
-    async def get_recent_image_urls(self, ctx, skip):
+    async def get_recent_image_urls(self, ctx: Context, skip):
 
         messages = await ctx.channel.history().filter(lambda m: m.attachments != [] or m.embeds != []).flatten()
         image_urls = []
@@ -153,7 +154,7 @@ class Anime(commands.Cog, command_attrs=dict(cooldown=commands.CooldownMapping(c
 
         return image_urls
 
-    async def get_recommendations(self, ctx, js):
+    async def get_recommendations(self, ctx: Context, js):
         title = js["data"]["Media"]["title"]["english"]
         url = js["data"]["Media"]["siteUrl"]
         await ctx.send(f"> Recommendations for {title} \n<{url}>")
@@ -162,55 +163,55 @@ class Anime(commands.Cog, command_attrs=dict(cooldown=commands.CooldownMapping(c
         pages = ctx.menu(self.default_source(entries))
         await pages.start(ctx)
 
-    async def get_staff(self, ctx, js):
+    async def get_staff(self, ctx: Context, js):
         entries = [node["node"] for node in js["data"]["Media"]["staff"]["edges"]]
         pages = ctx.menu(self.staff_source(entries))
         await pages.start(ctx)
 
-    async def get_media(self, ctx, js):
+    async def get_media(self, ctx: Context, js):
         entries = js["data"]["Page"]["media"]
         pages = ctx.menu(self.default_source(entries))
         await pages.start(ctx)
 
     @commands.group(invoke_without_command=True)
-    async def anime(self, ctx, *, anime_name):
+    async def anime(self, ctx: Context, *, anime_name):
         """Search for an anime on anilist"""
         js = await self.ani_list_api.anime_search(anime_name)
         await self.get_media(ctx, js)
 
     @anime.command(name="staff")
-    async def anime_staff(self, ctx, *, anime_name_or_id: typing.Union[int, str]):
+    async def anime_staff(self, ctx: Context, *, anime_name_or_id: typing.Union[int, str]):
         """Retrieves the staff for an anime from anilist using it's name or id"""
         js = await self.ani_list_api.anime_staff_by_title(anime_name_or_id)
         await self.get_staff(ctx, js)
 
     @anime.command(name="recommendations", aliases=["r"])
-    async def anime_recommendations(self, ctx, *, anime_name_id: typing.Union[int, str]):
+    async def anime_recommendations(self, ctx: Context, *, anime_name_id: typing.Union[int, str]):
         """Returns the first 10 recommendations for a anime"""
 
         js = await self.ani_list_api.anime_rec_by_title(anime_name_id)
         await self.get_recommendations(ctx, js)
 
     @commands.group(invoke_without_command=True)
-    async def manga(self, ctx, *, manga_name):
+    async def manga(self, ctx: Context, *, manga_name):
         """Search for a manga on anilist"""
         js = await self.ani_list_api.anime_search(manga_name)
         await self.get_media(ctx, js)
 
     @manga.command(name="staff")
-    async def manga_staff(self, ctx, *, manga_name_id: typing.Union[int, str]):
+    async def manga_staff(self, ctx: Context, *, manga_name_id: typing.Union[int, str]):
         """Retrieves the staff for a manga from anilist using it's name or id"""
         js = await self.ani_list_api.anime_staff_by_title(manga_name_id)
         await self.get_staff(ctx, js)
 
     @manga.command(name="recommendations", aliases=["r"])
-    async def manga_recommendations(self, ctx, *, manga_name_id: typing.Union[int, str]):
+    async def manga_recommendations(self, ctx: Context, *, manga_name_id: typing.Union[int, str]):
         """Returns the first 10 recommendations for a manga"""
         js = await self.ani_list_api.manga_rec_by_title(manga_name_id)
         await self.get_recommendations(ctx, js)
 
     @commands.command()
-    async def seasonal(self, ctx, year: typing.Optional[int] = d.now().year, season: SeasonConverter = None):
+    async def seasonal(self, ctx: Context, year: typing.Optional[int] = d.now().year, season: SeasonConverter = None):
         """Get a list of anime for a year and season will default to the currently airing season."""
 
         if season is None:
@@ -235,7 +236,7 @@ class Anime(commands.Cog, command_attrs=dict(cooldown=commands.CooldownMapping(c
     # being worked on doesn't actually await yet
     @commands.command()
     @commands.is_owner()
-    async def schedule(self, ctx, day=""):
+    async def schedule(self, ctx: Context, day=""):
 
         """Get a list anime based on their schedule"""
 
@@ -276,11 +277,11 @@ class Anime(commands.Cog, command_attrs=dict(cooldown=commands.CooldownMapping(c
         await pages.start(ctx)
 
     @commands.command()
-    async def tracemoe(self, ctx, skip=0):
+    async def tracemoe(self, ctx: Context, skip=0):
         """Performs a reverse image query using tracemoe on the last uploaded or embedded image
            will attempt to prune nsfw results unlike saucenao for the not set nsfw channel"""
 
-        await ctx.trigger_typing()
+        await ctx.typing()
 
         urls = await self.get_recent_image_urls(ctx, skip)
 
@@ -324,10 +325,10 @@ class Anime(commands.Cog, command_attrs=dict(cooldown=commands.CooldownMapping(c
         await pages.start(ctx)
 
     @commands.command()
-    async def saucenao(self, ctx, skip=0):
+    async def saucenao(self, ctx: Context, skip=0):
         """Performs a reverse image query using saucenao on the last uploaded or embedded image"""
 
-        await ctx.trigger_typing()
+        await ctx.typing()
 
         async with AIOSauceNao(__saucenao_api_key__) as aio:
 
@@ -353,5 +354,5 @@ class Anime(commands.Cog, command_attrs=dict(cooldown=commands.CooldownMapping(c
             await pages.start(ctx)
 
 
-def setup(bot):
-    bot.add_cog(Anime(bot))
+async def setup(bot):
+    await bot.add_cog(Anime(bot))

@@ -4,6 +4,7 @@ import discord
 from discord.ext import commands
 
 from cogs.utils.imageboards import Moebooru, AnimePicturesNet, Safebooru
+from config.utils.context import Context
 
 
 class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.CooldownMapping(commands.Cooldown(1, 3),
@@ -28,7 +29,7 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.CooldownMap
 
     @commands.command(aliases=["snc"])
     @commands.has_permissions(manage_channels=True)
-    async def set_nsfw_channel(self, ctx, channel: discord.TextChannel = None):
+    async def set_nsfw_channel(self, ctx: Context, channel: discord.TextChannel = None):
         """Set the current channel or another channel as the NSFW channel."""
 
         channel = channel or ctx.channel
@@ -40,7 +41,7 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.CooldownMap
 
     @commands.command(aliases=["dnc"])
     @commands.has_permissions(manage_channels=True)
-    async def delete_nsfw_channel(self, ctx):
+    async def delete_nsfw_channel(self, ctx: Context):
         """Delete's the set NSFW channel"""
         channel = await ctx.db.fetchval("SELECT nsfw_channel from guilds where guild_id = $1", ctx.guild.id)
 
@@ -53,7 +54,7 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.CooldownMap
         await ctx.send(f"{channel.mention} has been removed as the NSFW channel.")
 
     @commands.group(invoke_without_command=True, name="sb", ignore_extra=False)
-    async def sb(self, ctx):
+    async def sb(self, ctx: Context):
         """
         Gets a random image from safebooru
         """
@@ -61,14 +62,14 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.CooldownMap
         await s.get_posts()
 
     @sb.command(name="search")
-    async def search_sb(self, ctx, amount: typing.Optional[int] = 1, *, tags):
+    async def search_sb(self, ctx: Context, amount: typing.Optional[int] = 1, *, tags):
         """Search for a picture on safebooru from a random page"""
 
         s = Safebooru(ctx)
         await s.get_posts(tags, amount)
 
     @commands.group(invoke_without_command=True, ignore_extra=False)
-    async def apn(self, ctx):
+    async def apn(self, ctx: Context):
         """
         Gets a random image from anime-pictues.net
         """
@@ -76,7 +77,7 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.CooldownMap
         await a.get_posts()
 
     @apn.command(name="search")
-    async def search_apn(self, ctx, amount: typing.Optional[int] = 1, *, tags):
+    async def search_apn(self, ctx: Context, amount: typing.Optional[int] = 1, *, tags):
         """Search for a picture on anime pictures net
            20 is the maximum"""
 
@@ -84,7 +85,7 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.CooldownMap
         await a.get_posts(tags, amount)
 
     @commands.group(invoke_without_command=True, ignore_extra=False)
-    async def ye(self, ctx):
+    async def ye(self, ctx: Context):
         """
         Gets a random image from yande.re
         """
@@ -93,7 +94,7 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.CooldownMap
         await m.get_posts()
 
     @ye.command(aliases=["yande_search", "search"])
-    async def ye_search(self, ctx, amount: typing.Optional[int] = 1, *, tags):
+    async def ye_search(self, ctx: Context, amount: typing.Optional[int] = 1, *, tags):
         """Search for a picture on yande.re
         20 is the maximum"""
 
@@ -102,7 +103,7 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.CooldownMap
         await m.get_posts(tags, amount)
 
     @commands.group(invoke_without_command=True, ignore_extra=False)
-    async def gb(self, ctx):
+    async def gb(self, ctx: Context):
 
         """
         Gets a random image from gelbooru
@@ -111,7 +112,7 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.CooldownMap
         await m.get_posts()
 
     @gb.command(aliases=["gelbooru_search", "search"])
-    async def gb_search(self, ctx, amount: typing.Optional[int] = 1, *, tags):
+    async def gb_search(self, ctx: Context, amount: typing.Optional[int] = 1, *, tags):
         """Search for a picture on gelbooru
         20 is the maximum"""
 
@@ -120,7 +121,7 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.CooldownMap
         await m.get_posts(tags, amount)
 
     @commands.group(invoke_without_command=True, ignore_extra=False)
-    async def kc(self, ctx):
+    async def kc(self, ctx: Context):
         """
         Gets a random image from konachan
         """
@@ -129,7 +130,7 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.CooldownMap
         await m.get_posts()
 
     @kc.command(aliases=["konachan_search", "search"])
-    async def kc_search(self, ctx, amount: typing.Optional[int] = 1, *, tags):
+    async def kc_search(self, ctx: Context, amount: typing.Optional[int] = 1, *, tags):
         """Search for a picture on konachan
         20 is the maximum"""
 
@@ -138,7 +139,7 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.CooldownMap
         await m.get_posts(tags, amount)
 
     @commands.group(invoke_without_command=True, ignore_extra=False, name="lb")
-    async def loli(self, ctx):
+    async def loli(self, ctx: Context):
         """
         Gets a random image from lolibooru
         """
@@ -146,7 +147,7 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.CooldownMap
         await m.get_posts()
 
     @loli.command(aliases=["lolibooru_search", "search"])
-    async def loli_search(self, ctx, amount: typing.Optional[int] = 1, *, tags):
+    async def loli_search(self, ctx: Context, amount: typing.Optional[int] = 1, *, tags):
         """Search for a picture on lolibooru
         20 is the maximum"""
 
@@ -155,5 +156,5 @@ class ImageBoards(commands.Cog, command_attrs=dict(cooldown=commands.CooldownMap
         await m.get_posts(tags, amount)
 
 
-def setup(bot):
-    bot.add_cog(ImageBoards(bot))
+async def setup(bot):
+    await bot.add_cog(ImageBoards(bot))

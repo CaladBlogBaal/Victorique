@@ -42,5 +42,5 @@ Jishaku.JISHAKU_RETAIN = True
 Jishaku.JISHAKU_HIDE = True
 
 
-def setup(bot):
-    bot.add_cog(Jishaku(bot=bot))
+async def setup(bot):
+    await bot.add_cog(Jishaku(bot=bot))

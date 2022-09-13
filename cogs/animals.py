@@ -40,32 +40,32 @@ class Animals(commands.Cog):
         await ctx.send(f'> {js["fact"]}')
 
     @animal_fact.command(name="cat")
-    async def cat_fact(self):
+    async def cat_fact(self, ctx):
         """Get a cat fact"""
         return
 
     @animal_fact.command(name="dog")
-    async def dog_fact(self):
+    async def dog_fact(self, ctx):
         """Get a dog fact"""
         return
 
     @animal_fact.command(name="bird")
-    async def bird_fact(self):
+    async def bird_fact(self, ctx):
         """Get a bird fact"""
         return
 
     @animal_fact.command(name="panda")
-    async def panda_fact(self):
+    async def panda_fact(self, ctx):
         """Get a panda fact"""
         return
 
     @animal_fact.command(name="fox")
-    async def fox_fact(self):
+    async def fox_fact(self, ctx):
         """Get a fox fact"""
         return
 
     @animal_fact.command(name="koala")
-    async def koala_fact(self):
+    async def koala_fact(self, ctx):
         """Get a koala fact"""
         return
 
@@ -159,6 +159,6 @@ class Animals(commands.Cog):
         await self.api_get_image_repeated([""], "https://some-random-api.ml/img/panda", "link", ctx, amount)
 
 
-def setup(bot):
+async def setup(bot):
     n = Animals(bot)
-    bot.add_cog(n)
+    await bot.add_cog(n)

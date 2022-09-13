@@ -22,13 +22,13 @@ class RequestToPlayView(discord.ui.View):
 
     @discord.ui.button(label="Deny", emoji="❌")
     async def deny(self, _, interaction):
-        await interaction.response.edit_message(content=f"{self.ctx.author.name}, {self.member} cancelled the game.",
+        await interaction.response.edit_message(content=f"{self.ctx.author.input}, {self.member} cancelled the game.",
                                                 view=None)
         self.value = False
         self.stop()
 
     async def start(self):
-        self.message = await self.ctx.send(f"{self.member.name}, {self.ctx.author} is challenging you to {self.game}",
+        self.message = await self.ctx.send(f"{self.member.input}, {self.ctx.author} is challenging you to {self.game}",
                                            view=self)
 
     async def on_timeout(self) -> None:

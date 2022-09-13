@@ -2,6 +2,7 @@ import typing
 
 import discord
 from discord.ext import commands
+from config.utils.context import Context
 
 
 class Members(commands.Cog):
@@ -12,7 +13,7 @@ class Members(commands.Cog):
 
     @commands.command()
     @commands.guild_only()
-    async def info(self, ctx,  *, member: discord.Member = None):
+    async def info(self, ctx: Context,  *, member: discord.Member = None):
         """
         Get info on a guild member
         only displays the first 40 roles.
@@ -55,7 +56,7 @@ class Members(commands.Cog):
 
     @commands.command(name='perms', aliases=['perms_for', 'permissions'])
     @commands.guild_only()
-    async def check_permissions(self, ctx, *, member: discord.Member = None):
+    async def check_permissions(self, ctx: Context, *, member: discord.Member = None):
         """
         Check a members permissions
         """
@@ -70,7 +71,7 @@ class Members(commands.Cog):
         await ctx.send(embed=embed)
 
     @commands.command()
-    async def avatar(self, ctx, *, member: typing.Union[discord.Member, discord.User] = None):
+    async def avatar(self, ctx: Context, *, member: typing.Union[discord.Member, discord.User] = None):
         """
          Check a guild member's or user's avatar
          """
@@ -83,5 +84,5 @@ class Members(commands.Cog):
         await ctx.send(embed=embed)
 
 
-def setup(bot):
-    bot.add_cog(Members(bot))
+async def setup(bot):
+    await bot.add_cog(Members(bot))

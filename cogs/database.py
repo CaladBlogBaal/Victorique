@@ -1,5 +1,3 @@
-import discord
-
 from discord.ext import commands
 
 
@@ -57,5 +55,5 @@ class Database(commands.Cog):
                               member.id, member.guild.id)
 
 
-def setup(bot):
-    bot.add_cog(Database(bot))
+async def setup(bot):
+    await bot.add_cog(Database(bot))

@@ -5,6 +5,8 @@ import numpy as np
 
 from discord.ext import commands
 
+from config.utils.context import Context
+
 
 class SlotMachine:
 
@@ -89,7 +91,7 @@ class Casino(commands.Cog):
                       aliases=["slot", "slot_machine"],
                       cooldown_after_parsing=True
                       )
-    async def slots(self, ctx, bet, spins: int = 6):
+    async def slots(self, ctx: Context, bet, spins: int = 6):
         """spin some slots"""
         await ctx.acquire()
         spins = int(spins)
@@ -140,7 +142,7 @@ class Casino(commands.Cog):
         await ctx.release()
 
     @commands.group(invoke_without_command=True)
-    async def coinflip(self, ctx, times: int = 1):
+    async def coinflip(self, ctx: Context, times: int = 1):
         """
         Flip a coin
         """
@@ -163,7 +165,7 @@ class Casino(commands.Cog):
 
     @coinflip.command()
     @commands.cooldown(1, 3, commands.BucketType.user)
-    async def bet(self, ctx, choice, bet: int):
+    async def bet(self, ctx: Context, choice, bet: int):
         """
         Flip a coin and bet the outcome choices (heads or tails)
         """
@@ -198,5 +200,5 @@ class Casino(commands.Cog):
                 await ctx.send(f":information_source: | {ctx.author.name} you've lost {bet} credits")
 
 
-def setup(bot):
-    bot.add_cog(Casino(bot))
+async def setup(bot):
+    await bot.add_cog(Casino(bot))

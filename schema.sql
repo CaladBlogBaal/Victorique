@@ -13,6 +13,16 @@ CREATE TABLE IF NOT EXISTS users (
     daily_cooldown timestamp
 );
 
+CREATE TABLE IF NOT EXISTS cursed_user (
+    curse_id smallserial PRIMARY KEY,
+    user_id bigint REFERENCES users (user_id),
+    curse_at bigint REFERENCES guilds (guild_id),
+    curse_cooldown timestamp,
+    curse_ends_at timestamp,
+    curse_name varchar(32)
+
+);
+
 CREATE TABLE IF NOT EXISTS user_tag_usage (
     id SERIAL PRIMARY KEY,
     guild_id bigint REFERENCES guilds (guild_id),
@@ -21,6 +31,7 @@ CREATE TABLE IF NOT EXISTS user_tag_usage (
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS user_tag_usage_uniq_idx ON user_tag_usage (user_id, guild_id);
+CREATE UNIQUE INDEX IF NOT EXISTS cursed_user_uniq_idx ON cursed_user (user_id, curse_at);
 
 CREATE TABLE IF NOT EXISTS tags (
     tag_id SERIAL PRIMARY KEY,
@@ -46,13 +57,50 @@ CREATE TABLE IF NOT EXISTS fish_bait (
     price float NOT NULL
 );
 
+/* C_BAIT = PartialEmoji(animated=False, name="Food1", id=603902930541608960)
+R_BAIT = PartialEmoji(animated=False, name="Food2", id=603902989068926976)
+E_BAIT = PartialEmoji(animated=False, name="Food5", id=603903148683427840)
+# Food5:603903148683427840
+SL_BAIT = PartialEmoji(animated=False, name="Food3", id=605394612877656094) */
+
 INSERT INTO fish_bait (bait_id, bait_name, bait_emote, price) VALUES
-(1, 'Oxy-cola (common bait)', '<:Food1:603902930541608960>', 10) ON CONFLICT DO NOTHING;
+(1, 'Oxy-cola (common bait)', '<:Food1:603902930541608960>', 75) ON CONFLICT DO NOTHING;
+
+INSERT INTO fish_bait (bait_id, bait_name, bait_emote, price) VALUES
+(2, 'Secret-coolant (rare bait)', '<:Food2:603902989068926976>', 100) ON CONFLICT DO NOTHING;
+
+INSERT INTO fish_bait (bait_id, bait_name, bait_emote, price) VALUES
+(3, 'Royal-gourmet (elite bait)', '<:Food5:603903148683427840>', 130) ON CONFLICT DO NOTHING;
+
+INSERT INTO fish_bait (bait_id, bait_name, bait_emote, price) VALUES
+(4, 'Wisdom-cube (super bait)', '<:Food3:605394612877656094>', 150) ON CONFLICT DO NOTHING;
+
+
+CREATE TABLE IF NOT EXISTS fish_rarity (
+    rarity_id smallint PRIMARY KEY,
+    rarity_name text UNIQUE NOT NULL
+);
+
+INSERT INTO fish_rarity (rarity_id, rarity_name) VALUES
+(1, 'Common') ON CONFLICT DO NOTHING;
+
+INSERT INTO fish_rarity (rarity_id, rarity_name) VALUES
+(2, 'Rare') ON CONFLICT DO NOTHING;
+
+INSERT INTO fish_rarity (rarity_id, rarity_name) VALUES
+(3, 'Elite') ON CONFLICT DO NOTHING;
+
+INSERT INTO fish_rarity (rarity_id, rarity_name) VALUES
+(4, 'Super Rare') ON CONFLICT DO NOTHING;
+
+INSERT INTO fish_rarity (rarity_id, rarity_name) VALUES
+(5, 'Legendary') ON CONFLICT DO NOTHING;
+
 
 CREATE TABLE IF NOT EXISTS fish (
     fish_id SMALLSERIAL PRIMARY KEY,
     fish_name text UNIQUE NOT NULL,
-    bait_id smallint REFERENCES fish_bait (bait_id)
+    rarity_id smallint REFERENCES fish_rarity (rarity_id)
 );
 
 CREATE TABLE IF NOT EXISTS fish_users (
@@ -63,8 +111,8 @@ CREATE TABLE IF NOT EXISTS fish_users (
 CREATE TABLE IF NOT EXISTS fish_user_inventory (
     user_id bigint REFERENCES fish_users (user_id),
     bait_id smallint REFERENCES fish_bait (bait_id),
-    bait_emote text REFERENCES fish_bait (bait_emote),
     amount int,
+    constraint amount_none_negative check (amount>= 0),
     favourites integer[],
     PRIMARY KEY (user_id, bait_id)
 );

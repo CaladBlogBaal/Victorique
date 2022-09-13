@@ -23,12 +23,12 @@ class TriviaButton(discord.ui.Button["Trivia"]):
 
             if answer.emoji == str(self.emoji):
                 if answer.record["is_correct"]:
-                    content = f"> Correct answer {self.view.ctx.author.name}!"
+                    content = f"> Correct answer {self.view.ctx.author.input}!"
                     self.view.score += 10
                 else:
                     self.view.score += -2
                     content = f"{self.view.content()}\n> Incorrect answer, the correct answer was " \
-                              f"`{self.view.get_right_answer()}` {self.view.ctx.author.name}!"
+                              f"`{self.view.get_right_answer()}` {self.view.ctx.author.input}!"
 
                 embed = self.view.embed(self.view.current_question)
                 await self.view.message.edit(content=content, embed=embed)
@@ -74,7 +74,7 @@ class Triva(discord.ui.View):
         embed = discord.Embed(title=f"Trivia Question! :white_check_mark: {len(self.questions)} questions left",
                               color=self.ctx.bot.default_colors())
 
-        embed.set_footer(text=f"Requested by {self.ctx.message.author.name}",
+        embed.set_footer(text=f"Requested by {self.ctx.message.author.input}",
                          icon_url=self.ctx.message.author.avatar.url)
 
         embed.timestamp = self.ctx.message.created_at
@@ -90,7 +90,7 @@ class Triva(discord.ui.View):
         if not self.task.done():
             self.task.cancel()
 
-        score = QuizPoints(self.ctx.author.name)
+        score = QuizPoints(self.ctx.author.input)
         score.score = self.score
         await self.message.edit(content=f"quiz finished :white_check_mark: {score.score}", embed=None, delete_after=5)
 

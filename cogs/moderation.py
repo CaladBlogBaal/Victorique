@@ -5,6 +5,7 @@ import discord
 from discord.ext import commands
 
 from config.utils.checks import combined_permissions_check
+from config.utils.context import Context
 
 
 class Moderation(commands.Cog):
@@ -14,7 +15,7 @@ class Moderation(commands.Cog):
         self.session = bot.session
 
     @staticmethod
-    async def hiearchy_check(ctx, member):
+    async def hiearchy_check(ctx: Context, member: discord.Member):
 
         if ctx.me.top_role <= member.top_role:
             await ctx.send(f"> I can't manage {member.name} due to hierarchy.", delete_after=8)
@@ -24,7 +25,7 @@ class Moderation(commands.Cog):
         return False
 
     @staticmethod
-    async def set_perms(guild, role=None):
+    async def set_perms(guild: discord.Guild, role=None):
         muted_role = role
 
         if not role:
@@ -52,7 +53,7 @@ class Moderation(commands.Cog):
 
         return True
 
-    async def role_check(self, ctx, member, role):
+    async def role_check(self, ctx: Context, member: discord.Member, role: discord.Role):
         role_name = self.bot.safe_everyone(role.name)
 
         if member.top_role <= role:
@@ -67,7 +68,7 @@ class Moderation(commands.Cog):
 
     @commands.command()
     @combined_permissions_check(manage_messages=True)
-    async def purge_bot(self, ctx, amount=1):
+    async def purge_bot(self, ctx: Context, amount=1):
         """Delete x amount of bot messages"""
 
         if amount > 100:
@@ -83,7 +84,7 @@ class Moderation(commands.Cog):
 
     @commands.command(aliases=['boot', 'massboot', 'prune_members'])
     @combined_permissions_check(kick_members=True)
-    async def kick(self, ctx, members: commands.Greedy[discord.Member], *, reason="No reason"):
+    async def kick(self, ctx: Context, members: commands.Greedy[discord.Member], *, reason="No reason"):
         """
         Kick a guild member or members
         """
@@ -105,7 +106,7 @@ class Moderation(commands.Cog):
     @commands.command()
     @commands.cooldown(1, 10, commands.BucketType.user)
     @combined_permissions_check(manage_messages=True)
-    async def purge(self, ctx, amount: int, member: discord.Member = None):
+    async def purge(self, ctx: Context, amount: int, member: discord.Member = None):
         """
         Purge any an amount of messages
         """
@@ -130,7 +131,7 @@ class Moderation(commands.Cog):
 
     @commands.command()
     @combined_permissions_check(manage_roles=True)
-    async def mute(self, ctx, members: commands.Greedy[discord.Member], reason="no reason"):
+    async def mute(self, ctx: Context, members: commands.Greedy[discord.Member], reason="no reason"):
         """Mute a guild member or members"""
 
         role = discord.utils.get(ctx.guild.roles, name="Muted")
@@ -167,7 +168,7 @@ class Moderation(commands.Cog):
 
     @commands.command()
     @combined_permissions_check(manage_roles=True)
-    async def unmute(self, ctx, members: commands.Greedy[discord.Member], *, reason: str = None):
+    async def unmute(self, ctx: Context, members: commands.Greedy[discord.Member], *, reason: str = None):
         """Unmute a guild member or members"""
 
         role = discord.utils.get(ctx.guild.roles, name="Muted")
@@ -194,7 +195,7 @@ class Moderation(commands.Cog):
 
     @commands.command()
     @combined_permissions_check(manage_emojis=True)
-    async def emote(self, ctx, *, urls=None):
+    async def emote(self, ctx: Context, *, urls=None):
         """Create an emoji accepts file attachments"""
         if urls is None:
             urls = ""
@@ -242,7 +243,7 @@ class Moderation(commands.Cog):
 
     @commands.command()
     @combined_permissions_check(manage_messages=True)
-    async def pin(self, ctx, message_id: int = None):
+    async def pin(self, ctx: Context, message_id: int = None):
         """Pin a message
         if no message id is passed will pin the command message."""
 
@@ -283,7 +284,7 @@ class Moderation(commands.Cog):
         await ctx.send(f"The prefix for this guild is now {prefix}")
 
     @set_prefix.after_invoke
-    async def set_prefix_after_invoke(self, ctx):
+    async def set_prefix_after_invoke(self, ctx: Context):
         # invalidating caches here
         self.bot.prefix_invalidate(ctx.guild.id)
         # invalidating the cache for every tag in this guild
@@ -293,5 +294,5 @@ class Moderation(commands.Cog):
                 self.bot.tags_invalidate(ctx.guild.id, tag["tag_name"])
 
 
-def setup(bot):
-    bot.add_cog(Moderation(bot))
+async def setup(bot):
+    await bot.add_cog(Moderation(bot))

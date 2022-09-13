@@ -1,3 +1,4 @@
+import contextlib
 import typing
 import random
 import math
@@ -5,17 +6,23 @@ import re
 import asyncio
 import dateutil.parser
 
+import datetime
+import humanize as h
+
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 from bs4 import BeautifulSoup
 
+from cogs.utils.games import ShuntingYard
 from config.utils.emojis import TRANSPARENT, EXPLOSION, FIRE_ZERO, NUKE, GUN
 from config.utils.checks import private_guilds_check
 from config.utils.menu import page_source
+from config.utils.converters import DieConventer
+from config.utils.context import Context
 
 
 class ShapeDrawing:
-    def __init__(self, emotes, emotes_two, size):
+    def __init__(self, emotes: list, emotes_two: list, size: int):
         if not emotes:
             raise commands.BadArgument("missing emotes")
         self.emotes = emotes
@@ -74,17 +81,6 @@ def reverse(argument):
 
 class Misc(commands.Cog):
     """Some misc related commands"""
-
-    @staticmethod
-    def hardcoded_image_list_embed(content, list_in):
-        colours = [discord.Color.dark_magenta(), discord.Color.dark_teal(), discord.Color.dark_orange()]
-        col = int(random.random() * len(colours))
-
-        embed = discord.Embed(color=colours[col], description=random.choice(content))
-        embed.set_image(url=random.choice(list_in))
-
-        return embed
-
     def __init__(self, bot):
         self.bot = bot
         self.transparent = str(TRANSPARENT)
@@ -110,12 +106,84 @@ class Misc(commands.Cog):
             "http://38.media.tumblr.com/a6ff26b3fb8914a8aef9e3ee12b95f96/tumblr_nbjrmc3tiI1std21fo1_500.gif",
             "http://33.media.tumblr.com/cb86adbde8dd8feaa586eda4ad29d4be/tumblr_njx8yblrf51tiz9nro1_500.gif"
         ]
+
+    @commands.Cog.listener()
+    async def on_member_update(self, before, after):
+
+        new_name = after.nick
+
+        async with self.bot.pool.acquire() as con:
+            data = await con.fetchrow("""SELECT curse_ends_at AS curse, curse_name AS name 
+                                         FROM cursed_user WHERE user_id = $1""",
+                                      after.id)
+
+            time = data["curse"]
+            cursed_name = data["name"]
+
+            if new_name != cursed_name:
+                if time:
+                    if time > discord.utils.utcnow().replace(tzinfo=None):
+
+                        with contextlib.suppress(discord.errors.Forbidden):
+                            await after.edit(nick=cursed_name)
+
+    @tasks.loop(hours=1)
+    async def un_curse(self):
+        # probably inefficient as hell but it's w/e
+
+        async with self.bot.pool.acquire() as con:
+            cursed_members = await con.fetch("""SELECT user_id, curse_ends_at AS curse, curse_at
+                                                FROM cursed_user WHERE curse_ends_at IS NOT NULL""")
+
+            for member in cursed_members:
+
+                guild = self.bot.get_guild(member["curse_at"]) or await self.bot.fetch_guild(member["curse_at"])
+
+                time = member["curse"]
+                user_id = member["user_id"]
+
+                member = discord.utils.get(guild.members, id=user_id)
+
+                if time < discord.utils.utcnow().replace(tzinfo=None):
+                    with contextlib.suppress(discord.errors.Forbidden):
+                        await member.edit(nick="")
+
+                    await con.execute("UPDATE cursed_user SET curse_ends_at = Null WHERE user_id = $1", user_id)
+
+    @commands.Cog.listener()
+    async def on_ready(self):
+        self.un_curse.start()
+
+    @staticmethod
+    def hardcoded_image_list_embed(content, list_in):
+        colours = [discord.Color.dark_magenta(), discord.Color.dark_teal(), discord.Color.dark_orange()]
+        col = int(random.random() * len(colours))
+
+        embed = discord.Embed(color=colours[col], description=random.choice(content))
+        embed.set_image(url=random.choice(list_in))
+
+        return embed
+
+    async def roll_dice(self, ctx):
+
+        rolls, limit, expression = await DieConventer().convert(ctx, "2d20")
+
+        results = [random.randint(1, limit) for _ in range(rolls)]
+
+        for i, res in enumerate(results):
+            expression.insert(0, str(res))
+
+            results[i] = ShuntingYard(expression).evaluate()
+
+            del expression[0]
+
+        return results[0], results[1]
         # Feel like this is cleaner
         # rip Misc Help
         action_cmd_names = ["slap", "pat", "cuddle", "hug", "poke", "tickle", "kiss"]
         for name in action_cmd_names:
 
-            async def callback(ctx, member: typing.Union[discord.Member, discord.User]):
+            async def callback(ctx: Context, member: typing.Union[discord.Member, discord.User]):
 
                 bot_urls = {"slap": "https://giffiles.alphacoders.com/197/197854.gif",
                             "pat": "https://thumbs.gfycat.com/ClearFalseFulmar-small.gif",
@@ -140,12 +208,12 @@ class Misc(commands.Cog):
     @staticmethod
     @page_source(per_page=7)
     def emote_source(self, menu, entries):
-        embed = discord.Embed(title=f"{self.ctx.guild.name} emotes",
+        embed = discord.Embed(title=f"{self.ctx.guild.input} emotes",
                               color=discord.Color.dark_magenta())
 
         for emote in entries:
             value = f"Emote {self.count}"
-            embed.add_field(name=f"Emote name " f"{emote.name} : {str(emote)}",
+            embed.add_field(name=f"Emote name " f"{emote.input} : {str(emote)}",
                             value=value, inline=False)
             self.count += 1
         return embed
@@ -172,7 +240,7 @@ class Misc(commands.Cog):
         embed.add_field(name="Example", value=example)
         embed.add_field(name="Contributor", value=author, inline=False)
         embed.add_field(name="Rating", value=f"\👍**{entry['thumbs_up']}** \👎**{entry['thumbs_down']}**")
-        embed.set_footer(text=f"Requested by {self.ctx.message.author.name}",
+        embed.set_footer(text=f"Requested by {self.ctx.message.author.input}",
                          icon_url=self.ctx.message.author.avatar.url)
         embed.set_image(url="https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/UD_"
                             "logo-01.svg/1280px-UD_logo-01.svg.png")
@@ -181,7 +249,7 @@ class Misc(commands.Cog):
         return embed
 
     @commands.command()
-    async def triangle(self, ctx, size: typing.Optional[int] = 5, emote=":small_red_triangle:",
+    async def triangle(self, ctx: Context, size: typing.Optional[int] = 5, emote=":small_red_triangle:",
                        emote_two=None, reverse_triangle=False):
         """Draw a triangle
         say trans as a wild card for a transparent emote and True for a reversed triangle."""
@@ -204,7 +272,7 @@ class Misc(commands.Cog):
         await ctx.send(shape.triangle_draw(reverse_triangle))
 
     @commands.command()
-    async def diamond(self, ctx, size: typing.Optional[int] = 5, *emotes: commands.clean_content):
+    async def diamond(self, ctx: Context, size: typing.Optional[int] = 5, *emotes: commands.clean_content):
         """Draw a diamond
         if more then one emote is passed will default to random emote for each row"""
         shape = ShapeDrawing(list(emotes), [self.transparent], size)
@@ -226,7 +294,7 @@ class Misc(commands.Cog):
 
     @commands.dm_only()
     @commands.command()
-    async def chat(self, ctx, message):
+    async def chat(self, ctx: Context, message):
         """Get a response from the bot"""
 
         params = {"message": message}
@@ -236,12 +304,12 @@ class Misc(commands.Cog):
             await ctx.message.add_reaction("📧")
             return await ctx.author.send(result["response"])
 
-        await ctx.trigger_typing()
+        await ctx.typing()
 
         await ctx.send(result["response"])
 
     @commands.command()
-    async def matb(self, ctx, *, text: commands.clean_content = None):
+    async def matb(self, ctx: Context, *, text: commands.clean_content = None):
         """
         Me and the boys
         by calling this command you summon the boys
@@ -256,7 +324,7 @@ class Misc(commands.Cog):
                        f"<:boys:589614537490300940> {text}")
 
     @commands.command()
-    async def destroy(self, ctx, *, message=None):
+    async def destroy(self, ctx: Context, *, message=None):
         """
         Destroy something
         """
@@ -283,7 +351,7 @@ class Misc(commands.Cog):
         await msg.edit(content=f"Target destroyed.")
 
     @commands.command()
-    async def clap(self, ctx, *, message: commands.clean_content):
+    async def clap(self, ctx: Context, *, message: commands.clean_content):
         """
         Fill your message with claps
         """
@@ -293,7 +361,7 @@ class Misc(commands.Cog):
 
     @commands.command(aliases=["emotes"])
     @commands.guild_only()
-    async def display_emotes(self, ctx):
+    async def display_emotes(self, ctx: Context):
         """
         Display the current emojis for the guild
         """
@@ -307,7 +375,7 @@ class Misc(commands.Cog):
     @commands.command(aliases=["l_c"], hidden=True)
     @commands.guild_only()
     @private_guilds_check()
-    async def licc_calad(self, ctx):
+    async def licc_calad(self, ctx: Context):
         """
         Lick calad
         """
@@ -329,7 +397,7 @@ class Misc(commands.Cog):
         await ctx.send(embed=embed)
 
     @commands.command(alasies=["genetically_engineered_cat_girls"])
-    async def gecg(self, ctx):
+    async def gecg(self, ctx: Context):
         """
         Get a random genetically egineered cat girl meme
         """
@@ -342,7 +410,7 @@ class Misc(commands.Cog):
                                                           "https://some-random-api.ml/animu/wink", "link"))
 
     @commands.command()
-    async def smug(self, ctx):
+    async def smug(self, ctx: Context):
         """
         Get a random image to express your smugness
         """
@@ -356,7 +424,7 @@ class Misc(commands.Cog):
         await ctx.send(embed=await self.bot.api_get_image(content, "https://nekos.life/api/v2/img/smug", "url"))
 
     @commands.command()
-    async def lick(self, ctx, member: typing.Union[discord.Member, discord.User]):
+    async def lick(self, ctx: Context, member: typing.Union[discord.Member, discord.User]):
         """
         Lick a guild member or user
         """
@@ -373,7 +441,7 @@ class Misc(commands.Cog):
         await ctx.send(embed=self.hardcoded_image_list_embed(content, self.lick_list))
 
     @commands.command(aliases=["tb", "rub"])
-    async def tummy_rub(self, ctx, member: typing.Union[discord.Member, discord.User]):
+    async def tummy_rub(self, ctx: Context, member: typing.Union[discord.Member, discord.User]):
         """
         Rub a guild member's tummy or user
         """
@@ -397,7 +465,7 @@ class Misc(commands.Cog):
         await ctx.send(embed=self.hardcoded_image_list_embed(content, rub_list))
 
     @commands.command(name="kemo")
-    async def kemonomimi(self, ctx, amount=1):
+    async def kemonomimi(self, ctx: Context, amount=1):
         """
         Get a random picture/pictues kemonomimis
         20 is the maximum
@@ -414,7 +482,7 @@ class Misc(commands.Cog):
         await pages.start(ctx)
 
     @commands.command()
-    async def funfact(self, ctx):
+    async def funfact(self, ctx: Context):
         """
         Get a random fun fact from the nekos life api
         """
@@ -424,7 +492,7 @@ class Misc(commands.Cog):
             await ctx.send(f":information_source: Fun fact \n{js['fact']}")
 
     @commands.command()
-    async def say(self, ctx, *, message: commands.clean_content):
+    async def say(self, ctx: Context, *, message: commands.clean_content):
         """
         Have the bot say a message
         """
@@ -437,21 +505,21 @@ class Misc(commands.Cog):
             pass
 
     @commands.command()
-    async def reverse(self, ctx, *, message: reverse):
+    async def reverse(self, ctx: Context, *, message: reverse):
         """
         Have the bot reverse a message
         """
         await ctx.send(message)
 
     @commands.command()
-    async def uppercase(self, ctx, *, message: to_upper):
+    async def uppercase(self, ctx: Context, *, message: to_upper):
         """
         Have the bot uppercase a message
         """
         await ctx.send(message)
 
     @commands.command()
-    async def lowercase(self, ctx, *, message: to_lower):
+    async def lowercase(self, ctx: Context, *, message: to_lower):
         """
         Have the bot lowercase a message
         """
@@ -459,7 +527,7 @@ class Misc(commands.Cog):
         await ctx.send(message)
 
     @commands.command()
-    async def ping(self, ctx):
+    async def ping(self, ctx: Context):
         """
         Check how long the bot takes to respond
         """
@@ -467,7 +535,7 @@ class Misc(commands.Cog):
         await ctx.send(f":information_source: | :ping_pong: **{self.bot.latency * 1000:.0f}**ms")
 
     @commands.command()
-    async def choose(self, ctx, *, choices):
+    async def choose(self, ctx: Context, *, choices):
         """
         Have the bot pick an option choices separated |
         """
@@ -482,7 +550,7 @@ class Misc(commands.Cog):
         await ctx.send(f":information_source: | I choose `{random.choice(choices)}` {ctx.author.name}.")
 
     @commands.command()
-    async def urban(self, ctx, *, term):
+    async def urban(self, ctx: Context, *, term):
         """
         Get the urban dictionary value of a term
         """
@@ -498,7 +566,7 @@ class Misc(commands.Cog):
         await pages.start(ctx)
 
     @commands.command()
-    async def imgur(self, ctx, *, content):
+    async def imgur(self, ctx: Context, *, content):
         """
         Look for an image on imgur
         """
@@ -520,7 +588,7 @@ class Misc(commands.Cog):
 
     @commands.command()
     @commands.bot_has_permissions(read_message_history=True)
-    async def react(self, ctx, *, msg: to_lower):
+    async def react(self, ctx: Context, *, msg: to_lower):
         """
         Place reactions on the above message
         """
@@ -555,6 +623,148 @@ class Misc(commands.Cog):
                 except discord.errors.HTTPException:
                     return
 
-def setup(bot):
+
+    @commands.command()
+    @commands.guild_only()
+    @commands.has_permissions(manage_nicknames=True)
+    async def curse(self, ctx: Context, member: discord.Member, *, nickname):
+        """Curse a member with a nickname"""
+
+        # this command is hacky lazily and poorly done but it's w/e
+
+        if member.bot:
+            return
+
+        check = await ctx.db.fetchval("SELECT curse_cooldown FROM cursed_user WHERE user_id = $1", ctx.author.id)
+
+        if check:
+            if check > discord.utils.utcnow().replace(tzinfo=None):
+                return await ctx.send(f"Your ability to curse is on cooldown until {h.naturaltime(check)}.")
+
+        attacker_won = True
+
+        attacker, defender = await self.roll_dice(ctx)
+
+        cooldown = ctx.message.created_at.replace(tzinfo=None) + datetime.timedelta(hours=6)
+
+        curse_time = ctx.message.created_at.replace(tzinfo=None) + datetime.timedelta(hours=1)
+
+        message = ":white_check_mark: (Attacker: 1d20 ({0}) = {0}) vs. (Defender: 1d20 ({1}) = {1})" \
+                  "\nCursed {2}'s to `{3}` until `{4}`.\nYour ability to curse is on cooldown until {5}."
+
+        shielded = ":shield: {0} shielded against the blow{1}!\n" \
+                   ":x: (Attacker: 1d20 ({2}) = {2}) vs. (Defender: 1d20 ({3}) = {3})" \
+                   "\nyour ability to curse is on cooldown until {4}."
+
+        now = discord.utils.utcnow().replace(tzinfo=None)
+        if attacker > defender == 1 and attacker == 20:
+            curse_time = ctx.message.created_at.replace(tzinfo=None) + datetime.timedelta(days=7)
+            message = ":dart: Nat 20 Critical attack against a critical failure! :dart:\n" + message
+            message = message.format(attacker, defender, member.mention, nickname,
+                                     h.naturaltime(now - curse_time), h.naturaltime(cooldown))
+
+        elif attacker > defender and attacker == 20:
+            curse_time = ctx.message.created_at.replace(tzinfo=None) + datetime.timedelta(hours=2)
+            message = ":dart: Nat 20 Critical hit! :dart:\n" + message
+            message = message.format(attacker, defender, member.mention, nickname,
+                                     h.naturaltime(now - curse_time), h.naturaltime(cooldown))
+
+        elif attacker > defender == 1:
+            curse_time = ctx.message.created_at.replace(tzinfo=None) + datetime.timedelta(hours=24)
+            message = ":x: Critical defending failure! :x:\n" + message
+            message = message.format(attacker, defender, member.mention, nickname,
+                                     h.naturaltime(now - curse_time), h.naturaltime(cooldown))
+
+        elif attacker > defender:
+            message = message.format(attacker, defender, member.mention, nickname,
+                                     h.naturaltime(now - curse_time), h.naturaltime(cooldown))
+
+        elif defender > attacker == 1 and defender == 20:
+
+            attacker_won = False
+            cooldown = ctx.message.created_at.replace(tzinfo=None) + datetime.timedelta(days=7)
+            curse_time = ctx.message.created_at.replace(tzinfo=None) + datetime.timedelta(days=7)
+            message = shielded
+            message = message.format(member.nick, f"...and it ended up being reflected back at {ctx.author.mention}!",
+                                     attacker, defender, h.naturaltime(now - curse_time), h.naturaltime(cooldown))
+
+        elif defender > attacker and defender == 20:
+
+            attacker_won = False
+            random_member = random.choice(ctx.author.guild.members)
+            message = shielded
+            message = message.format(member.nick, f"...and it ended up hitting {random_member.mention} by mistake!",
+                                    attacker, defender, h.naturaltime(now - curse_time), h.naturaltime(cooldown))
+
+            try:
+                await random_member.edit(nick=nickname)
+            except discord.errors.Forbidden:
+                await ctx.send("An error occurred trying to edit a nickname, probably due role hierarchy.")
+
+        elif defender > attacker == 1:
+            cooldown = ctx.message.created_at.replace(tzinfo=None) + datetime.timedelta(days=1)
+            message = ":x: Critical attacking failure! :x:\n" + message
+
+            message = message.format(attacker, defender, member.mention, nickname,
+                                     h.naturaltime(now - curse_time), h.naturaltime(cooldown))
+
+        elif defender > attacker:
+            attacker_won = False
+            message = shielded
+            message = message.format(member.nick, ".", attacker, defender, h.naturaltime(now - curse_time),
+                                     h.naturaltime(cooldown))
+
+
+        else:
+            message = ":crossed_swords: both sides have gotten hurt due to an equal exchange.\n" \
+                      ":white_check_mark: (Attacker: 1d20 ({0}) = {0}) vs. (Defender: 1d20 ({1}) = {1})" \
+                  "\nCursed {2}'s to `{3}` until `{4}`\n.\nCursed {6}'s to {3} for {4}" \
+                      "Your ability to curse is on cooldown until {5}.".format(attacker, defender,
+                                                                             member.mention, nickname,
+                                                                             h.naturaltime(now - curse_time),
+                                                                             h.naturaltime(cooldown),
+                                                                             ctx.author.mention)
+            try:
+
+                await ctx.author.edit(nick=nickname)
+
+            except discord.errors.Forbidden:
+                await ctx.send("An error occurred trying to edit a nickname, probably due role hierarchy.")
+
+        async with ctx.acquire() as con:
+
+            await con.execute("""INSERT INTO cursed_user 
+                                      (user_id, curse_at, curse_name, curse_cooldown, curse_ends_at) VALUES 
+                                      ($1, $2, $3, $4, $5) ON CONFLICT (curse_at, user_id) DO UPDATE 
+                                      SET curse_ends_at = $5, curse_at = $2, curse_name = $3
+                                      """, ctx.author.id, ctx.guild.id, None, cooldown, None)
+
+            if attacker_won:
+
+                try:
+
+                    await member.edit(nick=nickname)
+
+                except discord.errors.Forbidden:
+                    await ctx.send("An error occurred trying to edit a nickname, probably due role hierarchy")
+
+                await con.execute("""INSERT INTO cursed_user 
+                                     (user_id, curse_at, curse_name, curse_cooldown, curse_ends_at) VALUES 
+                                     ($1, $2, $3, $4, $5) ON CONFLICT (curse_at, user_id) DO UPDATE 
+                                     SET curse_ends_at = $5, curse_at = $2, curse_name = $3
+                                     """, member.id, ctx.guild.id, nickname, None, curse_time)
+
+
+            elif not attacker_won and attacker == 1 and defender == 20:
+                await con.execute("""INSERT INTO cursed_user 
+                                          (user_id, curse_at, curse_name, curse_cooldown, curse_ends_at) VALUES 
+                                          ($1, $2, $3, $4, $5) ON CONFLICT DO UPDATE 
+                                          SET curse_ends_at = $5, curse_at = $2, curse_name = $3
+                                          """, ctx.author.id, ctx.guild.id, nickname, cooldown, curse_time)
+
+        await ctx.send(message)
+
+
+async def setup(bot):
     n = Misc(bot)
-    bot.add_cog(n)
+    await bot.add_cog(n)

@@ -5,6 +5,7 @@ from discord.ext import commands, tasks
 from bs4 import BeautifulSoup
 
 from config.utils.cache import cache
+from config.utils.context import Context
 
 
 class Youtube(commands.Cog):
@@ -23,7 +24,7 @@ class Youtube(commands.Cog):
         await self.invalidate_search_cache.start()
 
     @staticmethod
-    async def get_youtube_urls(contents, top=False):
+    async def get_youtube_urls(contents: dict, top=False):
         urls = []
         for dict_ in contents:
             if "videoRenderer" in dict_:
@@ -36,7 +37,7 @@ class Youtube(commands.Cog):
         return urls
 
     @cache()
-    async def search_youtube(self, query, top=False):
+    async def search_youtube(self, query: str, top=False):
         urls = list()
         search_url = "https://www.youtube.com/results?"
         params = {"search_query": "+".join(query.split())}
@@ -58,10 +59,10 @@ class Youtube(commands.Cog):
         return urls
 
     @commands.group(invoke_without_command=True)
-    async def youtube(self, ctx, *, query):
+    async def youtube(self, ctx: Context, *, query: str):
         """Search for videos on youtube"""
 
-        await ctx.trigger_typing()
+        await ctx.typing()
 
         results = await self.search_youtube(query)
 
@@ -72,7 +73,7 @@ class Youtube(commands.Cog):
         await pages.start(ctx)
 
     @youtube.command()
-    async def one(self, ctx, *, query):
+    async def one(self, ctx: Context, *, query: str):
         """Return only one youtube video"""
 
         result = await self.search_youtube(query, True)
@@ -82,7 +83,7 @@ class Youtube(commands.Cog):
         await ctx.send(*result)
 
 
-def setup(bot):
+async def setup(bot):
     n = Youtube(bot)
-    bot.add_cog(n)
+    await bot.add_cog(n)
 

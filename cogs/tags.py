@@ -11,11 +11,12 @@ from discord.ext import commands
 
 from config.utils.converters import TagNameConverter
 from config.utils.menu import page_source
+from config.utils.context import Context
 
 import loadconfig
 
 
-async def send_tag_content(tag, message):
+async def send_tag_content(tag: asyncpg.Record, message: discord.Message):
     if tag["nsfw"] and not message.channel.nsfw:
         return await message.channel.send(f"> This tag can only be used in NSFW channels.", delete_after=4)
 
@@ -32,7 +33,7 @@ class Tags(commands.Cog):
         self.cd = commands.CooldownMapping.from_cooldown(1, 4, commands.BucketType.member)
         self.emotes = {1: "🥇", 2: "🥈", 3: "🥉"}
 
-    async def invalidate_user_tags(self, ctx, member):
+    async def invalidate_user_tags(self, ctx: Context, member: discord.Member):
         tag_names = await ctx.db.fetch("SELECT tag_name from tags where guild_id = $1 and user_id = $2",
                                        ctx.guild.id, member.id)
         for name in tag_names:
@@ -40,24 +41,24 @@ class Tags(commands.Cog):
 
     @staticmethod
     @page_source()
-    def tag_source(self, menu, entries):
+    def tag_source(self, menu, entries: list):
 
         return "".join((f'\n> **{tag["tag_name"]}** (ID: {tag["tag_id"]})' for tag in entries))
 
     @staticmethod
     @page_source()
-    def search_source(self, menu, entries):
+    def search_source(self, menu, entries: list):
 
-        return f"> Tags found that contained `{self.name}`\n" + "\n".join((f"(**{tag['tag_name']}**)" for tag in entries))
+        return f"> Tags found that contained `{self.input}`\n" + "\n".join((f"(**{tag['tag_name']}**)" for tag in entries))
 
-    async def cog_check(self, ctx):
+    async def cog_check(self, ctx: Context):
         return ctx.guild is not None
 
-    async def cog_before_invoke(self, ctx):
+    async def cog_before_invoke(self, ctx: Context):
         # acquire a connection to the pool before every command
         await ctx.acquire()
 
-    async def get_member_stats(self, ctx, member):
+    async def get_member_stats(self, ctx: Context, member: discord.Member):
         query = """
                 WITH stats AS (
                     SELECT tag_name, uses, tag_id,
@@ -147,12 +148,13 @@ class Tags(commands.Cog):
         await ctx.send(embed=embed)
 
     @staticmethod
-    async def create_tag(ctx, name, content):
+    async def create_tag(ctx: Context, name: TagNameConverter, content: str):
 
         try:
             await ctx.pool.fetchval("""INSERT INTO tags (tag_name, guild_id, user_id, content, created_at) 
                                        VALUES ($1, $2, $3, $4, $5)""",
-                                    name, ctx.guild.id, ctx.author.id, content, ctx.message.created_at.replace(tzinfo=None))
+                                    name, ctx.guild.id, ctx.author.id, content,
+                                    ctx.message.created_at.replace(tzinfo=None))
 
         except asyncpg.UniqueViolationError:
             return await ctx.send(f":information_source: | tag name already exists")
@@ -164,7 +166,7 @@ class Tags(commands.Cog):
                        f"`{ctx.prefix}tag update {name} <content here>`.")
 
     @staticmethod
-    def prefixed_tag_names(allow_default, prefix, tag):
+    def prefixed_tag_names(allow_default: bool, prefix: str, tag: asyncpg.Record):
         if allow_default:
             check = (f"{prefix}{tag['tag_name']}", f"{loadconfig.__prefix__}{tag['tag_name']}")
 
@@ -173,7 +175,7 @@ class Tags(commands.Cog):
 
         return check
 
-    async def check_failure(self, tag, name, guild_id):
+    async def check_failure(self, tag: asyncpg.Record, name: str, guild_id: int):
         if not tag:
             # if it failed to find a tag invalidate the cache for it
             self.bot.tags_invalidate(guild_id, name)
@@ -181,7 +183,7 @@ class Tags(commands.Cog):
         return False
 
     @commands.Cog.listener()
-    async def on_guild_join(self, guild):
+    async def on_guild_join(self, guild: discord.Guild):
         async with self.bot.pool.acquire() as con:
             tups = [(m.id, guild.id) for m in guild.members if not m.bot]
 
@@ -189,7 +191,7 @@ class Tags(commands.Cog):
                                      VALUES ($1, $2) ON CONFLICT DO NOTHING;""", tups)
 
     @commands.Cog.listener()
-    async def on_message(self, message):
+    async def on_message(self, message: discord.Message):
         # still crude as hell
         # getting the context to check if the message contains a prefix
         ctx = await self.bot.get_context(message)
@@ -234,7 +236,7 @@ class Tags(commands.Cog):
             await ctx.release()
 
     @commands.group(invoke_without_command=True, aliases=["tags"])
-    async def tag(self, ctx, member: discord.Member = None):
+    async def tag(self, ctx: Context, member: discord.Member = None):
         """The main command for tags returns your current tags by itself or another member's."""
 
         member = member or ctx.author
@@ -247,13 +249,13 @@ class Tags(commands.Cog):
         await pages.start(ctx)
 
     @tag.command()
-    async def create(self, ctx, *, name: TagNameConverter):
+    async def create(self, ctx: Context, *, name: TagNameConverter):
         """Create a customisable tag for this guild"""
 
         await self.create_tag(ctx, name, ".")
 
     @tag.command()
-    async def claim(self, ctx, *, name):
+    async def claim(self, ctx: Context, *, name: str):
         """Claim a tag if the tag owner has left the server"""
 
         data = await ctx.db.fetchrow(
@@ -276,7 +278,7 @@ class Tags(commands.Cog):
         await ctx.send(f"> successfully transferred ownership of `{name}` to you.")
 
     @tag.command()
-    async def raw(self, ctx, *, name):
+    async def raw(self, ctx: Context, *, name: str):
         """Display a tag without markdown eg spoilers."""
 
         content = await ctx.db.fetchrow("SELECT content, nsfw from tags where LOWER(tag_name) = $1 and guild_id = $2",
@@ -299,7 +301,7 @@ class Tags(commands.Cog):
         await self.get_member_stats(ctx, member)
 
     @tag.command()
-    async def info(self, ctx, *, name):
+    async def info(self, ctx: Context, *, name: str):
         """Get info on a tag"""
         name = name.lower()
 
@@ -336,7 +338,7 @@ class Tags(commands.Cog):
         await ctx.send(embed=embed)
 
     @tag.command(aliases=["content", "details", "update"])
-    async def update_content(self, ctx, name, *, content: commands.clean_content):
+    async def update_content(self, ctx: Context, name: str, *, content: commands.clean_content):
         """Update a tag's content encase the tag's name in quotes if it has spaces"""
         name = name.lower()
 
@@ -374,7 +376,7 @@ class Tags(commands.Cog):
         await ctx.send(f"Tag Name: {tag['tag_name']}\n{tag['content']}")
 
     @tag.command(ignore_extra=False)
-    async def list(self, ctx):
+    async def list(self, ctx: Context):
         """Get a list of tags for the current guild"""
         query = """
             WITH stats AS (
@@ -408,7 +410,7 @@ class Tags(commands.Cog):
         await pages.start(ctx)
 
     @tag.group(invoke_without_command=True, aliases=["remove", "prune"])
-    async def delete(self, ctx, *, name):
+    async def delete(self, ctx: Context, *, name: str):
         """Delete a tag that you own
         Members with manage messages permissions can delete any tag."""
         name = name.lower()
@@ -432,7 +434,7 @@ class Tags(commands.Cog):
         await ctx.send(f"> tag `{name}` successfully deleted.")
 
     @delete.command(name="all")
-    async def delete_all(self, ctx, member: discord.Member):
+    async def delete_all(self, ctx: Context, member: discord.Member):
         """Delete all of a member's tags"""
 
         check = await self.bot.is_owner(ctx.author) or ctx.author.guild_permissions.manage_messages
@@ -450,7 +452,7 @@ class Tags(commands.Cog):
         await ctx.send(":no_entry: | you need manage message permissions for this command.")
 
     @tag.group(invoke_without_command=True)
-    async def nsfw(self, ctx, nsfw: typing.Optional[bool] = True, *, name):
+    async def nsfw(self, ctx, nsfw: typing.Optional[bool] = True, *, name: str):
         """The main command for NSFW tags, by itself sets a tag to be only be usable in NSFW channels
         pass True for nsfw False to not make it NSFW **this command requires manage messages perms*"""
         name = name.lower()
@@ -478,7 +480,7 @@ class Tags(commands.Cog):
             await ctx.send(":no_entry: | you lack the permissions to make this tag NSFW.")
 
     @nsfw.command(name="all")
-    async def nsfw_all(self, ctx, nsfw: typing.Optional[bool] = True, *, member: discord.Member):
+    async def nsfw_all(self, ctx: Context, nsfw: typing.Optional[bool] = True, *, member: discord.Member):
         """Set all of a members tag to be NSFW or not NSFW."""
 
         check = await self.bot.is_owner(ctx.author) or ctx.author.guild_permissions.manage_messages
@@ -502,7 +504,7 @@ class Tags(commands.Cog):
             await ctx.send(":no_entry: | you need manage message permissions for this command.")
 
     @tag.command()
-    async def transfer(self, ctx, member: discord.Member, *, name):
+    async def transfer(self, ctx: Context, member: discord.Member, *, name: str):
         """Transfer a tag you own to another user"""
         name = name.lower()
 
@@ -522,7 +524,7 @@ class Tags(commands.Cog):
         await ctx.send(f"> Successfully transferred ownership of the tag `{name}` to {member.name}.")
 
     @tag.command()
-    async def search(self, ctx, *, name):
+    async def search(self, ctx: Context, *, name: str):
         """Search for tags that start with a name"""
         name = name.lower()
 
@@ -537,15 +539,15 @@ class Tags(commands.Cog):
         await pages.start(ctx)
 
     @update_content.after_invoke
-    async def after_tag_update(self, ctx):
+    async def after_tag_update(self, ctx: Context):
         self.bot.tags_invalidate(ctx.guild.id, ctx.args[-1])
 
     @delete.after_invoke
     @nsfw.after_invoke
-    async def after_delete(self, ctx):
+    async def after_delete(self, ctx: Context):
         self.bot.tags_invalidate(ctx.guild.id, ctx.kwargs["name"])
 
 
-def setup(bot):
+async def setup(bot):
     n = Tags(bot)
-    bot.add_cog(n)
+    await bot.add_cog(n)

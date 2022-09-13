@@ -6,6 +6,7 @@ import sys
 from discord.ext import commands
 import discord
 
+from config.utils.context import Context
 from config.utils.requests import RequestFailed
 
 
@@ -16,14 +17,14 @@ class CommandErrorHandler(commands.Cog):
         self.bot = bot
 
     @staticmethod
-    async def private_message_invoke(ctx):
+    async def private_message_invoke(ctx: Context):
         msg = copy.copy(ctx.message)
         msg.content += ctx.message.content
         new_ctx = await ctx.bot.get_context(msg)
         return await new_ctx.reinvoke()
 
     @commands.Cog.listener()
-    async def on_command_error(self, ctx, error):
+    async def on_command_error(self, ctx: Context, error):
 
         author = ctx.bot.get_user(295325269558951936)
 
@@ -72,5 +73,5 @@ class CommandErrorHandler(commands.Cog):
             traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
 
 
-def setup(bot):
-    bot.add_cog(CommandErrorHandler(bot))
+async def setup(bot):
+    await bot.add_cog(CommandErrorHandler(bot))

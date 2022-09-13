@@ -1,8 +1,30 @@
 import re
-
 from contextlib import suppress
 
 from discord.ext import commands
+
+from config.utils.context import Context
+
+
+class QueryIdNameConverter:
+    def __init__(self):
+        pass
+
+    async def check(self, ctx: Context, argument: str, id_query: str, name_query: str,
+                    error_msg="An invalid id/name was passed.") -> int:
+        argument = argument.lower().strip()
+
+        async with ctx.acquire():
+
+            if not argument.isdigit():
+                check = await ctx.db.fetchval(name_query, argument)
+            else:
+                check = await ctx.db.fetchval(id_query, int(argument))
+
+            if check:
+                return check
+
+            raise commands.BadArgument(error_msg)
 
 
 class TagNameConverter(commands.Converter):
@@ -16,7 +38,7 @@ class TagNameConverter(commands.Converter):
             if isinstance(cmd, commands.Group):
                 self.add_command_alias(qualified_names, cmd)
 
-    async def convert(self, ctx, argument):
+    async def convert(self, ctx: Context, argument) -> str:
 
         new_name = await commands.clean_content().convert(ctx, argument.lower())
 
@@ -43,44 +65,30 @@ class TagNameConverter(commands.Converter):
         return new_name
 
 
-class FishRarityConventer(commands.Converter):
-    async def convert(self, ctx, argument):
-        rarity = argument.lower().strip()
-
-        rarities = {"common": "1", "elite": "2", "super": "3", "legendary": "-1"}
-        rarity = rarities.get(rarity, rarity)
-
-        if rarity not in ("1", "2", "3", "-1"):
-            raise commands.BadArgument(":no_entry: | an invalid rarity was passed.")
-
-        return int(rarity)
+class BaitConverter(commands.Converter, QueryIdNameConverter):
+    async def convert(self, ctx: Context, argument) -> int:
+        name_statement = "SELECT bait_id from fish_bait WHERE (LOWER(bait_name) LIKE '%' || $1 || '%')"
+        id_statement = "SELECT * FROM fish_bait WHERE bait_id = $1"
+        return await self.check(ctx, argument, id_statement, name_statement, "an invalid rarity was passed.")
 
 
-class FishNameConventer(commands.Converter):
-    async def convert(self, ctx, argument):
-        argument = argument.lower().strip()
-        fish = ""
-        async with ctx.acquire():
+class FishRarityConventer(commands.Converter, QueryIdNameConverter):
+    async def convert(self, ctx: Context, argument) -> int:
+        name_statement = "SELECT rarity_id from fish_rarity WHERE (LOWER(rarity_name) LIKE '%' || $1 || '%')"
+        id_statement = "SELECT * FROM fish_rarity WHERE rarity_id = $1"
+        return await self.check(ctx, argument, id_statement, name_statement, "an invalid rarity was passed.")
 
-            if not argument.isdigit():
-                fish = await ctx.db.fetchval("SELECT fish_id from fish where (LOWER(fish_name) like '%' || $1 || '%')",
-                                             argument)
 
-            if fish:
-                return fish
+class FishNameConventer(commands.Converter, QueryIdNameConverter):
+    async def convert(self, ctx: Context, argument) -> int:
 
-            if argument.isdigit():
-
-                check = await ctx.db.fetchval("SELECT * from fish where fish_id = $1", int(argument))
-
-                if check:
-                    return int(argument)
-
-            raise commands.BadArgument("an invalid fish was passed.")
+        name_statement = "SELECT fish_id FROM fish WHERE (LOWER(fish_name) LIKE '%' || $1 || '%')"
+        id_statement = "SELECT * FROM fish WHERE fish_id = $1"
+        return await self.check(ctx, argument, id_statement, name_statement, "an invalid fish was passed.")
 
 
 class SeasonConverter(commands.Converter):
-    async def convert(self, ctx, argument):
+    async def convert(self, ctx: Context, argument) -> str:
         argument = argument.lower().capitalize()
 
         seasons = ("Winter", "Summer", "Spring", "Autumn", "Fall")
@@ -121,7 +129,7 @@ class SeasonConverter(commands.Converter):
 
 
 class TriviaCategoryConverter(commands.Converter):
-    async def convert(self, ctx, argument):
+    async def convert(self, ctx: Context, argument) -> int:
         async with ctx.acquire():
 
             argument = argument.lower()
@@ -131,7 +139,7 @@ class TriviaCategoryConverter(commands.Converter):
 
             else:
 
-                result = await ctx.db.fetchval("SELECT category_id from category where LOWER(name) like $1", argument)
+                result = await ctx.db.fetchval("SELECT category_id from category where LOWER(name) LIKE $1", argument)
 
             if not result:
                 raise commands.BadArgument("Invalid Category was passed.")
@@ -140,18 +148,18 @@ class TriviaCategoryConverter(commands.Converter):
 
 
 class TriviaDiffcultyConventer(commands.Converter):
-    async def convert(self, ctx, argument):
+    async def convert(self, ctx: Context, argument) -> str:
         async with ctx.acquire():
-            diffculties = [result["difficulty"] for result in
+            difficulties = [result["difficulty"] for result in
                            await ctx.db.fetch("SELECT DISTINCT difficulty from question")]
-            if argument in diffculties:
+            if argument in difficulties:
                 return argument
 
             raise commands.BadArgument("Invalid difficulty was entered")
 
 
 class DieConventer(commands.Converter):
-    async def convert(self, ctx, argument):
+    async def convert(self, ctx: Context, argument) -> tuple[int, int, list]:
         rolls, d, expression = argument.partition("d")
 
         if any(x in expression for x in ("//", "**", "^")):
