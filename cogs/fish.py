@@ -112,7 +112,7 @@ class Fishing(commands.Cog):
     async def insert_fish(self, ctx, emote, rarity_id):
         await ctx.db.execute("""
             INSERT INTO fish (fish_name, rarity_id) VALUES ($1, $2) 
-            ON CONFLICT DO UPDATE SET rarity_id = $2;""", str(emote), rarity_id)
+            ON CONFLICT (fish_name) DO UPDATE SET rarity_id = $2;""", str(emote), rarity_id)
 
     def check_all_emotes(self, guild_ids, emote_name) -> typing.Union[discord.Emoji, bool]:
         emotes = []
