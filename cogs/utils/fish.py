@@ -198,7 +198,7 @@ class Fishing:
     @staticmethod
     async def get_all_fish(con: asyncpg.Connection):
         return await con.fetch("""
-           SELECT f.fish_id, f.fish_name, f.bait_id, f.rarity_id, fr.rarity_name as rarity 
+           SELECT f.fish_id, f.fish_name, f.rarity_id, fr.rarity_name as rarity 
            FROM fish f
            INNER JOIN fish_rarity fr on fr.rarity_id = f.rarity_id""")
 
