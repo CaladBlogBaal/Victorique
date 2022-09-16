@@ -63,14 +63,14 @@ class TicTacToePlayersView(discord.ui.View):
         if not self.message:
             self.message = await self.ctx.send(message, view=self)
 
-        await self.message.edit(message, view=self)
+        await self.message.edit(content=message, view=self)
 
     async def interaction_check(self, interaction):
         return interaction.user.id == self.ctx.author.id
 
     async def on_timeout(self) -> None:
         self.clear_items()
-        await self.message.edit(":information_source: | haven't received an input for awhile stopping the game.",
+        await self.message.edit(content=":information_source: | haven't received an input for awhile stopping the game.",
                                 delete_after=10)
         self.stop()
 
@@ -106,18 +106,18 @@ class TicTacToeButton(discord.ui.Button["TicTacToe"]):
         self.view.check_winning_move(player)
 
         if player.winner:
-            await self.view.message.edit(f":information_source: | {player.name} won", view=self.view)
+            await self.view.message.edit(content=f":information_source: | {player.name} won", view=self.view)
             return self.view.stop()
 
         if self.view.boards_full():
-            await self.view.message.edit("Game was a draw.", view=self.view)
+            await self.view.message.edit(content="Game was a draw.", view=self.view)
             return self.view.stop()
 
         # honestly have no id of a better way to do this for now, this feels janky
         for player_id in self.view.players:
             if interaction.user.id != player_id:
                 self.view.current_player_id = player_id
-                await self.view.message.edit(f"It's {self.view.players[player_id].name} turn!", view=self.view)
+                await self.view.message.edit(content=f"It's {self.view.players[player_id].name} turn!", view=self.view)
 
 
 class TicTacToe(discord.ui.View):
@@ -149,7 +149,7 @@ class TicTacToe(discord.ui.View):
                 # who goes first
                 _, player = random.choice(list(self.players.items()))
                 self.current_player_id = player.member.id
-                await self.message.edit(f"It's {player.name} turn!", view=self)
+                await self.message.edit(content=f"It's {player.name} turn!", view=self)
 
     @property
     def current_player_id(self):
