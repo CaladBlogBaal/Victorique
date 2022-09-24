@@ -128,7 +128,9 @@ class Anime(commands.Cog, command_attrs=dict(cooldown=commands.CooldownMapping(c
 
     async def get_recent_image_urls(self, ctx: Context, skip):
 
-        messages = await ctx.channel.history().filter(lambda m: m.attachments != [] or m.embeds != []).flatten()
+        messages = [message async for message in ctx.channel.history()
+                    if message.attachments != [] or message.embeds != []]
+
         image_urls = []
         # ctx.history limit is 100 by default
         skip = skip if skip < 100 else 99
@@ -181,13 +183,13 @@ class Anime(commands.Cog, command_attrs=dict(cooldown=commands.CooldownMapping(c
 
     @anime.command(name="staff")
     async def anime_staff(self, ctx: Context, *, anime_name_or_id: typing.Union[int, str]):
-        """Retrieves the staff for an anime from anilist using it's name or id"""
+        """Retrieves the staff for an anime from anilist using its name or id"""
         js = await self.ani_list_api.anime_staff_by_title(anime_name_or_id)
         await self.get_staff(ctx, js)
 
     @anime.command(name="recommendations", aliases=["r"])
     async def anime_recommendations(self, ctx: Context, *, anime_name_id: typing.Union[int, str]):
-        """Returns the first 10 recommendations for a anime"""
+        """Returns the first 10 recommendations for an anime"""
 
         js = await self.ani_list_api.anime_rec_by_title(anime_name_id)
         await self.get_recommendations(ctx, js)
@@ -195,12 +197,12 @@ class Anime(commands.Cog, command_attrs=dict(cooldown=commands.CooldownMapping(c
     @commands.group(invoke_without_command=True)
     async def manga(self, ctx: Context, *, manga_name):
         """Search for a manga on anilist"""
-        js = await self.ani_list_api.anime_search(manga_name)
+        js = await self.ani_list_api.manga_search(manga_name)
         await self.get_media(ctx, js)
 
     @manga.command(name="staff")
     async def manga_staff(self, ctx: Context, *, manga_name_id: typing.Union[int, str]):
-        """Retrieves the staff for a manga from anilist using it's name or id"""
+        """Retrieves the staff for a manga from anilist using its name or id"""
         js = await self.ani_list_api.anime_staff_by_title(manga_name_id)
         await self.get_staff(ctx, js)
 

@@ -684,9 +684,9 @@ class AzurLane(commands.Cog, name="Azur Lane"):
         await self.find_image_names(ctx, word)
 
     @commands.command(aliases=["fai"])
-    async def find_any_image(self, ctx, *, word):
+    async def find_any_image(self, ctx: Context, *, word):
         """Attempts to find image file names that starts with the word."""
-        await ctx.trigger_typing()
+        await ctx.typing()
         await self.find_image_names(ctx, word, False)
 
 
