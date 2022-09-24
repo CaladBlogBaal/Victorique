@@ -32,6 +32,25 @@ class FishBuyView(discord.ui.View):
             btn.emoji = bait["bait_emote"]
             self.add_item(btn)
 
+    async def buy_all(self, bait_id: BaitConverter):
+        balance = await self.ctx.db.fetchval("select credits from users where user_id = $1", self.ctx.author.id)
+
+        bait = await self.ctx.db.fetchrow("SELECT * FROM fish_bait WHERE bait_id = $1", bait_id)
+        bait_price = bait["price"]
+        amount = balance // bait_price
+
+        if amount == 0:
+            return await self.ctx.send("You don't have enough money to buy any bait.")
+
+        async with self.ctx.db.transaction():
+            await self.ctx.db.execute("UPDATE users SET credits = credits - $1 WHERE user_id = $2", bait_price * amount,
+                                      self.ctx.author.id)
+
+            await self.ctx.db.execute("""UPDATE fish_user_inventory SET amount = amount + $1 
+                                         WHERE user_id = $2 AND bait_id = $3""", amount, self.ctx.author.id, bait_id)
+
+        await self.ctx.send(f"You bought {amount} {bait['bait_emote']} for {bait_price * amount} credits.")
+
 
 class BaseView(discord.ui.View):
     def __init__(self, ctx):

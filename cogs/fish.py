@@ -5,7 +5,7 @@ import typing
 import discord
 from discord.ext import commands
 
-from config.utils.converters import FishNameConventer, FishRarityConventer
+from config.utils.converters import FishNameConventer, FishRarityConventer, BaitConverter
 from config.utils.emojis import C_BAIT
 from config.utils.context import Context
 
@@ -245,7 +245,7 @@ class Fishing(commands.Cog):
         f = Fish(ctx)
         await f.update_fish_favourites(ctx, fish_ids, True)
 
-    @fish.command(name="buy", aliases=["bait_buy", "shop", "store"])
+    @fish.group(invoke_without_command=True, name="buy", aliases=["bait_buy", "shop", "store"])
     @commands.cooldown(1, 3, commands.BucketType.user)
     async def bait_buy(self, ctx: Context, amount: int = 1):
         """Buy some bait"""
@@ -257,6 +257,13 @@ class Fishing(commands.Cog):
                           for bait in data)
 
         await ctx.send(content=content, view=fb)
+
+    @bait_buy.command(name="all")
+    async def bait_buy_all(self, ctx: Context, bait_id: BaitConverter):
+        """Buy all bait of a specific type of bait allowed."""
+
+        fb = FishBuyView(ctx)
+        await fb.buy_all(bait_id)
 
     @fish.command(aliases=["storage", "items"])
     @commands.cooldown(1, 3, commands.BucketType.user)
