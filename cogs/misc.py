@@ -107,6 +107,34 @@ class Misc(commands.Cog):
             "http://33.media.tumblr.com/cb86adbde8dd8feaa586eda4ad29d4be/tumblr_njx8yblrf51tiz9nro1_500.gif"
         ]
 
+        # Feel like this is cleaner
+        # rip Misc Help
+        action_cmd_names = ["slap", "pat", "cuddle", "hug", "poke", "tickle", "kiss"]
+        for name in action_cmd_names:
+
+            async def callback(ctx: Context, member: typing.Union[discord.Member, discord.User]):
+
+                bot_urls = {"slap": "https://giffiles.alphacoders.com/197/197854.gif",
+                            "pat": "https://thumbs.gfycat.com/ClearFalseFulmar-small.gif",
+                            "kiss": "https://media2.giphy.com/media/24PHsMnvGUVdS/source.gif",
+                            "poke": "https://66.media.tumblr.com/b061114bf8251a4f037c651bd2a86a1c"
+                                   "/tumblr_mr1bfrQ9Jb1qeysf2o3_500.gif",
+                            "hug": "https://media1.tenor.com/images/ebba558cbe12af15a4422f583ef2bb86/tenor.gif"}
+
+                if ctx.bot.user.mentioned_in(ctx.message):
+                    url = bot_urls.get(ctx.command.name)
+                    return await ctx.send(embed=discord.Embed(color=self.bot.default_colors()).set_image(url=url))
+
+                action = ctx.command.name.replace("e", "")
+                content = [f"**{ctx.author.mention} is {action}ing {member.mention}!**"]
+                await ctx.send(
+                    embed=await self.bot.api_get_image(content,
+                                                       f"https://nekos.life/api/v2/img/{ctx.command.name}", "url"))
+
+            cmd_help = name.capitalize() + " a guild member or user"
+            cmd = commands.Command(callback, name=name, help=cmd_help)
+            self.bot.add_command(cmd)
+
     @commands.Cog.listener()
     async def on_member_update(self, before, after):
 
@@ -178,42 +206,16 @@ class Misc(commands.Cog):
             del expression[0]
 
         return results[0], results[1]
-        # Feel like this is cleaner
-        # rip Misc Help
-        action_cmd_names = ["slap", "pat", "cuddle", "hug", "poke", "tickle", "kiss"]
-        for name in action_cmd_names:
-
-            async def callback(ctx: Context, member: typing.Union[discord.Member, discord.User]):
-
-                bot_urls = {"slap": "https://giffiles.alphacoders.com/197/197854.gif",
-                            "pat": "https://thumbs.gfycat.com/ClearFalseFulmar-small.gif",
-                            "kiss": "https://media2.giphy.com/media/24PHsMnvGUVdS/source.gif",
-                            "poke": "https://66.media.tumblr.com/b061114bf8251a4f037c651bd2a86a1c"
-                                   "/tumblr_mr1bfrQ9Jb1qeysf2o3_500.gif",
-                            "hug": "https://media1.tenor.com/images/ebba558cbe12af15a4422f583ef2bb86/tenor.gif"}
-
-                if ctx.bot.user.mentioned_in(ctx.message):
-                    url = bot_urls.get(ctx.command.name)
-                    return await ctx.send(embed=discord.Embed(color=self.bot.default_colors()).set_image(url=url))
-
-                action = ctx.command.name.replace("e", "")
-                content = [f"**{ctx.author.mention} is {action}ing {member.mention}!**"]
-                await ctx.send(
-                    embed=await self.bot.api_get_image(content,
-                                                       f"https://nekos.life/api/v2/img/{ctx.command.name}", "url"))
-
-            cmd_help = name.capitalize() + " a guild member or user"
-            self.bot.add_command(commands.Command(callback, name=name, help=cmd_help))
 
     @staticmethod
     @page_source(per_page=7)
     def emote_source(self, menu, entries):
-        embed = discord.Embed(title=f"{self.ctx.guild.input} emotes",
+        embed = discord.Embed(title=f"{self.ctx.guild.name} emotes",
                               color=discord.Color.dark_magenta())
 
         for emote in entries:
             value = f"Emote {self.count}"
-            embed.add_field(name=f"Emote name " f"{emote.input} : {str(emote)}",
+            embed.add_field(name=f"Emote name " f"{emote.name} : {str(emote)}",
                             value=value, inline=False)
             self.count += 1
         return embed
@@ -240,7 +242,7 @@ class Misc(commands.Cog):
         embed.add_field(name="Example", value=example)
         embed.add_field(name="Contributor", value=author, inline=False)
         embed.add_field(name="Rating", value=f"\👍**{entry['thumbs_up']}** \👎**{entry['thumbs_down']}**")
-        embed.set_footer(text=f"Requested by {self.ctx.message.author.input}",
+        embed.set_footer(text=f"Requested by {self.ctx.message.author.name}",
                          icon_url=self.ctx.message.author.avatar.url)
         embed.set_image(url="https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/UD_"
                             "logo-01.svg/1280px-UD_logo-01.svg.png")
@@ -626,11 +628,13 @@ class Misc(commands.Cog):
 
     @commands.command()
     @commands.guild_only()
-    @commands.has_permissions(manage_nicknames=True)
     async def curse(self, ctx: Context, member: discord.Member, *, nickname):
         """Curse a member with a nickname"""
 
-        # this command is hacky lazily and poorly done but it's w/e
+        # this command is hacky lazily and poorly done, but it's w/e
+
+        if ctx.me.guild_permissions.manage_nicknames is False:
+            return await ctx.send(":no_entry: | I don't have the `manage nicknames` permission for this command.")
 
         if member.bot:
             return
