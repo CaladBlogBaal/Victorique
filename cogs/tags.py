@@ -49,7 +49,7 @@ class Tags(commands.Cog):
     @page_source()
     def search_source(self, menu, entries: list):
 
-        return f"> Tags found that contained `{self.input}`\n" + "\n".join((f"(**{tag['tag_name']}**)" for tag in entries))
+        return f"> Tags found that contained `{self.name}`\n" + "\n".join((f"(**{tag['tag_name']}**)" for tag in entries))
 
     async def cog_check(self, ctx: Context):
         return ctx.guild is not None
