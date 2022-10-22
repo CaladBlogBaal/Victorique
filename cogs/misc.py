@@ -81,6 +81,7 @@ def reverse(argument):
 
 class Misc(commands.Cog):
     """Some misc related commands"""
+
     def __init__(self, bot):
         self.bot = bot
         self.transparent = str(TRANSPARENT)
@@ -101,10 +102,10 @@ class Misc(commands.Cog):
             "https://33.media.tumblr.com/88736039b8ce3621bbd27183c6e226ff/tumblr_nrlp9qqoHQ1t0p1pao1_500.gif",
             "https://media0.giphy.com/media/NzbcdfP2B6GKk/200.gif",
             "https://img1.ak.crunchyroll.com/i/spire2/a8a77a784ffde43c16bf7df10c447bd81437882910_full.gif",
-            "http://images.rapgenius.com/abbb4fb420fb5becf35dc05ab9cdbe72.500x375x13.gif",
+            "https://images.rapgenius.com/abbb4fb420fb5becf35dc05ab9cdbe72.500x375x13.gif",
             "https://38.media.tumblr.com/fbb9d202ce5418fe96a8964d2cb63ac0/tumblr_nrulg4sv8l1qcsnnso1_500.gif",
-            "http://38.media.tumblr.com/a6ff26b3fb8914a8aef9e3ee12b95f96/tumblr_nbjrmc3tiI1std21fo1_500.gif",
-            "http://33.media.tumblr.com/cb86adbde8dd8feaa586eda4ad29d4be/tumblr_njx8yblrf51tiz9nro1_500.gif"
+            "https://38.media.tumblr.com/a6ff26b3fb8914a8aef9e3ee12b95f96/tumblr_nbjrmc3tiI1std21fo1_500.gif",
+            "https://33.media.tumblr.com/cb86adbde8dd8feaa586eda4ad29d4be/tumblr_njx8yblrf51tiz9nro1_500.gif"
         ]
 
         # Feel like this is cleaner
@@ -118,7 +119,7 @@ class Misc(commands.Cog):
                             "pat": "https://thumbs.gfycat.com/ClearFalseFulmar-small.gif",
                             "kiss": "https://media2.giphy.com/media/24PHsMnvGUVdS/source.gif",
                             "poke": "https://66.media.tumblr.com/b061114bf8251a4f037c651bd2a86a1c"
-                                   "/tumblr_mr1bfrQ9Jb1qeysf2o3_500.gif",
+                                    "/tumblr_mr1bfrQ9Jb1qeysf2o3_500.gif",
                             "hug": "https://media1.tenor.com/images/ebba558cbe12af15a4422f583ef2bb86/tenor.gif"}
 
                 if ctx.bot.user.mentioned_in(ctx.message):
@@ -134,6 +135,13 @@ class Misc(commands.Cog):
             cmd_help = name.capitalize() + " a guild member or user"
             cmd = commands.Command(callback, name=name, help=cmd_help)
             self.bot.add_command(cmd)
+
+    async def get_random_active_member(self, ctx: Context, member: discord.Member):
+        """Gets a random active member from the guild"""
+        members = [m.author async for m in ctx.channel.history(limit=200)
+                   if not m.author.bot and m.author.status != discord.Status.offline and member != m.author]
+
+        return random.choice(members)
 
     @commands.Cog.listener()
     async def on_member_update(self, before, after):
@@ -151,7 +159,6 @@ class Misc(commands.Cog):
             if new_name != cursed_name:
                 if time:
                     if time > discord.utils.utcnow().replace(tzinfo=None):
-
                         with contextlib.suppress(discord.errors.Forbidden):
                             await after.edit(nick=cursed_name)
 
@@ -276,7 +283,7 @@ class Misc(commands.Cog):
     @commands.command()
     async def diamond(self, ctx: Context, size: typing.Optional[int] = 5, *emotes: commands.clean_content):
         """Draw a diamond
-        if more then one emote is passed will default to random emote for each row"""
+        if more than one emote is passed will default to random emote for each row"""
         shape = ShapeDrawing(list(emotes), [self.transparent], size)
 
         top, bottom = shape.diamond_draw()
@@ -401,7 +408,7 @@ class Misc(commands.Cog):
     @commands.command(alasies=["genetically_engineered_cat_girls"])
     async def gecg(self, ctx: Context):
         """
-        Get a random genetically egineered cat girl meme
+        Get a random genetically engineered cat girl meme
         """
         await ctx.send(embed=await self.bot.api_get_image([""], "https://nekos.life/api/v2/img/gecg", "url"))
 
@@ -469,7 +476,7 @@ class Misc(commands.Cog):
     @commands.command(name="kemo")
     async def kemonomimi(self, ctx: Context, amount=1):
         """
-        Get a random picture/pictues kemonomimis
+        Get a random picture/pictures kemonomimis
         20 is the maximum
         """
         if amount < 1:
@@ -625,13 +632,12 @@ class Misc(commands.Cog):
                 except discord.errors.HTTPException:
                     return
 
-
     @commands.command()
     @commands.guild_only()
     async def curse(self, ctx: Context, member: discord.Member, *, nickname):
         """Curse a member with a nickname"""
 
-        # this command is hacky lazily and poorly done, but it's w/e
+        # this command is still hacky and lazily as well as poorly done, but it's w/e
 
         if ctx.me.guild_permissions.manage_nicknames is False:
             return await ctx.send(":no_entry: | I don't have the `manage nicknames` permission for this command.")
@@ -649,9 +655,9 @@ class Misc(commands.Cog):
 
         attacker, defender = await self.roll_dice(ctx)
 
-        cooldown = ctx.message.created_at.replace(tzinfo=None) + datetime.timedelta(hours=6)
+        cooldown = discord.utils.utcnow().replace(tzinfo=None) + datetime.timedelta(hours=6)
 
-        curse_time = ctx.message.created_at.replace(tzinfo=None) + datetime.timedelta(hours=1)
+        curse_time = discord.utils.utcnow().replace(tzinfo=None) + datetime.timedelta(hours=1)
 
         message = ":white_check_mark: (Attacker: 1d20 ({0}) = {0}) vs. (Defender: 1d20 ({1}) = {1})" \
                   "\nCursed {2}'s to `{3}` until `{4}`.\nYour ability to curse is on cooldown until {5}."
@@ -661,73 +667,76 @@ class Misc(commands.Cog):
                    "\nyour ability to curse is on cooldown until {4}."
 
         now = discord.utils.utcnow().replace(tzinfo=None)
-        if attacker > defender == 1 and attacker == 20:
-            curse_time = ctx.message.created_at.replace(tzinfo=None) + datetime.timedelta(days=7)
-            message = ":dart: Nat 20 Critical attack against a critical failure! :dart:\n" + message
-            message = message.format(attacker, defender, member.mention, nickname,
-                                     h.naturaltime(now - curse_time), h.naturaltime(cooldown))
 
-        elif attacker > defender and attacker == 20:
-            curse_time = ctx.message.created_at.replace(tzinfo=None) + datetime.timedelta(hours=2)
-            message = ":dart: Nat 20 Critical hit! :dart:\n" + message
-            message = message.format(attacker, defender, member.mention, nickname,
-                                     h.naturaltime(now - curse_time), h.naturaltime(cooldown))
+        if attacker > defender:
+            if defender == 1 and attacker == 20:
+                curse_time = discord.utils.utcnow().replace(tzinfo=None) + datetime.timedelta(days=7)
+                message = ":dart: Nat 20 Critical attack against a critical failure! :dart:\n" + message
+                message = message.format(attacker, defender, member.mention, nickname,
+                                         h.naturaltime(now - curse_time), h.naturaltime(cooldown))
+            elif attacker == 20:
+                curse_time = discord.utils.utcnow().replace(tzinfo=None) + datetime.timedelta(hours=24)
+                message = ":dart: Nat 20 Critical hit! :dart:\n" + message
+                message = message.format(attacker, defender, member.mention, nickname,
+                                         h.naturaltime(now - curse_time), h.naturaltime(cooldown))
 
-        elif attacker > defender == 1:
-            curse_time = ctx.message.created_at.replace(tzinfo=None) + datetime.timedelta(hours=24)
-            message = ":x: Critical defending failure! :x:\n" + message
-            message = message.format(attacker, defender, member.mention, nickname,
-                                     h.naturaltime(now - curse_time), h.naturaltime(cooldown))
+            elif defender == 1:
+                curse_time = discord.utils.utcnow().replace(tzinfo=None) + datetime.timedelta(hours=24)
+                message = ":x: Critical defending failure! :x:\n" + message
+                message = message.format(attacker, defender, member.mention, nickname,
+                                         h.naturaltime(now - curse_time), h.naturaltime(cooldown))
 
-        elif attacker > defender:
-            message = message.format(attacker, defender, member.mention, nickname,
-                                     h.naturaltime(now - curse_time), h.naturaltime(cooldown))
-
-        elif defender > attacker == 1 and defender == 20:
-
-            attacker_won = False
-            cooldown = ctx.message.created_at.replace(tzinfo=None) + datetime.timedelta(days=7)
-            curse_time = ctx.message.created_at.replace(tzinfo=None) + datetime.timedelta(days=7)
-            message = shielded
-            message = message.format(member.nick, f"...and it ended up being reflected back at {ctx.author.mention}!",
-                                     attacker, defender, h.naturaltime(now - curse_time), h.naturaltime(cooldown))
-
-        elif defender > attacker and defender == 20:
-
-            attacker_won = False
-            random_member = random.choice(ctx.author.guild.members)
-            message = shielded
-            message = message.format(member.nick, f"...and it ended up hitting {random_member.mention} by mistake!",
-                                    attacker, defender, h.naturaltime(now - curse_time), h.naturaltime(cooldown))
-
-            try:
-                await random_member.edit(nick=nickname)
-            except discord.errors.Forbidden:
-                await ctx.send("An error occurred trying to edit a nickname, probably due role hierarchy.")
-
-        elif defender > attacker == 1:
-            cooldown = ctx.message.created_at.replace(tzinfo=None) + datetime.timedelta(days=1)
-            message = ":x: Critical attacking failure! :x:\n" + message
-
-            message = message.format(attacker, defender, member.mention, nickname,
-                                     h.naturaltime(now - curse_time), h.naturaltime(cooldown))
+            else:
+                message = message.format(attacker, defender, member.mention, nickname,
+                                         h.naturaltime(now - curse_time), h.naturaltime(cooldown))
 
         elif defender > attacker:
-            attacker_won = False
-            message = shielded
-            message = message.format(member.nick, ".", attacker, defender, h.naturaltime(now - curse_time),
-                                     h.naturaltime(cooldown))
 
+            attacker_won = False
+
+            if attacker == 1 and defender == 20:
+                cooldown = discord.utils.utcnow().replace(tzinfo=None) + datetime.timedelta(days=7)
+                curse_time = discord.utils.utcnow().replace(tzinfo=None) + datetime.timedelta(days=7)
+                message = shielded
+                message = message.format(member.nick,
+                                         f"...and it ended up being reflected back at {ctx.author.mention}!",
+                                         attacker, defender, h.naturaltime(now - curse_time), h.naturaltime(cooldown))
+
+                member = ctx.author
+
+            elif defender == 20:
+                random_member = await self.get_random_active_member(ctx, member) or ctx.author
+                message = shielded
+                message = message.format(member.nick, f"...and it ended up hitting {random_member.mention} by mistake!",
+                                         attacker, defender, h.naturaltime(now - curse_time), h.naturaltime(cooldown))
+
+                try:
+                    await random_member.edit(nick=nickname)
+                    member = random_member
+                except discord.errors.Forbidden:
+                    await ctx.send("An error occurred trying to edit a nickname, probably due role hierarchy.")
+
+            elif attacker == 1:
+                cooldown = discord.utils.utcnow().replace(tzinfo=None) + datetime.timedelta(days=1)
+                message = ":x: Critical attacking failure! :x:\n" + shielded
+                message = message.format(member.nick, ".", attacker, defender, h.naturaltime(now - curse_time),
+                                         h.naturaltime(cooldown))
+
+
+            else:
+                message = shielded
+                message = message.format(member.nick, ".", attacker, defender, h.naturaltime(now - curse_time),
+                                         h.naturaltime(cooldown))
 
         else:
             message = ":crossed_swords: both sides have gotten hurt due to an equal exchange.\n" \
                       ":white_check_mark: (Attacker: 1d20 ({0}) = {0}) vs. (Defender: 1d20 ({1}) = {1})" \
-                  "\nCursed {2}'s to `{3}` until `{4}`\n.\nCursed {6}'s to {3} for {4}" \
-                      "Your ability to curse is on cooldown until {5}.".format(attacker, defender,
-                                                                             member.mention, nickname,
-                                                                             h.naturaltime(now - curse_time),
-                                                                             h.naturaltime(cooldown),
-                                                                             ctx.author.mention)
+                      "\nCursed {2}'s to `{3}` until `{4}`\n.\nCursed {6}'s to {3} for {4}" \
+                      "\nYour ability to curse is on cooldown until {5}.".format(attacker, defender,
+                                                                               member.mention, nickname,
+                                                                               h.naturaltime(now - curse_time),
+                                                                               h.naturaltime(cooldown),
+                                                                               ctx.author.mention)
             try:
 
                 await ctx.author.edit(nick=nickname)
@@ -740,7 +749,7 @@ class Misc(commands.Cog):
             await con.execute("""INSERT INTO cursed_user 
                                       (user_id, curse_at, curse_name, curse_cooldown, curse_ends_at) VALUES 
                                       ($1, $2, $3, $4, $5) ON CONFLICT (curse_at, user_id) DO UPDATE 
-                                      SET curse_ends_at = $5, curse_at = $2, curse_name = $3
+                                      SET curse_ends_at = $5, curse_at = $2, curse_cooldown = $4
                                       """, ctx.author.id, ctx.guild.id, None, cooldown, None)
 
             if attacker_won:
@@ -759,11 +768,11 @@ class Misc(commands.Cog):
                                      """, member.id, ctx.guild.id, nickname, None, curse_time)
 
 
-            elif not attacker_won and attacker == 1 and defender == 20:
+            elif attacker == 1 and defender == 20:
                 await con.execute("""INSERT INTO cursed_user 
                                           (user_id, curse_at, curse_name, curse_cooldown, curse_ends_at) VALUES 
-                                          ($1, $2, $3, $4, $5) ON CONFLICT DO UPDATE 
-                                          SET curse_ends_at = $5, curse_at = $2, curse_name = $3
+                                          ($1, $2, $3, $4, $5) ON CONFLICT (curse_at, user_id) DO UPDATE 
+                                          SET curse_ends_at = $5, curse_at = $2, curse_name = $3, curse_cooldown = $4
                                           """, ctx.author.id, ctx.guild.id, nickname, cooldown, curse_time)
 
         await ctx.send(message)
