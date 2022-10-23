@@ -136,6 +136,38 @@ class Misc(commands.Cog):
             cmd = commands.Command(callback, name=name, help=cmd_help)
             self.bot.add_command(cmd)
 
+    def format_message(self, member_name: str, nickname: str, attacker: int, defender: int, cooldown: datetime,
+                       starter_message: str = "", attack=True, curse_hours=2) -> [str, datetime]:
+
+        curse_time = discord.utils.utcnow().replace(tzinfo=None) + datetime.timedelta(hours=curse_hours)
+
+        if attack:
+            return self.format_attack(member_name, nickname, attacker, defender, curse_time,
+                                      cooldown, starter_message), curse_time
+
+        return self.format_defence(member_name, nickname, attacker, defender, cooldown, starter_message), curse_time
+
+    def format_defence(self, member_name: str, msg: str, attacker: int, defender: int, cooldown: datetime,
+                       starter_message: str = ""):
+
+        message = starter_message + ":shield: {0} shielded against the blow{1}!\n" \
+                                    ":x: (Attacker: 1d20 ({2}) = {2}) vs. (Defender: 1d20 ({3}) = {3})" \
+                                    "\nyour ability to curse is on cooldown until {4}."
+
+        return message.format(member_name, msg, attacker, defender, h.naturaltime(cooldown))
+
+    def format_attack(self, member_name: str, nickname: str, attacker: int, defender: int,
+                      curse_time: datetime, cooldown: datetime, starter_message: str = ""):
+
+        now = discord.utils.utcnow().replace(tzinfo=None)
+
+        message = starter_message + ":white_check_mark: (Attacker: 1d20 ({0}) = {0}) vs. (Defender: 1d20 ({1}) = {1})" \
+                                    "\nCursed {2}'s to `{3}` until `{4}`.\nYour ability to curse is on cooldown until " \
+                                    "{5}. "
+
+        return message.format(attacker, defender, member_name, nickname, h.naturaltime(now - curse_time),
+                              h.naturaltime(cooldown))
+
     async def get_random_active_member(self, ctx: Context, member: discord.Member):
         """Gets a random active member from the guild"""
         members = [m.author async for m in ctx.channel.history(limit=200)
@@ -634,10 +666,14 @@ class Misc(commands.Cog):
 
     @commands.command()
     @commands.guild_only()
+    @private_guilds_check()
     async def curse(self, ctx: Context, member: discord.Member, *, nickname):
         """Curse a member with a nickname"""
 
         # this command is still hacky and lazily as well as poorly done, but it's w/e
+
+        if len(nickname) > 32:
+            return await ctx.send("The curse name is too long.", delete_after=10)
 
         if ctx.me.guild_permissions.manage_nicknames is False:
             return await ctx.send(":no_entry: | I don't have the `manage nicknames` permission for this command.")
@@ -655,40 +691,30 @@ class Misc(commands.Cog):
 
         attacker, defender = await self.roll_dice(ctx)
 
-        cooldown = discord.utils.utcnow().replace(tzinfo=None) + datetime.timedelta(hours=6)
-
+        cooldown = discord.utils.utcnow().replace(tzinfo=None) + datetime.timedelta(hours=2)
         curse_time = discord.utils.utcnow().replace(tzinfo=None) + datetime.timedelta(hours=1)
-
-        message = ":white_check_mark: (Attacker: 1d20 ({0}) = {0}) vs. (Defender: 1d20 ({1}) = {1})" \
-                  "\nCursed {2}'s to `{3}` until `{4}`.\nYour ability to curse is on cooldown until {5}."
-
-        shielded = ":shield: {0} shielded against the blow{1}!\n" \
-                   ":x: (Attacker: 1d20 ({2}) = {2}) vs. (Defender: 1d20 ({3}) = {3})" \
-                   "\nyour ability to curse is on cooldown until {4}."
-
         now = discord.utils.utcnow().replace(tzinfo=None)
 
         if attacker > defender:
             if defender == 1 and attacker == 20:
-                curse_time = discord.utils.utcnow().replace(tzinfo=None) + datetime.timedelta(days=7)
-                message = ":dart: Nat 20 Critical attack against a critical failure! :dart:\n" + message
-                message = message.format(attacker, defender, member.mention, nickname,
-                                         h.naturaltime(now - curse_time), h.naturaltime(cooldown))
+
+                message = ":dart: Nat 20 Critical attack against a critical failure! :dart:\n"
+                message, curse_time = self.format_message(member.mention, nickname, attacker, defender, cooldown,
+                                                          starter_message=message, curse_hours=168)
             elif attacker == 20:
-                curse_time = discord.utils.utcnow().replace(tzinfo=None) + datetime.timedelta(hours=24)
-                message = ":dart: Nat 20 Critical hit! :dart:\n" + message
-                message = message.format(attacker, defender, member.mention, nickname,
-                                         h.naturaltime(now - curse_time), h.naturaltime(cooldown))
+
+                message = ":dart: Nat 20 Critical hit! :dart:\n"
+                message, curse_time = self.format_message(member.mention, nickname, attacker, defender, cooldown,
+                                              starter_message=message, curse_hours=24)
 
             elif defender == 1:
-                curse_time = discord.utils.utcnow().replace(tzinfo=None) + datetime.timedelta(hours=24)
-                message = ":x: Critical defending failure! :x:\n" + message
-                message = message.format(attacker, defender, member.mention, nickname,
-                                         h.naturaltime(now - curse_time), h.naturaltime(cooldown))
+                message = ":x: Critical defending failure! :x:\n"
+                message, curse_time = self.format_message(member.mention, nickname, attacker, defender, cooldown,
+                                              starter_message=message, curse_hours=24)
+
 
             else:
-                message = message.format(attacker, defender, member.mention, nickname,
-                                         h.naturaltime(now - curse_time), h.naturaltime(cooldown))
+                message, curse_time = self.format_message(member.mention, nickname, attacker, defender, cooldown)
 
         elif defender > attacker:
 
@@ -696,53 +722,53 @@ class Misc(commands.Cog):
 
             if attacker == 1 and defender == 20:
                 cooldown = discord.utils.utcnow().replace(tzinfo=None) + datetime.timedelta(days=7)
-                curse_time = discord.utils.utcnow().replace(tzinfo=None) + datetime.timedelta(days=7)
-                message = shielded
-                message = message.format(member.nick,
-                                         f"...and it ended up being reflected back at {ctx.author.mention}!",
-                                         attacker, defender, h.naturaltime(now - curse_time), h.naturaltime(cooldown))
+
+                message, curse_time = self.format_message(member.nick,
+                                              f"...and it ended up being reflected back at {ctx.author.mention}!",
+                                              attacker, defender, cooldown, curse_hours=168, attack=False)
 
                 member = ctx.author
 
             elif defender == 20:
                 random_member = await self.get_random_active_member(ctx, member) or ctx.author
-                message = shielded
-                message = message.format(member.nick, f"...and it ended up hitting {random_member.mention} by mistake!",
-                                         attacker, defender, h.naturaltime(now - curse_time), h.naturaltime(cooldown))
+
+                message, curse_time = self.format_message(member.nick,
+                                               f"...and it ended up hitting {random_member.mention} by mistake!",
+                                              attacker, defender, cooldown, attack=False)
+
 
                 try:
                     await random_member.edit(nick=nickname)
                     member = random_member
                 except discord.errors.Forbidden:
-                    await ctx.send("An error occurred trying to edit a nickname, probably due role hierarchy.")
+                    return await ctx.send("An error occurred trying to edit a nickname, probably due role hierarchy.")
 
             elif attacker == 1:
                 cooldown = discord.utils.utcnow().replace(tzinfo=None) + datetime.timedelta(days=1)
-                message = ":x: Critical attacking failure! :x:\n" + shielded
-                message = message.format(member.nick, ".", attacker, defender, h.naturaltime(now - curse_time),
-                                         h.naturaltime(cooldown))
+                message, curse_time = self.format_message(member.nick, f".", attacker, defender, cooldown,
+                                              starter_message=":x: Critical attacking failure! :x:\n", attack=False)
+
 
 
             else:
-                message = shielded
-                message = message.format(member.nick, ".", attacker, defender, h.naturaltime(now - curse_time),
-                                         h.naturaltime(cooldown))
+                message, curse_time = self.format_message(member.nick, f".", attacker, defender, cooldown, attack=False)
+
 
         else:
             message = ":crossed_swords: both sides have gotten hurt due to an equal exchange.\n" \
                       ":white_check_mark: (Attacker: 1d20 ({0}) = {0}) vs. (Defender: 1d20 ({1}) = {1})" \
                       "\nCursed {2}'s to `{3}` until `{4}`\n.\nCursed {6}'s to {3} for {4}" \
                       "\nYour ability to curse is on cooldown until {5}.".format(attacker, defender,
-                                                                               member.mention, nickname,
-                                                                               h.naturaltime(now - curse_time),
-                                                                               h.naturaltime(cooldown),
-                                                                               ctx.author.mention)
+                                                                                 member.mention, nickname,
+                                                                                 h.naturaltime(now - curse_time),
+                                                                                 h.naturaltime(cooldown),
+                                                                                 ctx.author.mention)
             try:
 
                 await ctx.author.edit(nick=nickname)
 
             except discord.errors.Forbidden:
-                await ctx.send("An error occurred trying to edit a nickname, probably due role hierarchy.")
+                return await ctx.send("An error occurred trying to edit a nickname, probably due role hierarchy.")
 
         async with ctx.acquire() as con:
 
