@@ -1,5 +1,5 @@
 __cogs__ = [
-
+    "cogs.twitter",
     "cogs.azur_lane",
     "cogs.casino",
     "cogs.error_handler",

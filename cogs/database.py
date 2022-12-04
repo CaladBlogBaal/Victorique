@@ -14,8 +14,8 @@ class Database(commands.Cog):
 
             member_ids = list((data[0],) for data in user_tups)
 
-            await con.execute("""INSERT INTO guilds (guild_id, allow_default) VALUES ($1,$2)
-                                 ON CONFLICT DO NOTHING;""", guild.id, True)
+            await con.execute("""INSERT INTO guilds (guild_id, allow_default, replace_twitter_links) VALUES ($1,$2,$3)
+                                 ON CONFLICT DO NOTHING;""", guild.id, True, False)
 
             await con.executemany("""INSERT INTO users (user_id, name, credits) 
                                      VALUES ($1,$2,$3) ON CONFLICT DO NOTHING;""", user_tups)

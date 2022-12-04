@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS guilds (
     guild_id bigint PRIMARY KEY,
     prefix text,
     allow_default boolean NOT NULL,
+    replace_twitter_links boolean NOT NULL,
     nsfw_channel bigint
 );
 
