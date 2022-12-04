@@ -48,8 +48,11 @@ class Twitter(commands.Cog):
                         if not webhooks:
                             webhook = await message.channel.create_webhook(name="Twitter")
                         else:
-                            webhook = webhooks[0]  # We get the first webhook
-
+                            # check if the bot can use a webhook
+                            for wbh in webhooks:
+                                if wbh.user.id == self.bot.user.id or wbh.is_authenticated() is False:
+                                    webhook = wbh
+                                    break
                         try:
                             return await webhook.send(
                                 content=message.content.replace(match.group(0), new_link),  # The message
