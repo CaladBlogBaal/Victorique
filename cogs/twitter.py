@@ -43,6 +43,11 @@ class Twitter(commands.Cog):
                         if not message.guild:
                             return await message.channel.send(new_link)
 
+                        try:
+                            await message.delete()
+                        except discord.Forbidden:
+                            pass
+
                         webhooks = await message.channel.webhooks()  # We get all the webhooks
                         webhook = None
 
