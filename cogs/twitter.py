@@ -39,12 +39,6 @@ class Twitter(commands.Cog):
 
                 async with self.bot.session.get(new_link) as resp:
                     if resp.status == 200:
-
-                        try:
-                            await message.delete()
-                        except discord.Forbidden:
-                            pass
-
                         # can't send webhooks in DMs
                         if not message.guild:
                             return await message.channel.send(new_link)
@@ -56,11 +50,14 @@ class Twitter(commands.Cog):
                         else:
                             webhook = webhooks[0]  # We get the first webhook
 
-                        return await webhook.send(
-                            content=message.content.replace(match.group(0), new_link),  # The message
-                            username=message.author.display_name,  # The user name
-                            avatar_url=message.author.display_avatar  # the user avatar
-                        )
+                        try:
+                            return await webhook.send(
+                                content=message.content.replace(match.group(0), new_link),  # The message
+                                username=message.author.display_name,  # The user name
+                                avatar_url=message.author.display_avatar  # the user avatar
+                            )
+                        except discord.HTTPException as e:
+                            raise e
 
     @commands.command()
     async def twitter(self, ctx, *, user: str):
