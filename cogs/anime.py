@@ -1,6 +1,8 @@
 import typing
 import discord
 
+from io import BytesIO
+from collections import namedtuple
 from datetime import datetime as d
 from dateutil.relativedelta import relativedelta
 from bs4 import BeautifulSoup
@@ -24,6 +26,7 @@ class Anime(commands.Cog, command_attrs=dict(cooldown=commands.CooldownMapping(c
     def __init__(self, bot):
         self.bot = bot
         self.ani_list_api = AniListApi()
+        self.message = namedtuple("message", "image_url jump_url")
 
     @staticmethod
     @page_source(per_page=1)
@@ -126,6 +129,33 @@ class Anime(commands.Cog, command_attrs=dict(cooldown=commands.CooldownMapping(c
 
         return embed
 
+    async def get_message_embed_image_url(self, message: discord.Message):
+
+        if message.attachments:
+            if "image/" not in message.attachments[0].content_type:
+                return self.message(message.attachments[0].url, message.jump_url)
+
+        elif message.embeds:
+            embed = message.embeds[0]
+            if embed.image:
+                return self.message(embed.image.proxy_url, message.jump_url)
+            # for urls that auto embed with a thumbnail
+            elif embed.thumbnail:
+                return self.message(embed.thumbnail.proxy_url, message.jump_url)
+
+        return None
+
+    async def resolve_reply_image(self, ctx):
+
+        if ctx.message.reference:
+
+            if ctx.message.reference.resolved:
+                message = ctx.message.reference.resolved
+
+                return await self.get_message_embed_image_url(message)
+
+            raise commands.BadArgument("> couldn't resolve the reply.")
+
     async def get_recent_image_urls(self, ctx: Context, skip):
 
         messages = [message async for message in ctx.channel.history()
@@ -144,17 +174,39 @@ class Anime(commands.Cog, command_attrs=dict(cooldown=commands.CooldownMapping(c
 
         for message in messages:
             if message.attachments:
-                image_urls.append(message.attachments[0].proxy_url)
+                image_urls.append(self.message(message.attachments[0].proxy_url, message.jump_url))
 
             else:
                 embed = message.embeds[0]
                 if embed.image:
-                    image_urls.append(embed.image.proxy_url)
+                    image_urls.append(self.message(embed.image.proxy_url, message.jump_url))
                 # for urls that auto embed with a thumbnail
                 elif embed.thumbnail:
-                    image_urls.append(embed.thumbnail.proxy_url)
+                    image_urls.append(self.message(embed.thumbnail.proxy_url, message.jump_url))
 
         return image_urls
+
+    async def build_urls(self, ctx, skip):
+        urls = []
+
+        reply = await self.resolve_reply_image(ctx)
+
+        if reply:
+            urls.append(reply)
+
+        urls.extend(await self.get_recent_image_urls(ctx, skip))
+
+        return urls
+
+    async def send_og_message(self, url, ctx):
+        buffer = BytesIO()
+        async with self.bot.session.get(url.image_url) as resp:
+            buffer.write(await resp.read())
+
+        buffer.seek(0)
+
+        return await ctx.send(f"Message jump url: {url.jump_url} Original image:",
+                              file=discord.File(fp=buffer, filename="image.png"))
 
     async def get_recommendations(self, ctx: Context, js):
         title = js["data"]["Media"]["title"]["english"]
@@ -285,7 +337,7 @@ class Anime(commands.Cog, command_attrs=dict(cooldown=commands.CooldownMapping(c
 
         await ctx.typing()
 
-        urls = await self.get_recent_image_urls(ctx, skip)
+        urls = await self.build_urls(ctx, skip)
 
         if not urls:
             return await ctx.send("> couldn't find a recent image.")
@@ -300,7 +352,7 @@ class Anime(commands.Cog, command_attrs=dict(cooldown=commands.CooldownMapping(c
 
         image = urls[0]
 
-        js = await trace.search(image, anilist=True)
+        js = await trace.search(image.image_url, anilist=True)
 
         safe = False
 
@@ -323,26 +375,31 @@ class Anime(commands.Cog, command_attrs=dict(cooldown=commands.CooldownMapping(c
             msg = f"{msg} set a nsfw channel with `{ctx.prefix}set_nsfw_channel`"
             return await ctx.send(msg, delete_after=10)
 
+        await self.send_og_message(image, ctx)
+
         pages = ctx.menu(self.tracemoe_source(js["result"]))
         await pages.start(ctx)
 
     @commands.command()
     async def saucenao(self, ctx: Context, skip=0):
-        """Performs a reverse image query using saucenao on the last uploaded or embedded image"""
+        """Performs a reverse image query using saucenao on the last uploaded or embedded image, replies also work
+        skip indicates how many images to skip if there are multiple messages with embedded images"""
 
         await ctx.typing()
 
         async with AIOSauceNao(__saucenao_api_key__) as aio:
 
-            urls = await self.get_recent_image_urls(ctx, skip)
+            urls = await self.build_urls(ctx, skip)
 
             if not urls:
                 return await ctx.send("> couldn't find a recent image.")
 
             url = urls[0]
-            try:
 
-                entries = await aio.from_url(url)
+            try:
+                # send image using BytesIO saving it to .png buffer seeking the file and sending it
+                await self.send_og_message(url, ctx)
+                entries = await aio.from_url(url.image_url)
 
             except (errors.LongLimitReachedError, errors.ShortLimitReachedError,
                     errors.BadFileSizeError, errors.UnknownClientError,
