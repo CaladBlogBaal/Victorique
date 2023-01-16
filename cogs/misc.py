@@ -110,7 +110,9 @@ class Misc(commands.Cog):
 
         # Feel like this is cleaner
         # rip Misc Help
-        action_cmd_names = ["slap", "pat", "cuddle", "hug", "poke", "tickle", "kiss"]
+        action_cmd_names = ["slap", "pat", "cuddle", "hug", "poke",
+                            "tickle", "kiss", "dance", "nyah", "shrug", "sleep",
+                            "slowclap"]
         for name in action_cmd_names:
 
             async def callback(ctx: Context, member: typing.Union[discord.Member, discord.User]):
@@ -126,11 +128,18 @@ class Misc(commands.Cog):
                     url = bot_urls.get(ctx.command.name)
                     return await ctx.send(embed=discord.Embed(color=self.bot.default_colors()).set_image(url=url))
 
-                action = ctx.command.name.replace("e", "")
+                action = ctx.command.name.replace("e", "", 1)
+
+                if action.endswith("p"):
+                    action = action + "p"
+
+                elif action in "pat":
+                    action = action + "t"
+
                 content = [f"**{ctx.author.mention} is {action}ing {member.mention}!**"]
                 await ctx.send(
                     embed=await self.bot.api_get_image(content,
-                                                       f"https://nekos.life/api/v2/img/{ctx.command.name}", "url"))
+                                                       f"https://api.otakugifs.xyz/gif?reaction={ctx.command.name}", "url"))
 
             cmd_help = name.capitalize() + " a guild member or user"
             cmd = commands.Command(callback, name=name, help=cmd_help)
