@@ -115,7 +115,10 @@ class Misc(commands.Cog):
                             "slowclap"]
         for name in action_cmd_names:
 
-            async def callback(ctx: Context, member: typing.Union[discord.Member, discord.User]):
+            async def callback(ctx: Context, member: typing.Union[discord.Member, discord.User] = ""):
+
+                if member:
+                    member = member.mention
 
                 bot_urls = {"slap": "https://giffiles.alphacoders.com/197/197854.gif",
                             "pat": "https://thumbs.gfycat.com/ClearFalseFulmar-small.gif",
@@ -136,7 +139,7 @@ class Misc(commands.Cog):
                 elif action in "pat":
                     action = action + "t"
 
-                content = [f"**{ctx.author.mention} is {action}ing {member.mention}!**"]
+                content = [f"**{ctx.author.mention} is {action}ing {member}!**"]
                 await ctx.send(
                     embed=await self.bot.api_get_image(content,
                                                        f"https://api.otakugifs.xyz/gif?reaction={ctx.command.name}", "url"))
