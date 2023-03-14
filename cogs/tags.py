@@ -375,7 +375,7 @@ class Tags(commands.Cog):
         await ctx.send(embed=embed)
 
     @tag.command(aliases=["content", "details", "update"])
-    async def update_content(self, ctx: Context, name: str, *, content: commands.clean_content = None):
+    async def update_content(self, ctx: Context, name: str, *, content: commands.clean_content = ""):
         """Update a tag's content encase the tag's name in quotes if it has spaces
            reply to a message to automatically update the tag with attachment links from the replied message"""
 
@@ -383,9 +383,6 @@ class Tags(commands.Cog):
             message = ctx.message.reference.resolved
             if message:
                 content += await self.get_message_attachments_links(message)
-
-        if not content:
-            return await ctx.send("> :no_entry: | No tag content was passed for this command", delete_after=5)
 
         await self.update_tag_content(ctx, name, content)
 
