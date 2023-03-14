@@ -8,6 +8,7 @@ jishaku>=2.3.2
 Pillow>=6.2.1
 lru-dict>=1.1.6
 lxml>=4.4.1
+humanize>=4.4.0
 psutil >=5.6.2
 git+https://github.com/oliver-ni/discord-ext-menus-views
 git+https://github.com/Rapptz/discord-ext-menus
