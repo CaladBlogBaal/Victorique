@@ -182,6 +182,43 @@ class Tags(commands.Cog):
             return True
         return False
 
+    async def get_message_attachments_links(self, message: discord.Message):
+
+        content = "\n"
+        if message.attachments:
+            content += "\n".join(m.url for m in message.attachments)
+
+        if message.embeds:
+            content += "\n".join(e.image.proxy_url for e in message.embeds if e.image)
+            content = "\n".join(e.thumbnail.proxy_url for e in message.embeds if e.thumbnail)
+
+        return content
+
+    async def update_tag_content(self, ctx: Context, name: str, content: commands.clean_content):
+        name = name.lower()
+
+        check = await ctx.db.fetchval("SELECT tag_name FROM tags WHERE user_id = $1 and guild_id = $2",
+                                      ctx.author.id, ctx.guild.id)
+
+        if check is None:
+            return await ctx.send(f":information_source: you do not have a tag for this guild create one with "
+                                  f"{ctx.prefix}tag create name")
+
+        check = await ctx.db.execute("""UPDATE tags SET content = $1 WHERE guild_id = $2 and user_id = $3 
+                                           and LOWER(tag_name) = $4""",
+                                     content, ctx.guild.id, ctx.author.id, name)
+
+        if check[-1] == "0":
+            return await ctx.send(f":no_entry: | could not edit the tag in question `{name}` do you own it "
+                                  f"and it exists? `note you must encase a tag's name in quotes if it contains "
+                                  f"spaces eg  {ctx.prefix}tag update \"hello world\" hi`")
+        try:
+
+            await ctx.send(f":information_source: | successfully updated tag with content `{content}`.")
+
+        except discord.HTTPException:
+            await ctx.send(f":information_source: | successfully updated tag but content too long to display.")
+
     @commands.Cog.listener()
     async def on_guild_join(self, guild: discord.Guild):
         async with self.bot.pool.acquire() as con:
@@ -338,31 +375,19 @@ class Tags(commands.Cog):
         await ctx.send(embed=embed)
 
     @tag.command(aliases=["content", "details", "update"])
-    async def update_content(self, ctx: Context, name: str, *, content: commands.clean_content):
-        """Update a tag's content encase the tag's name in quotes if it has spaces"""
-        name = name.lower()
+    async def update_content(self, ctx: Context, name: str, *, content: commands.clean_content = None):
+        """Update a tag's content encase the tag's name in quotes if it has spaces
+           reply to a message to automatically update the tag with attachment links from the replied message"""
 
-        check = await ctx.db.fetchval("SELECT tag_name FROM tags WHERE user_id = $1 and guild_id = $2",
-                                      ctx.author.id, ctx.guild.id)
+        if ctx.message.reference:
+            message = ctx.message.reference.resolved
+            if message:
+                content += await self.get_message_attachments_links(message)
 
-        if check is None:
-            return await ctx.send(f":information_source: you do not have a tag for this guild create one with "
-                                  f"{ctx.prefix}tag create name")
+        if not content:
+            return await ctx.send("> :no_entry: | No tag content was passed for this command", delete_after=5)
 
-        check = await ctx.db.execute("""UPDATE tags SET content = $1 WHERE guild_id = $2 and user_id = $3 
-                                        and LOWER(tag_name) = $4""",
-                                     content, ctx.guild.id, ctx.author.id, name)
-
-        if check[-1] == "0":
-            return await ctx.send(f":no_entry: | could not edit the tag in question `{name}` do you own it "
-                                  f"and it exists? `note you must encase a tag's name in quotes if it contains "
-                                  f"spaces eg  {ctx.prefix}tag update \"hello world\" hi`")
-        try:
-
-            await ctx.send(f":information_source: | successfully updated tag with content `{content}`.")
-
-        except discord.HTTPException:
-            await ctx.send(f":information_source: | successfully updated tag but content too long to display.")
+        await self.update_tag_content(ctx, name, content)
 
     @tag.command()
     async def random(self, ctx):
