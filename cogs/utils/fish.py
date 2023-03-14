@@ -1,3 +1,4 @@
+import re
 import random
 import typing
 
@@ -5,9 +6,27 @@ import asyncpg
 import numpy
 import discord
 
+from discord.ext import menus
+
 from config.utils.emojis import SHYBUKI2
-from config.utils.menu import page_source
+from config.utils.menu import page_source, BaseMenu
 from config.utils.context import Context
+
+
+# need to rewrite this later to support the discord.py menus and not the repo
+class FishMenuPages(BaseMenu):
+    def __init__(self, source, **kwargs):
+        super().__init__(source, **kwargs)
+        # forcing the menu to always display buttons
+        self._source.is_paginating = lambda: True
+
+    @menus.button("ℹ️", position=menus.Last(6), lock=True)
+    async def inspect_catch(self, payload):
+        p = re.compile(r"<a?:(\w*):\d*>")
+        fish_name = p.search(await self._source.get_page(self.current_page)).group(1)
+        if fish_name:
+            fish_name = fish_name.replace("Icon", "")
+            await self.ctx.bot.cogs["Azur Lane"].azur_lane_wiki_search(self.ctx, fish_name)
 
 
 class Inventory:
@@ -255,7 +274,7 @@ class Fishing:
         if not entries:
             return await self.ctx.send("No fish were caught.")
 
-        pages = self.ctx.menu(self.catch_source(entries))
+        pages = FishMenuPages(self.catch_source(entries))
         random.shuffle(pages.source.entries)
         await pages.start(self.ctx)
 
@@ -287,10 +306,8 @@ class Fishing:
                                   user_id, rarity_id)
 
         if rarity_id:
-
             rarity = data[0]["rarity"]
             message = f"""{SHYBUKI2} **{user_name}'s current {rarity} fish collection**.\n"""
-
 
         if data == []:
             return await ctx.send(message + "you currently have no fish caught.")

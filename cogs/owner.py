@@ -228,7 +228,7 @@ class OwnerCog(commands.Cog, name="Owner Commands"):
     async def add_fish(self, ctx:  Context, fish_emote: discord.Emoji, rarity_id: FishRarityConventer):
         """Add a fish to the fish table"""
         async with ctx.db.acquire():
-            await ctx.db.execute("""INSERT INTO fish (fish_name, bait_id) VALUES
+            await ctx.db.execute("""INSERT INTO fish (fish_name, rarity_id) VALUES
                                 ($1, $2) ON CONFLICT DO NOTHING""", str(fish_emote), rarity_id)
 
         await ctx.send("successfully updated.")
@@ -238,26 +238,26 @@ class OwnerCog(commands.Cog, name="Owner Commands"):
         """Add the default fish"""
         async with ctx.db.acquire():
             await ctx.db.execute("""
-    INSERT INTO fish (fish_name, bait_id, rarity_id) VALUES ('<:MutsukiIcon:603142310686883860>', 1, 1) ON CONFLICT DO NOTHING;
-    INSERT INTO fish (fish_name, bait_id, rarity_id) VALUES ('<:BeagleIcon:603139176417722368>', 1, 2) ON CONFLICT DO NOTHING;
-    INSERT INTO fish (fish_name, bait_id, rarity_id) VALUES ('<:SaratogaIcon:603137225663709204>', 1, 3) ON CONFLICT DO NOTHING;
-    INSERT INTO fish (fish_name, bait_id, rarity_id) VALUES ('<:LaffeyIcon:603137082373963797>', 1, 3) ON CONFLICT DO NOTHING;
-    INSERT INTO fish (fish_name, bait_id, rarity_id) VALUES ('<:JavelinIcon:603136994410889216>', 1, 3) ON CONFLICT DO NOTHING;
-    INSERT INTO fish (fish_name, bait_id, rarity_id) VALUES ('<:HiryuuIcon:603771548310175808>', 1, 3) ON CONFLICT DO NOTHING;
-    INSERT INTO fish (fish_name, bait_id, rarity_id) VALUES ('<:AkashiIcon:603140892823650307>', 1, 4) ON CONFLICT DO NOTHING;
-    INSERT INTO fish (fish_name, bait_id, rarity_id) VALUES ('<:IllustriousIcon:603141500737421313>', 1, 4) ON CONFLICT DO NOTHING;
-    INSERT INTO fish (fish_name, bait_id, rarity_id) VALUES ('<:AkagiIcon:603137320266498059>', 1, 4) ON CONFLICT DO NOTHING;
-    INSERT INTO fish (fish_name, bait_id, rarity_id) VALUES ('<:KagaIcon:603137459320127543>', 1, 4) ON CONFLICT DO NOTHING;
-    INSERT INTO fish (fish_name, bait_id, rarity_id) VALUES ('<:Saint_LouisIcon:605216882106040342>', 1, 5) ON CONFLICT DO NOTHING;
-    INSERT INTO fish (fish_name, bait_id, rarity_id) VALUES ('<:IbukiIcon:605216888326324225>', 1, 5) ON CONFLICT DO NOTHING;
-    INSERT INTO fish (fish_name, bait_id, rarity_id) VALUES ('<:KitakazeIcon:605216894030446593>', 1, 5) ON CONFLICT DO NOTHING;
-    INSERT INTO fish (fish_name, bait_id, rarity_id) VALUES ('<:GeorgiaIcon:605216899923443732>', 1, 5) ON CONFLICT DO NOTHING;
-    INSERT INTO fish (fish_name, bait_id, rarity_id) VALUES ('<:RoonIcon:605216905736880129>', 1, 5) ON CONFLICT DO NOTHING;
-    INSERT INTO fish (fish_name, bait_id, rarity_id) VALUES ('<:GascogneIcon:605216915597557771>', 1, 5) ON CONFLICT DO NOTHING;
-    INSERT INTO fish (fish_name, bait_id, rarity_id) VALUES ('<:IzumoIcon:605216921725566992>', 1, 5) ON CONFLICT DO NOTHING;
-    INSERT INTO fish (fish_name, bait_id, rarity_id) VALUES ('<:HMS_NeptuneIcon:605216928125943818>', 1, 5) ON CONFLICT DO NOTHING;
-    INSERT INTO fish (fish_name, bait_id, rarity_id) VALUES ('<:SeattleIcon:605216934203752448>', 1, 5) ON CONFLICT DO NOTHING;
-    INSERT INTO fish (fish_name, bait_id, rarity_id) VALUES ('<:MonarchIcon:606868127648710689>', 1, 5) ON CONFLICT DO NOTHING;
+    INSERT INTO fish (fish_name, rarity_id) VALUES ('<:MutsukiIcon:603142310686883860>', 1) ON CONFLICT DO NOTHING;
+    INSERT INTO fish (fish_name, rarity_id) VALUES ('<:BeagleIcon:603139176417722368>', 2) ON CONFLICT DO NOTHING;
+    INSERT INTO fish (fish_name, rarity_id) VALUES ('<:SaratogaIcon:603137225663709204>', 3) ON CONFLICT DO NOTHING;
+    INSERT INTO fish (fish_name, rarity_id) VALUES ('<:LaffeyIcon:603137082373963797>', 3) ON CONFLICT DO NOTHING;
+    INSERT INTO fish (fish_name, rarity_id) VALUES ('<:JavelinIcon:603136994410889216>', 3) ON CONFLICT DO NOTHING;
+    INSERT INTO fish (fish_name, rarity_id) VALUES ('<:HiryuuIcon:603771548310175808>', 3) ON CONFLICT DO NOTHING;
+    INSERT INTO fish (fish_name, rarity_id) VALUES ('<:AkashiIcon:603140892823650307>', 4) ON CONFLICT DO NOTHING;
+    INSERT INTO fish (fish_name, rarity_id) VALUES ('<:IllustriousIcon:603141500737421313>', 4) ON CONFLICT DO NOTHING;
+    INSERT INTO fish (fish_name, rarity_id) VALUES ('<:AkagiIcon:603137320266498059>', 4) ON CONFLICT DO NOTHING;
+    INSERT INTO fish (fish_name, rarity_id) VALUES ('<:KagaIcon:603137459320127543>', 4) ON CONFLICT DO NOTHING;
+    INSERT INTO fish (fish_name, rarity_id) VALUES ('<:Saint_LouisIcon:605216882106040342>', 5) ON CONFLICT DO NOTHING;
+    INSERT INTO fish (fish_name, rarity_id) VALUES ('<:IbukiIcon:605216888326324225>', 5) ON CONFLICT DO NOTHING;
+    INSERT INTO fish (fish_name, rarity_id) VALUES ('<:KitakazeIcon:605216894030446593>', 5) ON CONFLICT DO NOTHING;
+    INSERT INTO fish (fish_name, rarity_id) VALUES ('<:GeorgiaIcon:605216899923443732>', 5) ON CONFLICT DO NOTHING;
+    INSERT INTO fish (fish_name, rarity_id) VALUES ('<:RoonIcon:605216905736880129>', 5) ON CONFLICT DO NOTHING;
+    INSERT INTO fish (fish_name, rarity_id) VALUES ('<:GascogneIcon:605216915597557771>', 5) ON CONFLICT DO NOTHING;
+    INSERT INTO fish (fish_name, rarity_id) VALUES ('<:IzumoIcon:605216921725566992>', 5) ON CONFLICT DO NOTHING;
+    INSERT INTO fish (fish_name, rarity_id) VALUES ('<:HMS_NeptuneIcon:605216928125943818>', 5) ON CONFLICT DO NOTHING;
+    INSERT INTO fish (fish_name, rarity_id) VALUES ('<:SeattleIcon:605216934203752448>', 5) ON CONFLICT DO NOTHING;
+    INSERT INTO fish (fish_name, rarity_id) VALUES ('<:MonarchIcon:606868127648710689>', 5) ON CONFLICT DO NOTHING;
             """)
 
         await ctx.send("Successfully added")
