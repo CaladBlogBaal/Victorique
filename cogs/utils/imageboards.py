@@ -57,7 +57,7 @@ class AnimePicturesNet:
     def __init__(self, ctx, **kwargs):
         self.session = ctx.bot.session
         self.fetch = ctx.bot.fetch
-        self.url = "https://anime-pictures.net/pictures/view_posts/0?"
+        self.url = "https://anime-pictures.net/posts?page=0"
         self.ctx = ctx
         self._image_url = None
         self._tags = None
@@ -80,8 +80,10 @@ class AnimePicturesNet:
 
     @property
     def tags(self):
-        tags = self.soup.find("div", {"id": "tags_descriptions"}).find_all("strong")
-        return " ".join(tag.text for tag in tags)
+        # tags = self.soup.find("div", {"id": "tags_descriptions"}).find_all("strong")
+        # return " ".join(tag.text for tag in tags)
+        a_tags = self.soup.select("ul.tags a.svelte-1a4tkgo")
+        return " ".join(a.get_text(strip=True) for a in a_tags)
 
     @property
     def preview_url(self):
@@ -114,9 +116,13 @@ class AnimePicturesNet:
 
     @property
     def pages(self):
-        divs = self.soup.find_all('div', attrs={'style': 'text-align: center;line-height: 16px;'})
-        text = [a.text for a in divs]
-        return int(text[0].split(" ")[2]) // 80
+        div = self.soup.find("div", attrs={"class": "pagination svelte-1ya7ea7"})
+        last_page_link = div.find_all("a")[-1].get("href")
+        page_string = last_page_link.split("&search")[0]
+        pages = int("".join(c for c in page_string if c.isdigit()))
+        # divs = self.soup.find_all('div', attrs={'style': 'text-align: center;line-height: 16px;'})
+        # text = [a.text for a in divs]
+        return int(pages)
 
     @property
     def posts(self):
