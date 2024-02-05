@@ -19,5 +19,6 @@ __cogs__ = [
     "cogs.tags",
     "cogs.pillow",
     "cogs.youtube",
-    "cogs.database"
+    "cogs.database",
+    "cogs.curse"
     ]

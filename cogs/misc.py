@@ -1,4 +1,3 @@
-import contextlib
 import typing
 import random
 import math
@@ -6,18 +5,13 @@ import re
 import asyncio
 import dateutil.parser
 
-import datetime
-import humanize as h
-
 import discord
-from discord.ext import commands, tasks
+from discord.ext import commands
 from bs4 import BeautifulSoup
 
-from cogs.utils.games import ShuntingYard
 from config.utils.emojis import TRANSPARENT, EXPLOSION, FIRE_ZERO, NUKE, GUN
 from config.utils.checks import private_guilds_check
 from config.utils.menu import page_source
-from config.utils.converters import DieConventer
 from config.utils.context import Context
 
 
@@ -142,96 +136,12 @@ class Misc(commands.Cog):
                 content = [f"**{ctx.author.mention} is {action}ing {member}!**"]
                 await ctx.send(
                     embed=await self.bot.api_get_image(content,
-                                                       f"https://api.otakugifs.xyz/gif?reaction={ctx.command.name}", "url"))
+                                                       f"https://api.otakugifs.xyz/gif?reaction={ctx.command.name}",
+                                                       "url"))
 
             cmd_help = name.capitalize() + " a guild member or user"
             cmd = commands.Command(callback, name=name, help=cmd_help)
             self.bot.add_command(cmd)
-
-    def format_message(self, member_name: str, nickname: str, attacker: int, defender: int, cooldown: datetime,
-                       starter_message: str = "", attack=True, curse_hours=2) -> [str, datetime]:
-
-        curse_time = discord.utils.utcnow().replace(tzinfo=None) + datetime.timedelta(hours=curse_hours)
-
-        if attack:
-            return self.format_attack(member_name, nickname, attacker, defender, curse_time,
-                                      cooldown, starter_message), curse_time
-
-        return self.format_defence(member_name, nickname, attacker, defender, cooldown, starter_message), curse_time
-
-    def format_defence(self, member_name: str, msg: str, attacker: int, defender: int, cooldown: datetime,
-                       starter_message: str = ""):
-
-        message = starter_message + ":shield: {0} shielded against the blow{1}!\n" \
-                                    ":x: (Attacker: 1d20 ({2}) = {2}) vs. (Defender: 1d20 ({3}) = {3})" \
-                                    "\nyour ability to curse is on cooldown until {4}."
-
-        return message.format(member_name, msg, attacker, defender, h.naturaltime(cooldown))
-
-    def format_attack(self, member_name: str, nickname: str, attacker: int, defender: int,
-                      curse_time: datetime, cooldown: datetime, starter_message: str = ""):
-
-        now = discord.utils.utcnow().replace(tzinfo=None)
-
-        message = starter_message + ":white_check_mark: (Attacker: 1d20 ({0}) = {0}) vs. (Defender: 1d20 ({1}) = {1})" \
-                                    "\nCursed {2}'s to `{3}` until `{4}`.\nYour ability to curse is on cooldown until " \
-                                    "{5}. "
-
-        return message.format(attacker, defender, member_name, nickname, h.naturaltime(now - curse_time),
-                              h.naturaltime(cooldown))
-
-    async def get_random_active_member(self, ctx: Context, member: discord.Member):
-        """Gets a random active member from the guild"""
-        members = [m.author async for m in ctx.channel.history(limit=200)
-                   if not m.author.bot and m.author.status != discord.Status.offline and member != m.author]
-
-        return random.choice(members)
-
-    @commands.Cog.listener()
-    async def on_member_update(self, before, after):
-
-        new_name = after.nick
-
-        async with self.bot.pool.acquire() as con:
-            data = await con.fetchrow("""SELECT curse_ends_at AS curse, curse_name AS name 
-                                         FROM cursed_user WHERE user_id = $1""",
-                                      after.id)
-
-            time = data["curse"]
-            cursed_name = data["name"]
-
-            if new_name != cursed_name:
-                if time:
-                    if time > discord.utils.utcnow().replace(tzinfo=None):
-                        with contextlib.suppress(discord.errors.Forbidden):
-                            await after.edit(nick=cursed_name)
-
-    @tasks.loop(hours=1)
-    async def un_curse(self):
-        # probably inefficient as hell but it's w/e
-
-        async with self.bot.pool.acquire() as con:
-            cursed_members = await con.fetch("""SELECT user_id, curse_ends_at AS curse, curse_at
-                                                FROM cursed_user WHERE curse_ends_at IS NOT NULL""")
-
-            for member in cursed_members:
-
-                guild = self.bot.get_guild(member["curse_at"]) or await self.bot.fetch_guild(member["curse_at"])
-
-                time = member["curse"]
-                user_id = member["user_id"]
-
-                member = discord.utils.get(guild.members, id=user_id)
-
-                if time < discord.utils.utcnow().replace(tzinfo=None):
-                    with contextlib.suppress(discord.errors.Forbidden):
-                        await member.edit(nick="")
-
-                    await con.execute("UPDATE cursed_user SET curse_ends_at = Null WHERE user_id = $1", user_id)
-
-    @commands.Cog.listener()
-    async def on_ready(self):
-        self.un_curse.start()
 
     @staticmethod
     def hardcoded_image_list_embed(content, list_in):
@@ -242,21 +152,6 @@ class Misc(commands.Cog):
         embed.set_image(url=random.choice(list_in))
 
         return embed
-
-    async def roll_dice(self, ctx):
-
-        rolls, limit, expression = await DieConventer().convert(ctx, "2d20")
-
-        results = [random.randint(1, limit) for _ in range(rolls)]
-
-        for i, res in enumerate(results):
-            expression.insert(0, str(res))
-
-            results[i] = ShuntingYard(expression).evaluate()
-
-            del expression[0]
-
-        return results[0], results[1]
 
     @staticmethod
     @page_source(per_page=7)
@@ -675,145 +570,6 @@ class Misc(commands.Cog):
 
                 except discord.errors.HTTPException:
                     return
-
-    @commands.command()
-    @commands.guild_only()
-    @private_guilds_check()
-    async def curse(self, ctx: Context, member: discord.Member, *, nickname):
-        """Curse a member with a nickname"""
-
-        # this command is still hacky and lazily as well as poorly done, but it's w/e
-
-        if len(nickname) > 32:
-            return await ctx.send("The curse name is too long.", delete_after=10)
-
-        if ctx.me.guild_permissions.manage_nicknames is False:
-            return await ctx.send(":no_entry: | I don't have the `manage nicknames` permission for this command.")
-
-        if member.bot:
-            return
-
-        check = await ctx.db.fetchval("SELECT curse_cooldown FROM cursed_user WHERE user_id = $1", ctx.author.id)
-
-        if check:
-            if check > discord.utils.utcnow().replace(tzinfo=None):
-                return await ctx.send(f"Your ability to curse is on cooldown until {h.naturaltime(check)}.")
-
-        attacker_won = True
-
-        attacker, defender = await self.roll_dice(ctx)
-
-        cooldown = discord.utils.utcnow().replace(tzinfo=None) + datetime.timedelta(hours=2)
-        curse_time = discord.utils.utcnow().replace(tzinfo=None) + datetime.timedelta(hours=1)
-        now = discord.utils.utcnow().replace(tzinfo=None)
-
-        if attacker > defender:
-            if defender == 1 and attacker == 20:
-
-                message = ":dart: Nat 20 Critical attack against a critical failure! :dart:\n"
-                message, curse_time = self.format_message(member.mention, nickname, attacker, defender, cooldown,
-                                                          starter_message=message, curse_hours=168)
-            elif attacker == 20:
-
-                message = ":dart: Nat 20 Critical hit! :dart:\n"
-                message, curse_time = self.format_message(member.mention, nickname, attacker, defender, cooldown,
-                                              starter_message=message, curse_hours=24)
-
-            elif defender == 1:
-                message = ":x: Critical defending failure! :x:\n"
-                message, curse_time = self.format_message(member.mention, nickname, attacker, defender, cooldown,
-                                              starter_message=message, curse_hours=24)
-
-
-            else:
-                message, curse_time = self.format_message(member.mention, nickname, attacker, defender, cooldown)
-
-        elif defender > attacker:
-
-            attacker_won = False
-
-            if attacker == 1 and defender == 20:
-                cooldown = discord.utils.utcnow().replace(tzinfo=None) + datetime.timedelta(days=7)
-
-                message, curse_time = self.format_message(member.nick,
-                                              f"...and it ended up being reflected back at {ctx.author.mention}!",
-                                              attacker, defender, cooldown, curse_hours=168, attack=False)
-
-                member = ctx.author
-
-            elif defender == 20:
-                random_member = await self.get_random_active_member(ctx, member) or ctx.author
-
-                message, curse_time = self.format_message(member.nick,
-                                               f"...and it ended up hitting {random_member.mention} by mistake!",
-                                              attacker, defender, cooldown, attack=False)
-
-
-                try:
-                    await random_member.edit(nick=nickname)
-                    member = random_member
-                except discord.errors.Forbidden:
-                    return await ctx.send("An error occurred trying to edit a nickname, probably due role hierarchy.")
-
-            elif attacker == 1:
-                cooldown = discord.utils.utcnow().replace(tzinfo=None) + datetime.timedelta(days=1)
-                message, curse_time = self.format_message(member.nick, f".", attacker, defender, cooldown,
-                                              starter_message=":x: Critical attacking failure! :x:\n", attack=False)
-
-
-
-            else:
-                message, curse_time = self.format_message(member.nick, f".", attacker, defender, cooldown, attack=False)
-
-
-        else:
-            message = ":crossed_swords: both sides have gotten hurt due to an equal exchange.\n" \
-                      ":white_check_mark: (Attacker: 1d20 ({0}) = {0}) vs. (Defender: 1d20 ({1}) = {1})" \
-                      "\nCursed {2}'s to `{3}` until `{4}`\n.\nCursed {6}'s to {3} for {4}" \
-                      "\nYour ability to curse is on cooldown until {5}.".format(attacker, defender,
-                                                                                 member.mention, nickname,
-                                                                                 h.naturaltime(now - curse_time),
-                                                                                 h.naturaltime(cooldown),
-                                                                                 ctx.author.mention)
-            try:
-
-                await ctx.author.edit(nick=nickname)
-
-            except discord.errors.Forbidden:
-                return await ctx.send("An error occurred trying to edit a nickname, probably due role hierarchy.")
-
-        async with ctx.acquire() as con:
-
-            await con.execute("""INSERT INTO cursed_user 
-                                      (user_id, curse_at, curse_name, curse_cooldown, curse_ends_at) VALUES 
-                                      ($1, $2, $3, $4, $5) ON CONFLICT (curse_at, user_id) DO UPDATE 
-                                      SET curse_ends_at = $5, curse_at = $2, curse_cooldown = $4
-                                      """, ctx.author.id, ctx.guild.id, None, cooldown, None)
-
-            if attacker_won:
-
-                try:
-
-                    await member.edit(nick=nickname)
-
-                except discord.errors.Forbidden:
-                    await ctx.send("An error occurred trying to edit a nickname, probably due role hierarchy")
-
-                await con.execute("""INSERT INTO cursed_user 
-                                     (user_id, curse_at, curse_name, curse_cooldown, curse_ends_at) VALUES 
-                                     ($1, $2, $3, $4, $5) ON CONFLICT (curse_at, user_id) DO UPDATE 
-                                     SET curse_ends_at = $5, curse_at = $2, curse_name = $3
-                                     """, member.id, ctx.guild.id, nickname, None, curse_time)
-
-
-            elif attacker == 1 and defender == 20:
-                await con.execute("""INSERT INTO cursed_user 
-                                          (user_id, curse_at, curse_name, curse_cooldown, curse_ends_at) VALUES 
-                                          ($1, $2, $3, $4, $5) ON CONFLICT (curse_at, user_id) DO UPDATE 
-                                          SET curse_ends_at = $5, curse_at = $2, curse_name = $3, curse_cooldown = $4
-                                          """, ctx.author.id, ctx.guild.id, nickname, cooldown, curse_time)
-
-        await ctx.send(message)
 
 
 async def setup(bot):
