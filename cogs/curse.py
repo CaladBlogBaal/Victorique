@@ -228,13 +228,17 @@ class Curse(commands.Cog):
                 time = member["curse"]
                 user_id = member["user_id"]
 
-                member = discord.utils.get(guild.members, id=user_id)
+                try:
 
-                if time < discord.utils.utcnow().replace(tzinfo=None):
-                    with contextlib.suppress(discord.errors.Forbidden):
-                        await member.edit(nick="")
+                    member = guild.get_member(user_id) or guild.fetch_member(user_id)
+                    if time < discord.utils.utcnow().replace(tzinfo=None):
+                        with contextlib.suppress(discord.errors.Forbidden):
+                            await member.edit(nick="")
 
-                    await con.execute("UPDATE cursed_user SET curse_ends_at = Null WHERE user_id = $1", user_id)
+                        await con.execute("UPDATE cursed_user SET curse_ends_at = Null WHERE user_id = $1", user_id)
+
+                except discord.HTTPException:
+                    continue
 
     @commands.Cog.listener()
     async def on_ready(self):
