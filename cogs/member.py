@@ -79,8 +79,8 @@ class Members(commands.Cog):
         member = member or ctx.author
 
         embed = discord.Embed(color=self.bot.default_colors())
-        embed.set_author(name=str(member), icon_url=member.avatar.replace(format="png", size=32))
-        embed.set_image(url=member.avatar.replace(static_format="png", size=1024))
+        embed.set_author(name=str(member), icon_url=member.display_avatar.replace(format="png", size=32))
+        embed.set_image(url=member.display_avatar.replace(static_format="png", size=1024))
         await ctx.send(embed=embed)
 
 
