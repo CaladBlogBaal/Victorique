@@ -276,7 +276,8 @@ class Moderation(commands.Cog):
 
         async with ctx.acquire():
             await ctx.db.execute("""
-                            INSERT INTO guilds (guild_id, prefix, allow_default) VALUES ($1, $2, $3)
+                            INSERT INTO guilds (guild_id, prefix, allow_default, replace_twitter_links) 
+                            VALUES ($1, $2, $3, false)
                             ON CONFLICT (guild_id) DO UPDATE SET (prefix, allow_default) = ($2, $3)
                     
                             """, ctx.guild.id, prefix, allow_default)
