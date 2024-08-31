@@ -40,17 +40,16 @@ class Curse(commands.Cog):
         else:
             return "", 2
 
-    def calculate_defense(self, attacker: int, defender: int,
-                          member_name: str, author_name: str) -> (str, int, int, bool):
+    def calculate_defense(self, attacker: int, defender: int, author_name: str) -> (str, int, int):
         if defender == 20:
             if attacker == 1:
-                return f"{member_name}...and it ended up being reflected back at {author_name}!", 168, 168, True
+                return f"...and it ended up being reflected back at {author_name}!", 168, 168
             else:
-                return f"{member_name}...and it ended up hitting someone else by mistake!", 2, 2, False
+                return f"...and it ended up hitting someone else by mistake!", 2, 2
         elif attacker == 1:
-            return ":x: Critical attacking failure! :x:\n", 24, 24, False
+            return ":x: Critical attacking failure! :x:\n", 24, 24
         else:
-            return "", 2, 2, False
+            return "", 2, 2
 
     async def resolve_equal_scenario(self, attacker: int, defender: int, member: discord.Member,
                                      nickname: str, author: discord.Member) -> (str, datetime.datetime):
@@ -84,14 +83,9 @@ class Curse(commands.Cog):
     async def resolve_defense_scenario(self, ctx, attacker: int, defender: int, member: discord.Member,
                                        nickname: str) -> (str, datetime.datetime, datetime.datetime):
 
-        message, curse_hours, cooldown_hours, reflect_back = self.calculate_defense(
-            attacker, defender, member.nick, ctx.author.mention
-        )
+        message, curse_hours, cooldown_hours = self.calculate_defense(attacker, defender, ctx.author.mention)
 
         cooldown = discord.utils.utcnow().replace(tzinfo=None) + datetime.timedelta(hours=cooldown_hours)
-
-        if reflect_back:
-            member = ctx.author
 
         # Handle nickname editing and random member selection
         if "hitting someone else" in message:
@@ -102,12 +96,12 @@ class Curse(commands.Cog):
         curse_time = discord.utils.utcnow().replace(tzinfo=None) + datetime.timedelta(hours=curse_hours)
 
         message = self.format_message(
-            member.mention, nickname, attacker, defender, cooldown, False, curse_time, starter_message=message
+            member.mention, nickname, attacker, defender, cooldown, False, curse_time, msg=message
         )
 
         return message, curse_time, cooldown
 
-    async def record_cursed_event(self, ctx: Context, con, target: discord.Member, nickname: str,
+    async def record_cursed_event(self, ctx: Context, con, target: discord.Member,
                                   curse_time: datetime.datetime, success: bool) -> None:
         """Record a cursed event in the database."""
         await con.execute("""INSERT INTO cursed_event 
@@ -138,6 +132,8 @@ class Curse(commands.Cog):
     async def update_curse_crt_lost(self, ctx: Context, con, cooldown: datetime.datetime, nickname: str,
                                     curse_time: datetime.datetime):
         """Update curse records for a losing attacker."""
+        await self.edit_nickname(ctx.author, nickname)
+
         await con.execute("""INSERT INTO cursed_user 
                                          (user_id, curse_at, curse_name, curse_cooldown, curse_ends_at) VALUES 
                                          ($1, $2, $3, $4, $5) ON CONFLICT (curse_at, user_id) DO UPDATE 
@@ -159,7 +155,7 @@ class Curse(commands.Cog):
             elif attacker == 1 and defender == 20:
                 await self.update_curse_crt_lost(ctx, con, cooldown, nickname, curse_time)
 
-            await self.record_cursed_event(ctx, con, member, nickname, curse_time, success)
+            await self.record_cursed_event(ctx, con, member, curse_time, success)
 
         await ctx.send(message)
 
@@ -194,13 +190,13 @@ class Curse(commands.Cog):
         return namedtuple("curse", ["message", "curse_time", "cooldown"])(message, curse_time, cooldown)
 
     def format_message(self, member_name: str, nickname: str, attacker: int, defender: int, cooldown: datetime,
-                       attack: bool, curse_time: datetime, starter_message: str = "") -> str:
+                       attack: bool, curse_time: datetime, starter_message: str = "", msg: str = "") -> str:
 
         if attack:
             return self.format_attack(member_name, nickname, attacker, defender, curse_time,
                                       cooldown, starter_message)
 
-        return self.format_defence(member_name, nickname, attacker, defender, cooldown, starter_message)
+        return self.format_defence(member_name, msg, attacker, defender, cooldown, starter_message)
 
     def format_defence(self, member_name: str, msg: str, attacker: int, defender: int, cooldown: datetime,
                        starter_message: str = ""):
