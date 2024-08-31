@@ -31,6 +31,15 @@ CREATE TABLE IF NOT EXISTS user_tag_usage (
     uses smallint default 0
 );
 
+CREATE TABLE IF NOT EXISTS cursed_event (
+    id SERIAL PRIMARY KEY,
+    cursed_by_user_id bigint REFERENCES users (user_id),
+    cursed_user_id bigint REFERENCES users (user_id),
+    curse_at bigint REFERENCES guilds (guild_id),
+    curse_success boolean,
+    curse_length interval
+);
+
 CREATE UNIQUE INDEX IF NOT EXISTS user_tag_usage_uniq_idx ON user_tag_usage (user_id, guild_id);
 CREATE UNIQUE INDEX IF NOT EXISTS cursed_user_uniq_idx ON cursed_user (user_id, curse_at);
 

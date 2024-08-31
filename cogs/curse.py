@@ -4,7 +4,7 @@ import random
 import datetime
 import humanize as h
 
-from collections import Counter
+from collections import Counter, namedtuple
 
 import discord
 from discord.ext import commands, tasks
@@ -21,10 +21,10 @@ class Curse(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.emotes = {1: "🥇", 2: "🥈", 3: "🥉"}
+        self.curse = namedtuple("curse", "message curse_time cooldown")
 
     def get_critical_attack_message_and_hours(self, attacker: int, defender: int, member: discord.Member,
-                                              nickname: str, cooldown: datetime.datetime) -> [str, int]:
-
+                                              nickname: str, cooldown: datetime.datetime) -> [str, datetime.datetime]:
         if defender == 1 and attacker == 20:
             message = ":dart: Nat 20 Critical attack against a critical failure! :dart:\n"
             curse_hours = 168
@@ -38,11 +38,16 @@ class Curse(commands.Cog):
             message = ""
             curse_hours = 2
 
-        return self.format_message(member.mention, nickname, attacker, defender, cooldown,
-                                   starter_message=message, curse_hours=curse_hours), curse_hours
+        curse_time = discord.utils.utcnow().replace(tzinfo=None) + datetime.timedelta(hours=curse_hours)
+
+        message = self.format_message(member.mention, nickname, attacker, defender, cooldown,
+                                      starter_message=message, curse_hours=curse_hours)
+
+        return message, curse_time
 
     async def do_defending_message_and_hours(self, ctx, attacker: int, defender: int, member: discord.Member,
-                                             nickname: str, cooldown: datetime.datetime) -> [str, int, datetime]:
+                                             nickname: str, cooldown: datetime.datetime) -> [str, datetime.timedelta,
+                                                                                             datetime.datetime]:
         if defender == 20:
             if attacker == 1:
                 cooldown = discord.utils.utcnow().replace(tzinfo=None) + datetime.timedelta(days=7)
@@ -64,73 +69,93 @@ class Curse(commands.Cog):
             message = ":x: Critical attacking failure! :x:\n"
             curse_hours = 24
         else:
-            message = "."
+            message = ""
             curse_hours = 2
 
-        return self.format_message(member.mention, nickname, attacker, defender, cooldown,
-                                   starter_message=message, curse_hours=curse_hours), curse_hours, cooldown
+        curse_time = discord.utils.utcnow().replace(tzinfo=None) + datetime.timedelta(hours=curse_hours)
+
+        message = self.format_message(member.mention, nickname, attacker, defender, cooldown,
+                                      starter_message=message, curse_hours=curse_hours)
+
+        return message, curse_time, cooldown
+
+    async def record_cursed_event(self, ctx: Context, con, target: discord.Member, nickname: str,
+                                      curse_time: datetime.datetime, success: bool) -> None:
+        """Record a cursed event in the database."""
+        await con.execute("""INSERT INTO cursed_event 
+                            (cursed_by_user_id, cursed_user_id, curse_at, curse_success, curse_length) VALUES 
+                            ($1, $2, $3, $4, $5::interval)""", ctx.author.id, target.id, ctx.guild.id,
+                          success, datetime.timedelta(hours=curse_time.hour))
+
+    async def update_curse_attack(self, ctx: Context, con, cooldown: datetime.datetime) -> None:
+        """Update curse records for a winning attacker."""
+        await con.execute("""INSERT INTO cursed_user 
+                                         (user_id, curse_at, curse_name, curse_cooldown, curse_ends_at) VALUES 
+                                         ($1, $2, $3, $4, $5) ON CONFLICT (curse_at, user_id) DO UPDATE 
+                                         SET curse_ends_at = $5, curse_at = $2, curse_cooldown = $4
+                                         """, ctx.author.id, ctx.guild.id, None, cooldown, None)
+
+    async def update_curse_for_winner(self, ctx: Context, con, target: discord.Member, nickname: str,
+                                      curse_time: datetime.datetime):
+        """Update curse records for a winning attacker."""
+        try:
+
+            await target.edit(nick=nickname)
+
+        except discord.errors.Forbidden:
+            return await ctx.send("An error occurred trying to edit a nickname, probably due role hierarchy")
+
+        await con.execute("""INSERT INTO cursed_user 
+                                    (user_id, curse_at, curse_name, curse_cooldown, curse_ends_at) VALUES 
+                                    ($1, $2, $3, $4, $5) ON CONFLICT (curse_at, user_id) DO UPDATE 
+                                    SET curse_ends_at = $5, curse_at = $2, curse_name = $3
+                                    """, target.id, ctx.guild.id, nickname, None, curse_time)
+
+    async def update_curse_crt_lost(self, ctx: Context, con, cooldown: datetime.datetime, nickname: str,
+                                    curse_time: datetime.datetime):
+        """Update curse records for a losing attacker."""
+        await con.execute("""INSERT INTO cursed_user 
+                                         (user_id, curse_at, curse_name, curse_cooldown, curse_ends_at) VALUES 
+                                         ($1, $2, $3, $4, $5) ON CONFLICT (curse_at, user_id) DO UPDATE 
+                                         SET curse_ends_at = $5, curse_at = $2, curse_name = $3, 
+                                         curse_cooldown = $4
+                                         """, ctx.author.id, ctx.guild.id, nickname, cooldown, curse_time)
 
     async def update_curse_tables(self, ctx, attacker: int, defender: int, nickname: str, message: str,
                                   member: discord.Member, cooldown: datetime.datetime,
                                   curse_time: datetime.datetime) -> None:
 
         async with ctx.acquire() as con:
+            await self.update_curse_attack(ctx, con, cooldown)
+            success = attacker > defender
 
-            await con.execute("""INSERT INTO cursed_user 
-                                             (user_id, curse_at, curse_name, curse_cooldown, curse_ends_at) VALUES 
-                                             ($1, $2, $3, $4, $5) ON CONFLICT (curse_at, user_id) DO UPDATE 
-                                             SET curse_ends_at = $5, curse_at = $2, curse_cooldown = $4
-                                             """, ctx.author.id, ctx.guild.id, None, cooldown, None)
-
-            attacker_won = attacker > defender
-
-            if attacker_won:
-
-                try:
-
-                    await member.edit(nick=nickname)
-
-                except discord.errors.Forbidden:
-                    return await ctx.send("An error occurred trying to edit a nickname, probably due role hierarchy")
-
-                await con.execute("""INSERT INTO cursed_user 
-                                            (user_id, curse_at, curse_name, curse_cooldown, curse_ends_at) VALUES 
-                                            ($1, $2, $3, $4, $5) ON CONFLICT (curse_at, user_id) DO UPDATE 
-                                            SET curse_ends_at = $5, curse_at = $2, curse_name = $3
-                                            """, member.id, ctx.guild.id, nickname, None, curse_time)
+            if success:
+                await self.update_curse_for_winner(ctx, con, member, nickname, curse_time)
 
             elif attacker == 1 and defender == 20:
-                await con.execute("""INSERT INTO cursed_user 
-                                                 (user_id, curse_at, curse_name, curse_cooldown, curse_ends_at) VALUES 
-                                                 ($1, $2, $3, $4, $5) ON CONFLICT (curse_at, user_id) DO UPDATE 
-                                                 SET curse_ends_at = $5, curse_at = $2, curse_name = $3, 
-                                                 curse_cooldown = $4
-                                                 """, ctx.author.id, ctx.guild.id, nickname, cooldown, curse_time)
+                await self.update_curse_crt_lost(ctx, con, cooldown, nickname, curse_time)
 
-            await con.execute("""INSERT INTO cursed_event 
-                                (cursed_by_user_id, cursed_user_id, curse_at, curse_success, curse_length) VALUES 
-                                ($1, $2, $3, $4, $5::interval)""", ctx.author.id, member.id, ctx.guild.id,
-                              attacker_won, datetime.timedelta(hours=curse_time))
+            await self.record_cursed_event(ctx, con, member, nickname, curse_time, success)
 
         await ctx.send(message)
 
     async def attempt_attack(self, ctx, attacker: int, defender: int, member: discord.Member,
-                             nickname: str) -> [str, int, datetime]:
+                             nickname: str) -> namedtuple:
 
         cooldown = discord.utils.utcnow().replace(tzinfo=None) + datetime.timedelta(hours=2)
         curse_time = discord.utils.utcnow().replace(tzinfo=None) + datetime.timedelta(hours=1)
         now = discord.utils.utcnow().replace(tzinfo=None)
 
         if attacker == defender:
-
-            message = ":crossed_swords: both sides have gotten hurt due to an equal exchange.\n" \
-                      ":white_check_mark: (Attacker: 1d20 ({0}) = {0}) vs. (Defender: 1d20 ({1}) = {1})" \
-                      "\nCursed {2}'s to `{3}` until `{4}`\n.\nCursed {6}'s to {3} for {4}" \
-                      "\nYour ability to curse is on cooldown until {5}.".format(attacker, defender,
-                                                                                 member.mention, nickname,
-                                                                                 h.naturaltime(now - curse_time),
-                                                                                 h.naturaltime(cooldown),
-                                                                                 ctx.author.mention)
+            duration = h.naturaltime(now - curse_time)
+            message = (
+                ":crossed_swords: Both sides have gotten hurt due to an equal exchange.\n"
+                f":white_check_mark: (Attacker: 1d20 ({attacker}) = {attacker}) vs. "
+                f"(Defender: 1d20 ({defender}) = {defender})\n"
+                f"Cursed {member.mention}'s to `{nickname}` until `{duration}`.\n"
+                f"Cursed {ctx.author.mention}'s to `{nickname}` for {duration}.\n"
+                f"Your ability to curse is on cooldown until {h.naturaltime(cooldown)}."
+            )
 
             try:
 
@@ -146,44 +171,48 @@ class Curse(commands.Cog):
 
                 message, curse_time = self.get_critical_attack_message_and_hours(attacker, defender,
                                                                                  member, nickname, cooldown)
-
             else:  # defender > attacker
                 message, curse_time, cooldown = await self.do_defending_message_and_hours(ctx, attacker, defender,
                                                                                           member, nickname, cooldown)
 
-        return message, curse_time, cooldown
+        curse = self.curse(message, curse_time, cooldown)
+        return curse
 
     def format_message(self, member_name: str, nickname: str, attacker: int, defender: int, cooldown: datetime,
-                       starter_message: str = "", attack=True, curse_hours=2) -> [str, datetime]:
+                       starter_message: str = "", attack=True, curse_hours=2) -> str:
 
         curse_time = discord.utils.utcnow().replace(tzinfo=None) + datetime.timedelta(hours=curse_hours)
 
         if attack:
             return self.format_attack(member_name, nickname, attacker, defender, curse_time,
-                                      cooldown, starter_message), curse_time
+                                      cooldown, starter_message)
 
-        return self.format_defence(member_name, nickname, attacker, defender, cooldown, starter_message), curse_time
+        return self.format_defence(member_name, nickname, attacker, defender, cooldown, starter_message)
 
     def format_defence(self, member_name: str, msg: str, attacker: int, defender: int, cooldown: datetime,
                        starter_message: str = ""):
 
-        message = starter_message + ":shield: {0} shielded against the blow{1}!\n" \
-                                    ":x: (Attacker: 1d20 ({2}) = {2}) vs. (Defender: 1d20 ({3}) = {3})" \
-                                    "\nyour ability to curse is on cooldown until {4}."
+        message = (
+            f"{starter_message}:shield: {member_name} shielded against the blow{msg}!\n"
+            f":x: (Attacker: 1d20 ({attacker}) = {attacker}) vs. "
+            f"(Defender: 1d20 ({defender}) = {defender})\n"
+            f"Your ability to curse is on cooldown until {h.naturaltime(cooldown)}."
+        )
 
-        return message.format(member_name, msg, attacker, defender, h.naturaltime(cooldown))
+        return message
 
     def format_attack(self, member_name: str, nickname: str, attacker: int, defender: int,
                       curse_time: datetime, cooldown: datetime, starter_message: str = ""):
 
         now = discord.utils.utcnow().replace(tzinfo=None)
 
-        message = starter_message + ":white_check_mark: (Attacker: 1d20 ({0}) = {0}) vs. (Defender: 1d20 ({1}) = {1})" \
-                                    "\nCursed {2}'s to `{3}` until `{4}`.\nYour ability to curse is on cooldown until " \
-                                    "{5}. "
-
-        message = message.format(attacker, defender, member_name, nickname, h.naturaltime(now - curse_time),
-                                 h.naturaltime(cooldown))
+        message = (
+            f"{starter_message}:white_check_mark: "
+            f"(Attacker: 1d20 ({attacker}) = {attacker}) vs. "
+            f"(Defender: 1d20 ({defender}) = {defender})\n"
+            f"Cursed {member_name}'s to `{nickname}` until `{h.naturaltime(now - curse_time)}`.\n"
+            f"Your ability to curse is on cooldown until {h.naturaltime(cooldown)}. "
+        )
 
         return message
 
@@ -284,8 +313,10 @@ class Curse(commands.Cog):
 
         attacker, defender = await self.roll_dice(ctx)
 
-        message, curse_time, cooldown = await self.attempt_attack(ctx, attacker, defender, member, nickname)
-        await self.update_curse_tables(ctx, attacker, defender, nickname, message, member, cooldown, curse_time)
+        curse = await self.attempt_attack(ctx, attacker, defender, member, nickname)
+
+        await self.update_curse_tables(ctx, attacker, defender, nickname, curse.message,
+                                       member, curse.cooldown, curse.curse_time)
 
     @curse.command()
     async def stats(self, ctx, member: typing.Union[discord.Member, discord.User] = None):
