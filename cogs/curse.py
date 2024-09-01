@@ -131,18 +131,17 @@ class Curse(commands.Cog):
                            curse_time: datetime.datetime):
         """Curse the target."""
 
-        await self.edit_nickname(target, nickname)
-
         await con.execute("""INSERT INTO cursed_user 
                                     (user_id, curse_at, curse_name, curse_cooldown, curse_ends_at) VALUES 
                                     ($1, $2, $3, $4, $5) ON CONFLICT (curse_at, user_id) DO UPDATE 
                                     SET curse_ends_at = $5, curse_at = $2, curse_name = $3
                                     """, target.id, ctx.guild.id, nickname, None, curse_time)
 
+        await self.edit_nickname(target, nickname)
+
     async def update_curse_crt_lost(self, ctx: Context, con, cooldown: datetime.datetime, nickname: str,
                                     curse_time: datetime.datetime):
         """Update curse records for a losing attacker."""
-        await self.edit_nickname(ctx.author, nickname)
 
         await con.execute("""INSERT INTO cursed_user 
                                          (user_id, curse_at, curse_name, curse_cooldown, curse_ends_at) VALUES 
@@ -150,6 +149,8 @@ class Curse(commands.Cog):
                                          SET curse_ends_at = $5, curse_at = $2, curse_name = $3, 
                                          curse_cooldown = $4
                                          """, ctx.author.id, ctx.guild.id, nickname, cooldown, curse_time)
+
+        await self.edit_nickname(ctx.author, nickname)
 
     async def update_curse_tables(self, ctx, attacker: int, defender: int, nickname: str, message: str,
                                   member: discord.Member, cooldown: datetime.datetime,
@@ -165,7 +166,7 @@ class Curse(commands.Cog):
             elif attacker == 1 and defender == 20:
                 await self.update_curse_crt_lost(ctx, con, cooldown, nickname, curse_time)
 
-            else:
+            elif attacker == defender:
                 # attacks were equal, curse both
                 await self.curse_target(ctx, con, member, nickname, curse_time)
                 await self.curse_target(ctx, con, ctx.author, nickname, curse_time)
