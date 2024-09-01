@@ -2,6 +2,7 @@ import typing
 import contextlib
 import random
 import datetime
+
 import humanize as h
 
 from collections import namedtuple
@@ -21,6 +22,15 @@ class Curse(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.emotes = {1: "🥇", 2: "🥈", 3: "🥉"}
+
+    async def cog_command_error(self, ctx, error):
+        # reset cooldown if an error is raised during the command
+        if ctx.command.qualified_name == "curse":
+            await self.reset_cooldown(ctx, ctx.author.id, ctx.guild.id)
+
+    async def reset_cooldown(self, ctx: Context, user_id: int, guild_id) -> str:
+        query = "UPDATE cursed_user SET curse_cooldown = null WHERE user_id =  $1 and curse_at = $2"
+        return await ctx.db.execute(query, user_id, guild_id)
 
     async def edit_nickname(self, target: discord.Member, name: str):
         try:
@@ -68,7 +78,6 @@ class Curse(commands.Cog):
                 f"Your ability to curse is on cooldown until {h.naturaltime(cooldown)}."
             )
 
-            await self.edit_nickname(author, nickname)
             return message, curse_time
 
     def resolve_attack_scenario(self, attacker: int, defender: int, member: discord.Member,
@@ -86,14 +95,15 @@ class Curse(commands.Cog):
         message, curse_hours, cooldown_hours = self.calculate_defense(attacker, defender, ctx.author.mention)
 
         cooldown = discord.utils.utcnow().replace(tzinfo=None) + datetime.timedelta(hours=cooldown_hours)
+        curse_time = discord.utils.utcnow().replace(tzinfo=None) + datetime.timedelta(hours=curse_hours)
 
         # Handle nickname editing and random member selection
         if "hitting someone else" in message:
             random_member = await self.get_random_active_member(ctx, member) or ctx.author
             message = message.replace("someone else", random_member.mention)
-            await self.edit_nickname(random_member, nickname)
-
-        curse_time = discord.utils.utcnow().replace(tzinfo=None) + datetime.timedelta(hours=curse_hours)
+            # curse them
+            async with ctx.acquire() as con:
+                await self.curse_target(ctx, con, random_member, nickname, curse_time)
 
         message = self.format_message(
             member.mention, nickname, attacker, defender, cooldown, False, curse_time, msg=message
@@ -117,9 +127,9 @@ class Curse(commands.Cog):
                                          SET curse_ends_at = $5, curse_at = $2, curse_cooldown = $4
                                          """, ctx.author.id, ctx.guild.id, None, cooldown, None)
 
-    async def update_curse_for_winner(self, ctx: Context, con, target: discord.Member, nickname: str,
-                                      curse_time: datetime.datetime):
-        """Update curse records for a winning attacker."""
+    async def curse_target(self, ctx: Context, con, target: discord.Member, nickname: str,
+                           curse_time: datetime.datetime):
+        """Curse the target."""
 
         await self.edit_nickname(target, nickname)
 
@@ -150,10 +160,15 @@ class Curse(commands.Cog):
             success = attacker > defender
 
             if success:
-                await self.update_curse_for_winner(ctx, con, member, nickname, curse_time)
+                await self.curse_target(ctx, con, member, nickname, curse_time)
 
             elif attacker == 1 and defender == 20:
                 await self.update_curse_crt_lost(ctx, con, cooldown, nickname, curse_time)
+
+            else:
+                # attacks were equal, curse both
+                await self.curse_target(ctx, con, member, nickname, curse_time)
+                await self.curse_target(ctx, con, ctx.author, nickname, curse_time)
 
             await self.record_cursed_event(ctx, con, member, curse_time, success)
 
@@ -312,9 +327,10 @@ class Curse(commands.Cog):
             return await ctx.send(":no_entry: | I don't have the `manage nicknames` permission for this command.")
 
         if member.bot:
-            return
+            return await ctx.send(":no_entry: | No cursing bots.")
 
-        check = await ctx.db.fetchval("SELECT curse_cooldown FROM cursed_user WHERE user_id = $1", ctx.author.id)
+        check = await ctx.db.fetchval("SELECT curse_cooldown FROM cursed_user WHERE user_id = $1 AND curse_at = $2",
+                                      ctx.author.id, ctx.guild.id)
 
         if check:
             if check > discord.utils.utcnow().replace(tzinfo=None):
@@ -326,6 +342,12 @@ class Curse(commands.Cog):
 
         await self.update_curse_tables(ctx, attacker, defender, nickname, curse.message,
                                        member, curse.cooldown, curse.curse_time)
+
+    @commands.is_owner()
+    @curse.command()
+    async def reset(self, ctx, target: typing.Union[discord.Member, discord.User] = None):
+        result = await self.reset_cooldown(ctx, target.id, ctx.guild.id)
+        await ctx.send(result)
 
     @curse.command()
     async def stats(self, ctx, member: typing.Union[discord.Member, discord.User] = None):
