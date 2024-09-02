@@ -1,8 +1,11 @@
+import asyncio
 import typing
 import contextlib
 import random
 import datetime
+from asyncio import Lock
 
+import asyncpg
 import humanize as h
 
 from collections import namedtuple
@@ -22,23 +25,72 @@ class Curse(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.emotes = {1: "🥇", 2: "🥈", 3: "🥉"}
+        self.bot = bot
+        self.bot_initiated_changes_lock = Lock()
+        self.bot_initiated_changes = set()  # A set to track bot-initiated nickname changes
+        self.nickname_locks = {}
 
     async def cog_command_error(self, ctx, error):
         # reset cooldown if an error is raised during the command
         if ctx.command.qualified_name == "curse":
             await self.reset_cooldown(ctx, ctx.author.id, ctx.guild.id)
 
+    async def execute_with_retries(self, con: asyncpg.pool.PoolConnectionProxy,
+                                   query: str, *args, max_retries=5, max_delay=6):
+        delay = 1
+        for attempt in range(max_retries):
+            try:
+                async with con.transaction():
+                    # Use an advisory lock to prevent race conditions
+                    await con.execute("SELECT pg_advisory_xact_lock($1)", args[0])
+                    return await con.fetch(query, *args[1:])
+            except asyncpg.exceptions.DeadlockDetectedError:
+                if attempt < max_retries - 1:
+                    await asyncio.sleep(delay)  # Backoff delay before retrying
+                    delay = min(max_delay, delay * 2) + random.uniform(0, 1)
+                else:
+                    raise  # Re-raise the exception if the maximum number of retries is reached
+
     async def reset_cooldown(self, ctx: Context, user_id: int, guild_id) -> str:
         query = "UPDATE cursed_user SET curse_cooldown = null WHERE user_id =  $1 and curse_at = $2"
         return await ctx.db.execute(query, user_id, guild_id)
 
+    async def retry_with_backoff(self, func, retries=3, initial_delay=1, max_delay=10, *args, **kwargs):
+        delay = initial_delay
+        for attempt in range(retries):
+            try:
+                return await func(*args, **kwargs)
+
+            except discord.errors.Forbidden:
+                raise commands.BadArgument("An error occurred trying to edit a nickname, probably due role hierarchy")
+            except (discord.HTTPException, Exception) as e:
+                if attempt == retries - 1:
+                    raise e
+                await asyncio.sleep(delay)
+                # multiplies the current delay by 2, doubling it each time the retry is attempted, with jitter
+                # to spread out retries
+                delay = min(max_delay, delay * 2) + random.uniform(0, 1)
+
     async def edit_nickname(self, target: discord.Member, name: str):
-        try:
+        lock = self.nickname_locks.setdefault(target.id, Lock())
 
-            await target.edit(nick=name)
+        async def _edit_nick():
+            async with lock:
+                # Track the bot-initiated change
+                async with self.bot_initiated_changes_lock:
+                    self.bot_initiated_changes.add(target.id)
 
-        except discord.errors.Forbidden:
-            raise commands.BadArgument("An error occurred trying to edit a nickname, probably due role hierarchy")
+                try:
+                    await target.edit(nick=name)
+                finally:
+                    # Make sure to remove the ID from tracking after the change
+                    async with self.bot_initiated_changes_lock:
+                        self.bot_initiated_changes.remove(target.id)
+                    # Clean up the lock if no other task is waiting for it
+                    if lock.locked():
+                        self.nickname_locks.pop(target.id, None)
+
+        await self.retry_with_backoff(_edit_nick)
 
     def calculate_critical_attack(self, attacker: int, defender: int) -> (str, int):
         if defender == 1 and attacker == 20:
@@ -156,22 +208,23 @@ class Curse(commands.Cog):
                                   member: discord.Member, cooldown: datetime.datetime,
                                   curse_time: datetime.datetime) -> None:
 
-        async with ctx.acquire() as con:
-            await self.update_curse_attack(ctx, con, cooldown)
-            success = attacker > defender
+        async with ctx.bot.pool.acquire() as con:
+            async with con.transaction():
+                await self.update_curse_attack(ctx, con, cooldown)
+                success = attacker > defender
 
-            if success:
-                await self.curse_target(ctx, con, member, nickname, curse_time)
+                if success:
+                    await self.curse_target(ctx, con, member, nickname, curse_time)
 
-            elif attacker == 1 and defender == 20:
-                await self.update_curse_crt_lost(ctx, con, cooldown, nickname, curse_time)
+                elif attacker == 1 and defender == 20:
+                    await self.update_curse_crt_lost(ctx, con, cooldown, nickname, curse_time)
 
-            elif attacker == defender:
-                # attacks were equal, curse both
-                await self.curse_target(ctx, con, member, nickname, curse_time)
-                await self.curse_target(ctx, con, ctx.author, nickname, curse_time)
+                elif attacker == defender:
+                    # attacks were equal, curse both
+                    await self.curse_target(ctx, con, member, nickname, curse_time)
+                    await self.curse_target(ctx, con, ctx.author, nickname, curse_time)
 
-            await self.record_cursed_event(ctx, con, member, curse_time, success)
+                await self.record_cursed_event(ctx, con, member, curse_time, success)
 
         await ctx.send(message)
 
@@ -250,14 +303,32 @@ class Curse(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_update(self, before, after):
+        # Only proceed if the nickname changed
+        if before.nick == after.nick:
+            return
 
+        async with self.bot_initiated_changes_lock:
+            if after.id in self.bot_initiated_changes:
+                # If the bot initiated this change, ignore it
+                return
+
+        # Mark this user ID to avoid processing further changes initiated by the bot
+        self.bot_initiated_changes.add(after.id)
         new_name = after.nick
+        lock_key = after.id  # Use the user ID as the lock key
 
         async with self.bot.pool.acquire() as con:
-            data = await con.fetchrow("""SELECT curse_ends_at AS curse, curse_name AS name 
-                                         FROM cursed_user WHERE user_id = $1""",
-                                      after.id)
+            data = await self.execute_with_retries(
+                con,
+                """SELECT curse_ends_at AS curse, curse_name AS name 
+                   FROM cursed_user WHERE user_id = $1""",
+                lock_key, after.id
+            )
 
+            if not data:
+                return
+
+            data = data[0]
             time = data["curse"]
             cursed_name = data["name"]
 
@@ -265,16 +336,14 @@ class Curse(commands.Cog):
                 if time:
                     if time > discord.utils.utcnow().replace(tzinfo=None):
                         with contextlib.suppress(discord.errors.Forbidden):
-                            await after.edit(nick=cursed_name)
+                            await self.edit_nickname(after, cursed_name)
 
     @tasks.loop(hours=1)
     async def un_curse(self):
         # probably inefficient as hell but it's w/e
-
         async with self.bot.pool.acquire() as con:
             cursed_members = await con.fetch("""SELECT user_id, curse_ends_at AS curse, curse_at
                                                 FROM cursed_user WHERE curse_ends_at IS NOT NULL""")
-
             for member in cursed_members:
 
                 guild = self.bot.get_guild(member["curse_at"]) or await self.bot.fetch_guild(member["curse_at"])
@@ -285,11 +354,17 @@ class Curse(commands.Cog):
                 try:
 
                     member = guild.get_member(user_id) or guild.fetch_member(user_id)
-                    if time < discord.utils.utcnow().replace(tzinfo=None):
-                        with contextlib.suppress(discord.errors.Forbidden):
-                            await member.edit(nick="")
 
-                        await con.execute("UPDATE cursed_user SET curse_ends_at = Null WHERE user_id = $1", user_id)
+                    if time < discord.utils.utcnow().replace(tzinfo=None):
+
+                        user_id = lock_key = member.id  # Use the user ID as the lock key
+
+                        await self.execute_with_retries(
+                            con,
+                            "UPDATE cursed_user SET curse_ends_at = Null WHERE user_id = $1",
+                            lock_key, user_id
+                        )
+                        await self.edit_nickname(member, "")
 
                 except discord.HTTPException:
                     continue
@@ -349,6 +424,10 @@ class Curse(commands.Cog):
     async def reset(self, ctx, target: typing.Union[discord.Member, discord.User] = None):
         result = await self.reset_cooldown(ctx, target.id, ctx.guild.id)
         await ctx.send(result)
+
+    # @curse.command()
+    # async def test(self, ctx):
+    #    await self.edit_nickname(ctx.author, "test")
 
     @curse.command()
     async def stats(self, ctx, member: typing.Union[discord.Member, discord.User] = None):
