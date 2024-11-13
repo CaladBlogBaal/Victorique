@@ -4,6 +4,7 @@ import contextlib
 import random
 import datetime
 from asyncio import Lock
+from typing import Union, Tuple
 
 import asyncpg
 import humanize as h
@@ -356,7 +357,6 @@ class Curse(commands.Cog):
                     member = guild.get_member(user_id) or guild.fetch_member(user_id)
 
                     if time < discord.utils.utcnow().replace(tzinfo=None):
-
                         user_id = lock_key = member.id  # Use the user ID as the lock key
 
                         await self.execute_with_retries(
@@ -429,13 +429,21 @@ class Curse(commands.Cog):
     # async def test(self, ctx):
     #    await self.edit_nickname(ctx.author, "test")
 
-    @curse.command()
+    @curse.group(invoke_without_command=True)
     async def stats(self, ctx, member: typing.Union[discord.Member, discord.User] = None):
-        """Get statistics for the current guild or a guild member"""
+        """Get curse statistics for the current guild or a guild member"""
         if not member:
             return await self.get_guild_stats(ctx)
 
         await self.get_member_stats(ctx, member)
+
+    @stats.command(aliases=["defense", "d", "defend"])
+    async def defence(self, ctx, member: typing.Union[discord.Member, discord.User] = None):
+        """Get defence statistics for the current guild or a guild member"""
+        if not member:
+            return await self.get_defense_stats(ctx)
+
+        await self.get_member_defense_stats(ctx, member)
 
     def build_embed(self, title: str, description: str, fields: list, author: discord.Member = None) -> discord.Embed:
         embed = discord.Embed(title=title, description=description, color=self.bot.default_colors())
@@ -447,6 +455,74 @@ class Curse(commands.Cog):
 
     def calculate_success_rate(self, total_curses: int, successful_curses: int) -> float:
         return successful_curses / total_curses if total_curses > 0 else 0
+
+    async def get_member_defense_stats(self, ctx, member: discord.Member):
+        query = """
+        WITH stats AS (
+                    SELECT cursed_user_id, COUNT(*) as total_curses,
+                        SUM(CASE WHEN not curse_success THEN 1 ELSE 0 END) as successful_defense,
+                        RANK() OVER (ORDER BY COUNT(*) DESC ) rank
+                    FROM cursed_event
+                    WHERE curse_at = $1 AND cursed_user_id = $2 
+                    GROUP BY cursed_user_id)
+                    SELECT cursed_user_id, total_curses, successful_defense as sd, rank
+                    FROM stats
+                    LIMIT 1
+        """
+
+        data = await ctx.db.fetchrow(query, ctx.guild.id, member.id)
+
+        if not data:
+            return await ctx.send(f"> {member.name} hasn't cursed anyone yet for this guild.")
+
+        success_rate = self.calculate_success_rate(data["total_curses"], data["sd"])
+
+        fields = [
+            ("Attacked count", h.intcomma(data["total_curses"])),
+            ("Success defense rate", f"{success_rate:.1%}")
+        ]
+
+        embed = self.build_embed(title="Member Stats", description="", fields=fields, author=member)
+
+        await ctx.send(embed=embed)
+
+    async def get_defense_stats(self, ctx):
+        query = """
+        WITH stats AS (
+                    SELECT cursed_user_id, COUNT(*) as total_curses,
+                        SUM(CASE WHEN not curse_success THEN 1 ELSE 0 END) as successful_defense,
+                        RANK() OVER (ORDER BY COUNT(*) DESC ) rank
+                    FROM cursed_event
+                    WHERE curse_at = $1
+                    GROUP BY cursed_user_id)
+                    SELECT cursed_user_id, total_curses as tc, successful_defense as sd, rank
+                    FROM stats
+        """
+        data = await ctx.db.fetch(query, ctx.guild.id)
+
+        if not data:
+            return await ctx.send("> No curses have happened yet for this guild.")
+
+        top_successful_defenders = sorted(data, key=lambda r: self.calculate_success_rate(r["tc"], r["sd"]),
+                                          reverse=True)[:3]
+
+        total_curses = sum(r["tc"] for r in data)
+        total_sc = sum(r["sd"] for r in data)
+
+        description = f"{total_curses} curses, of which {self.calculate_success_rate(total_curses, total_sc):.1%} " \
+                      f"were defended"
+
+        success_field = "\n".join(f"{self.emotes[i + 1]}: <@{r['cursed_user_id']}> "
+                                  f"(defended {self.calculate_success_rate(r['tc'], r['sd']):.1%} of {r['tc']} curses)"
+                                  for i, r in enumerate(top_successful_defenders))
+
+        fields = [
+            ("Most successful defenders(s)", success_field)
+        ]
+
+        embed = self.build_embed(title="Defence Stats", description=description, fields=fields)
+
+        await ctx.send(embed=embed)
 
     async def get_guild_stats(self, ctx):
         query = """
